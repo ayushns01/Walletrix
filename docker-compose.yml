@@ -1,0 +1,86 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: walletrix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: walletrix
+      POSTGRES_USER: walletrix
+      POSTGRES_PASSWORD: walletrix_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - walletrix-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: walletrix-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - walletrix-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: walletrix-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://walletrix:walletrix_password@postgres:5432/walletrix
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: development-jwt-secret-change-in-production
+      API_PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - walletrix-network
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: walletrix-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_APP_ENV: development
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - walletrix-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  walletrix-network:
+    driver: bridge
