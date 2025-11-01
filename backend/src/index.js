@@ -6,6 +6,10 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import walletRoutes from './routes/walletRoutes.js';
+import blockchainRoutes from './routes/blockchainRoutes.js';
+import tokenRoutes from './routes/tokenRoutes.js';
+import priceRoutes from './routes/priceRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -69,15 +73,50 @@ app.get('/api/v1', (req, res) => {
         encrypt: 'POST /api/v1/wallet/encrypt',
         decrypt: 'POST /api/v1/wallet/decrypt',
       },
-      transactions: 'Coming soon',
-      balance: 'Coming soon',
-      prices: 'Coming soon',
+      blockchain: {
+        ethereumBalance: 'GET /api/v1/blockchain/ethereum/balance/:address',
+        bitcoinBalance: 'GET /api/v1/blockchain/bitcoin/balance/:address',
+        ethereumTransactions: 'GET /api/v1/blockchain/ethereum/transactions/:address',
+        bitcoinTransactions: 'GET /api/v1/blockchain/bitcoin/transactions/:address',
+        gasPrice: 'GET /api/v1/blockchain/ethereum/gas-price',
+        bitcoinFeeEstimate: 'GET /api/v1/blockchain/bitcoin/fee-estimate',
+        getTransaction: 'GET /api/v1/blockchain/transaction/:network/:txHash',
+      },
+      tokens: {
+        info: 'GET /api/v1/tokens/info/:tokenAddress',
+        balance: 'GET /api/v1/tokens/balance/:tokenAddress/:address',
+        multipleBalances: 'POST /api/v1/tokens/balances/multiple',
+        popularBalances: 'GET /api/v1/tokens/balances/popular/:address',
+        popularList: 'GET /api/v1/tokens/popular',
+      },
+      prices: {
+        getPrice: 'GET /api/v1/prices/:coinId',
+        multiplePrices: 'POST /api/v1/prices/multiple',
+        popularPrices: 'GET /api/v1/prices/list/popular',
+        coinData: 'GET /api/v1/prices/coin/:coinId',
+        chart: 'GET /api/v1/prices/chart/:coinId',
+        search: 'GET /api/v1/prices/search/query',
+        trending: 'GET /api/v1/prices/list/trending',
+        topCoins: 'GET /api/v1/prices/list/top',
+      },
+      transactions: {
+        sendEthereum: 'POST /api/v1/transactions/ethereum/send',
+        sendToken: 'POST /api/v1/transactions/token/send',
+        sendBitcoin: 'POST /api/v1/transactions/bitcoin/send',
+        createEthereum: 'POST /api/v1/transactions/ethereum/create',
+        createToken: 'POST /api/v1/transactions/token/create',
+        createBitcoin: 'POST /api/v1/transactions/bitcoin/create',
+      },
     },
   });
 });
 
-// Use wallet routes
+// Use all routes
 app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/blockchain', blockchainRoutes);
+app.use('/api/v1/tokens', tokenRoutes);
+app.use('/api/v1/prices', priceRoutes);
+app.use('/api/v1/transactions', transactionRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
