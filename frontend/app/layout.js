@@ -1,17 +1,39 @@
+'use client'
+
 import { Toaster } from 'react-hot-toast'
 import './globals.css'
-
-export const metadata = {
-  title: 'Walletrix - Your Crypto Wallet',
-  description: 'Secure cryptocurrency wallet for managing your digital assets',
-}
+import { WalletProvider } from '@/contexts/WalletContext'
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {children}
-        <Toaster position="top-right" />
+        <WalletProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                border: '1px solid #374151',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#a855f7',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </WalletProvider>
       </body>
     </html>
   )
