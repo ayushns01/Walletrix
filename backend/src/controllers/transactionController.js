@@ -13,7 +13,7 @@ class TransactionController {
    */
   async sendEthereumTransaction(req, res) {
     try {
-      const { privateKey, to, value, gasLimit, gasPrice, nonce, data } = req.body;
+      const { privateKey, to, value, gasLimit, gasPrice, nonce, data, network = 'mainnet' } = req.body;
 
       // Validate required fields
       if (!privateKey || !to || value === undefined) {
@@ -23,15 +23,25 @@ class TransactionController {
         });
       }
 
+      console.log('Sending ETH transaction:', {
+        to,
+        value,
+        network,
+        from: 'wallet-address-hidden'
+      });
+
       const result = await transactionService.sendEthereumTransaction(
         privateKey,
         to,
         value,
-        gasLimit,
-        gasPrice,
-        nonce,
-        data
+        network
       );
+
+      console.log('Transaction result:', {
+        success: result.success,
+        txHash: result.txHash,
+        error: result.error
+      });
 
       if (!result.success) {
         return res.status(400).json(result);

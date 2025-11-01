@@ -14,6 +14,7 @@ export function WalletProvider({ children }) {
   const [prices, setPrices] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState('ethereum-mainnet');
 
   // Load wallet from localStorage
   useEffect(() => {
@@ -29,7 +30,22 @@ export function WalletProvider({ children }) {
     }
   }, []);
 
-  // Fetch balances when wallet is unlocked
+  // Load selected network from localStorage
+  useEffect(() => {
+    const savedNetwork = localStorage.getItem('walletrix_network');
+    if (savedNetwork) {
+      setSelectedNetwork(savedNetwork);
+    }
+  }, []);
+
+  // Save selected network to localStorage
+  useEffect(() => {
+    if (selectedNetwork) {
+      localStorage.setItem('walletrix_network', selectedNetwork);
+    }
+  }, [selectedNetwork]);
+
+  // Fetch balances when wallet is unlocked or network changes
   useEffect(() => {
     if (wallet && !isLocked) {
       fetchBalances();
@@ -37,7 +53,7 @@ export function WalletProvider({ children }) {
       fetchPrices();
       fetchTransactions();
     }
-  }, [wallet, isLocked]);
+  }, [wallet, isLocked, selectedNetwork]);
 
   // Generate new wallet
   const generateWallet = async (password) => {
@@ -140,22 +156,56 @@ export function WalletProvider({ children }) {
     toast.success('Wallet locked');
   };
 
+  // Get network info from selected network
+  const getNetworkInfo = () => {
+    const [chain, network] = selectedNetwork.split('-');
+    return { chain, network };
+  };
+
   // Fetch balances
   const fetchBalances = async () => {
     if (!wallet) return;
     
     try {
-      const [ethBalance, btcBalance] = await Promise.all([
-        blockchainAPI.getEthereumBalance(wallet.ethereum.address),
-        blockchainAPI.getBitcoinBalance(wallet.bitcoin.address),
-      ]);
+      const { chain, network } = getNetworkInfo();
       
-      setBalances({
-        ethereum: ethBalance.data?.balance || '0',
-        bitcoin: btcBalance.data?.balance || '0',
-      });
+      console.log('Fetching balances for:', { chain, network, address: wallet[chain]?.address });
+      
+      if (chain === 'ethereum') {
+        const ethBalance = await blockchainAPI.getEthereumBalance(wallet.ethereum.address, network);
+        console.log('ETH Balance API response:', ethBalance);
+        
+        if (ethBalance.success) {
+          const balance = ethBalance.balance?.eth || ethBalance.data?.balance || '0';
+          console.log('Setting ETH balance to:', balance);
+          setBalances({
+            ethereum: balance,
+            bitcoin: '0',
+          });
+        } else {
+          console.log('ETH balance fetch failed, setting to 0');
+          setBalances({ ethereum: '0', bitcoin: '0' });
+        }
+      } else if (chain === 'bitcoin') {
+        const btcBalance = await blockchainAPI.getBitcoinBalance(wallet.bitcoin.address, network);
+        console.log('BTC Balance API response:', btcBalance);
+        
+        if (btcBalance.success) {
+          const balance = btcBalance.balance?.btc || btcBalance.data?.balance || '0';
+          console.log('Setting BTC balance to:', balance);
+          setBalances({
+            ethereum: '0',
+            bitcoin: balance,
+          });
+        } else {
+          console.log('BTC balance fetch failed, setting to 0');
+          setBalances({ ethereum: '0', bitcoin: '0' });
+        }
+      }
     } catch (error) {
       console.error('Error fetching balances:', error);
+      // Set to zero on error, don't crash
+      setBalances({ ethereum: '0', bitcoin: '0' });
     }
   };
 
@@ -164,13 +214,25 @@ export function WalletProvider({ children }) {
     if (!wallet) return;
     
     try {
-      const response = await tokenAPI.getPopularTokenBalances(wallet.ethereum.address);
+      const { chain, network } = getNetworkInfo();
       
-      if (response.success) {
-        setTokens(response.data.balances || []);
+      // Only fetch tokens for Ethereum networks
+      if (chain === 'ethereum') {
+        const response = await tokenAPI.getPopularTokenBalances(wallet.ethereum.address, network);
+        
+        if (response && response.success && response.tokens) {
+          setTokens(response.tokens);
+        } else {
+          // Silently handle errors or missing data
+          setTokens([]);
+        }
+      } else {
+        setTokens([]);
       }
     } catch (error) {
       console.error('Error fetching token balances:', error);
+      // Don't show error to user, just set empty tokens
+      setTokens([]);
     }
   };
 
@@ -179,15 +241,36 @@ export function WalletProvider({ children }) {
     try {
       const response = await priceAPI.getPopularPrices('usd');
       
-      if (response.success) {
+      console.log('Price API response:', response);
+      
+      if (response.success && response.prices) {
         const priceMap = {};
-        response.data.prices.forEach(coin => {
-          priceMap[coin.id] = coin;
+        response.prices.forEach(coin => {
+          // Map the coin data to the expected format
+          if (coin.coin === 'ethereum') {
+            priceMap.ethereum = {
+              current_price: coin.price,
+              market_cap: coin.marketCap,
+              price_change_percentage_24h: coin.change24h
+            };
+          }
+          if (coin.coin === 'bitcoin') {
+            priceMap.bitcoin = {
+              current_price: coin.price,
+              market_cap: coin.marketCap,
+              price_change_percentage_24h: coin.change24h
+            };
+          }
         });
+        console.log('Mapped prices:', priceMap);
         setPrices(priceMap);
+      } else {
+        console.log('Price fetch failed or no data');
+        setPrices({});
       }
     } catch (error) {
       console.error('Error fetching prices:', error);
+      setPrices({});
     }
   };
 
@@ -196,19 +279,43 @@ export function WalletProvider({ children }) {
     if (!wallet) return;
     
     try {
-      const [ethTxs, btcTxs] = await Promise.all([
-        blockchainAPI.getEthereumTransactions(wallet.ethereum.address, 1, 10),
-        blockchainAPI.getBitcoinTransactions(wallet.bitcoin.address),
-      ]);
+      const { chain, network } = getNetworkInfo();
       
-      const allTxs = [
-        ...(ethTxs.data?.transactions || []).map(tx => ({ ...tx, network: 'ethereum' })),
-        ...(btcTxs.data?.transactions || []).map(tx => ({ ...tx, network: 'bitcoin' })),
-      ];
+      console.log('Fetching transactions for:', { chain, network, address: wallet[chain]?.address });
       
-      setTransactions(allTxs);
+      if (chain === 'ethereum') {
+        const ethTxs = await blockchainAPI.getEthereumTransactions(wallet.ethereum.address, 1, 10, network);
+        console.log('Ethereum transactions API response:', ethTxs);
+        
+        if (ethTxs.success) {
+          const allTxs = (ethTxs.data?.transactions || []).map(tx => ({ 
+            ...tx, 
+            network: `${chain}-${network}` 
+          }));
+          console.log('Setting transactions:', allTxs);
+          setTransactions(allTxs);
+        } else {
+          console.log('Transaction fetch failed, setting empty array');
+          setTransactions([]);
+        }
+      } else if (chain === 'bitcoin') {
+        const btcTxs = await blockchainAPI.getBitcoinTransactions(wallet.bitcoin.address, network);
+        console.log('Bitcoin transactions API response:', btcTxs);
+        
+        if (btcTxs.success) {
+          const allTxs = (btcTxs.data?.transactions || []).map(tx => ({ 
+            ...tx, 
+            network: `${chain}-${network}` 
+          }));
+          setTransactions(allTxs);
+        } else {
+          setTransactions([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      // Don't show error to user, just set empty transactions
+      setTransactions([]);
     }
   };
 
@@ -244,6 +351,8 @@ export function WalletProvider({ children }) {
     prices,
     transactions,
     loading,
+    selectedNetwork,
+    setSelectedNetwork,
     generateWallet,
     importWallet,
     unlockWallet,

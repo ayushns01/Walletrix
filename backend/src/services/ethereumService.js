@@ -8,35 +8,39 @@ import axios from 'axios';
 
 class EthereumService {
   constructor() {
-    // Initialize providers
+    // Initialize providers as null - they'll be created lazily
     this.providers = {
       mainnet: null,
       sepolia: null,
       goerli: null,
     };
     
-    this.initializeProviders();
+    this._initialized = false;
   }
 
   /**
-   * Initialize RPC providers
+   * Initialize RPC providers (called lazily)
    */
   initializeProviders() {
+    if (this._initialized) return;
+    
     try {
       // Mainnet provider (using public RPC or Infura/Alchemy if configured)
-      const mainnetRpc = process.env.ETHEREUM_MAINNET_RPC || 'https://eth.public-rpc.com';
+      const mainnetRpc = process.env.ETHEREUM_MAINNET_RPC || 'https://ethereum.publicnode.com';
       this.providers.mainnet = new ethers.JsonRpcProvider(mainnetRpc);
 
-      // Testnet providers
-      if (process.env.ETHEREUM_SEPOLIA_RPC) {
-        this.providers.sepolia = new ethers.JsonRpcProvider(process.env.ETHEREUM_SEPOLIA_RPC);
-      }
+      // Sepolia testnet provider
+      const sepoliaRpc = process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com';
+      this.providers.sepolia = new ethers.JsonRpcProvider(sepoliaRpc);
       
-      if (process.env.ETHEREUM_GOERLI_RPC) {
-        this.providers.goerli = new ethers.JsonRpcProvider(process.env.ETHEREUM_GOERLI_RPC);
-      }
+      // Goerli testnet provider
+      const goerliRpc = process.env.ETHEREUM_GOERLI_RPC || 'https://ethereum-goerli.publicnode.com';
+      this.providers.goerli = new ethers.JsonRpcProvider(goerliRpc);
 
-      console.log('✅ Ethereum providers initialized');
+      console.log('✅ Ethereum providers initialized (mainnet, sepolia, goerli)');
+      console.log('🔗 Using mainnet RPC:', mainnetRpc);
+      
+      this._initialized = true;
     } catch (error) {
       console.error('Error initializing Ethereum providers:', error);
     }
@@ -46,6 +50,8 @@ class EthereumService {
    * Get provider for specific network
    */
   getProvider(network = 'mainnet') {
+    // Initialize providers if not already done
+    this.initializeProviders();
     return this.providers[network] || this.providers.mainnet;
   }
 
@@ -180,9 +186,14 @@ class EthereumService {
 
       const apiKey = process.env.ETHERSCAN_API_KEY;
       if (!apiKey) {
+        console.warn('⚠️  Etherscan API key not configured. Transaction history unavailable.');
         return {
-          success: false,
-          error: 'Etherscan API key not configured',
+          success: true,
+          address,
+          network,
+          transactions: [],
+          count: 0,
+          message: 'Configure ETHERSCAN_API_KEY to view transaction history',
         };
       }
 

@@ -50,33 +50,33 @@ export const walletAPI = {
 
 // Blockchain API
 export const blockchainAPI = {
-  getEthereumBalance: async (address) => {
-    const response = await api.get(`/blockchain/ethereum/balance/${address}`);
+  getEthereumBalance: async (address, network = 'mainnet') => {
+    const response = await api.get(`/blockchain/ethereum/balance/${address}?network=${network}`);
     return response.data;
   },
 
-  getBitcoinBalance: async (address) => {
-    const response = await api.get(`/blockchain/bitcoin/balance/${address}`);
+  getBitcoinBalance: async (address, network = 'mainnet') => {
+    const response = await api.get(`/blockchain/bitcoin/balance/${address}?network=${network}`);
     return response.data;
   },
 
-  getEthereumTransactions: async (address, page = 1, limit = 10) => {
-    const response = await api.get(`/blockchain/ethereum/transactions/${address}?page=${page}&limit=${limit}`);
+  getEthereumTransactions: async (address, page = 1, limit = 10, network = 'mainnet') => {
+    const response = await api.get(`/blockchain/ethereum/transactions/${address}?page=${page}&limit=${limit}&network=${network}`);
     return response.data;
   },
 
-  getBitcoinTransactions: async (address) => {
-    const response = await api.get(`/blockchain/bitcoin/transactions/${address}`);
+  getBitcoinTransactions: async (address, network = 'mainnet') => {
+    const response = await api.get(`/blockchain/bitcoin/transactions/${address}?network=${network}`);
     return response.data;
   },
 
-  getGasPrice: async () => {
-    const response = await api.get('/blockchain/ethereum/gas-price');
+  getGasPrice: async (network = 'mainnet') => {
+    const response = await api.get(`/blockchain/ethereum/gas-price?network=${network}`);
     return response.data;
   },
 
-  getBitcoinFeeEstimate: async () => {
-    const response = await api.get('/blockchain/bitcoin/fee-estimate');
+  getBitcoinFeeEstimate: async (network = 'mainnet') => {
+    const response = await api.get(`/blockchain/bitcoin/fee-estimate?network=${network}`);
     return response.data;
   },
 
@@ -103,8 +103,8 @@ export const tokenAPI = {
     return response.data;
   },
 
-  getPopularTokenBalances: async (address) => {
-    const response = await api.get(`/tokens/balances/popular/${address}`);
+  getPopularTokenBalances: async (address, network = 'mainnet') => {
+    const response = await api.get(`/tokens/balances/popular/${address}?network=${network}`);
     return response.data;
   },
 

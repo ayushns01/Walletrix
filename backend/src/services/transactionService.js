@@ -142,12 +142,25 @@ class TransactionService {
    */
   async sendEthereumTransaction(privateKey, toAddress, amount, network = 'mainnet') {
     try {
+      console.log('TransactionService: Sending ETH transaction', {
+        to: toAddress,
+        amount,
+        network
+      });
+
       // Create and sign transaction
       const txResult = await this.createEthereumTransaction(privateKey, toAddress, amount, network);
+      
+      console.log('TransactionService: Transaction creation result', {
+        success: txResult.success,
+        error: txResult.error
+      });
       
       if (!txResult.success) {
         return txResult;
       }
+
+      console.log('TransactionService: Broadcasting transaction to network', network);
 
       // Broadcast transaction
       const broadcastResult = await ethereumService.sendTransaction(
@@ -155,12 +168,24 @@ class TransactionService {
         network
       );
 
+      console.log('TransactionService: Broadcast result', {
+        success: broadcastResult.success,
+        txHash: broadcastResult.txHash,
+        error: broadcastResult.error
+      });
+
+      if (!broadcastResult.success) {
+        return broadcastResult;
+      }
+
       return {
         success: true,
         txHash: broadcastResult.txHash,
+        transactionHash: broadcastResult.txHash, // Also provide as transactionHash for frontend
         from: txResult.transaction.from,
         to: toAddress,
         value: amount,
+        network,
         message: 'Transaction sent successfully',
       };
     } catch (error) {

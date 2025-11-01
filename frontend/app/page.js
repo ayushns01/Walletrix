@@ -9,6 +9,7 @@ import UnlockWallet from '@/components/UnlockWallet'
 import Dashboard from '@/components/Dashboard'
 import SendModal from '@/components/SendModal'
 import ReceiveModal from '@/components/ReceiveModal'
+import AccountDetails from '@/components/AccountDetails'
 
 export default function Home() {
   const { wallet, isLocked, lockWallet, deleteWallet, balances, tokens, prices } = useWallet()
@@ -17,6 +18,7 @@ export default function Home() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showAccountDetails, setShowAccountDetails] = useState(false)
 
   // Handle quick send/receive
   const handleQuickAction = (action, asset) => {
@@ -129,6 +131,16 @@ export default function Home() {
               <div className="space-y-3">
                 <button
                   onClick={() => {
+                    setShowAccountDetails(true);
+                    setShowSettings(false);
+                  }}
+                  className="w-full py-3 px-4 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 font-semibold rounded-lg transition-colors text-left"
+                >
+                  Account Details & Private Keys
+                </button>
+                
+                <button
+                  onClick={() => {
                     if (confirm('Are you sure you want to delete your wallet? Make sure you have backed up your recovery phrase!')) {
                       deleteWallet()
                       setShowSettings(false)
@@ -197,6 +209,11 @@ export default function Home() {
             setSelectedAsset(null)
           }}
           asset={selectedAsset}
+        />
+
+        <AccountDetails
+          isOpen={showAccountDetails}
+          onClose={() => setShowAccountDetails(false)}
         />
       </div>
     </main>

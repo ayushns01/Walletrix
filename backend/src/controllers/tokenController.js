@@ -94,14 +94,14 @@ class TokenController {
 
   /**
    * Get popular token balances for a wallet
-   * GET /api/v1/tokens/popular/:walletAddress
+   * GET /api/v1/tokens/balances/popular/:address
    */
   async getPopularTokenBalances(req, res) {
     try {
-      const { walletAddress } = req.params;
+      const { address } = req.params;
       const { network = 'mainnet' } = req.query;
 
-      const result = await tokenService.getPopularTokenBalances(walletAddress, network);
+      const result = await tokenService.getPopularTokenBalances(address, network);
 
       if (!result.success) {
         return res.status(400).json(result);

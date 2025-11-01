@@ -12,8 +12,6 @@ export default function ReceiveModal({ isOpen, onClose, asset }) {
   const [qrCode, setQrCode] = useState('');
   const canvasRef = useRef(null);
 
-  if (!isOpen) return null;
-
   const address = asset?.symbol === 'BTC' ? wallet?.bitcoin?.address : wallet?.ethereum?.address;
 
   // Generate QR code
@@ -31,6 +29,9 @@ export default function ReceiveModal({ isOpen, onClose, asset }) {
         .catch(err => console.error('QR generation error:', err));
     }
   }, [isOpen, address]);
+
+  // Early return AFTER all hooks are declared
+  if (!isOpen) return null;
 
   const handleCopy = () => {
     if (address) {

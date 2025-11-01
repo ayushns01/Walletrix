@@ -3,9 +3,11 @@
 import { useWallet } from '@/contexts/WalletContext';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import NetworkSelector from './NetworkSelector';
+import toast from 'react-hot-toast';
 
 export default function Dashboard() {
-  const { wallet, balances, tokens, prices, transactions, refreshData, loading } = useWallet();
+  const { wallet, balances, tokens, prices, transactions, refreshData, loading, selectedNetwork } = useWallet();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -18,52 +20,95 @@ export default function Dashboard() {
   const calculateTotalValue = () => {
     let total = 0;
 
+    console.log('Portfolio Debug:', {
+      balances,
+      prices,
+      tokens,
+      selectedNetwork
+    });
+
     // Add Ethereum value
     if (balances.ethereum && prices.ethereum) {
-      total += parseFloat(balances.ethereum) * prices.ethereum.current_price;
+      const ethValue = parseFloat(balances.ethereum) * prices.ethereum.current_price;
+      console.log('ETH contribution:', {
+        balance: balances.ethereum,
+        price: prices.ethereum.current_price,
+        value: ethValue
+      });
+      total += ethValue;
     }
 
     // Add Bitcoin value
     if (balances.bitcoin && prices.bitcoin) {
-      total += parseFloat(balances.bitcoin) * prices.bitcoin.current_price;
+      const btcValue = parseFloat(balances.bitcoin) * prices.bitcoin.current_price;
+      console.log('BTC contribution:', {
+        balance: balances.bitcoin,
+        price: prices.bitcoin.current_price,
+        value: btcValue
+      });
+      total += btcValue;
     }
 
     // Add token values
     tokens.forEach(token => {
       if (token.balance && token.priceUsd) {
-        total += parseFloat(token.balance) * parseFloat(token.priceUsd);
+        const tokenValue = parseFloat(token.balance) * parseFloat(token.priceUsd);
+        console.log('Token contribution:', {
+          symbol: token.symbol,
+          balance: token.balance,
+          price: token.priceUsd,
+          value: tokenValue
+        });
+        total += tokenValue;
       }
     });
 
+    console.log('Total portfolio value:', total);
     return total;
   };
 
   const totalValue = calculateTotalValue();
 
-  // Get all assets including native coins and tokens
+  // Get network info
+  const [chain] = selectedNetwork.split('-');
+  const isEthereum = chain === 'ethereum';
+  const isBitcoin = chain === 'bitcoin';
+
+  // Get all assets including native coins and tokens based on selected network
   const allAssets = [
-    {
+    ...(isBitcoin ? [{
       name: 'Bitcoin',
       symbol: 'BTC',
       balance: balances.bitcoin || '0',
       priceData: prices.bitcoin,
       icon: '₿',
-    },
-    {
+    }] : []),
+    ...(isEthereum ? [{
       name: 'Ethereum',
       symbol: 'ETH',
       balance: balances.ethereum || '0',
       priceData: prices.ethereum,
       icon: 'Ξ',
-    },
-    ...tokens.filter(t => parseFloat(t.balance) > 0).map(token => ({
+    }] : []),
+    ...(isEthereum ? tokens.filter(t => parseFloat(t.balance) > 0).map(token => ({
       name: token.name,
       symbol: token.symbol,
       balance: token.balance,
       priceData: { current_price: parseFloat(token.priceUsd || 0) },
       icon: token.symbol[0],
-    })),
+    })) : []),
   ];
+
+  console.log('Dashboard debug:', {
+    selectedNetwork,
+    isEthereum,
+    isBitcoin,
+    balances,
+    prices,
+    tokens: tokens.length,
+    allAssets: allAssets.length,
+    totalValue
+  });
 
   return (
     <div className="space-y-6">
@@ -73,15 +118,20 @@ export default function Dashboard() {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
         
         <div className="relative">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">Total Portfolio Value</p>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <p className="text-sm opacity-90">Total Portfolio Value</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <NetworkSelector />
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
           
           <h2 className="text-4xl font-bold mb-4">
@@ -100,32 +150,48 @@ export default function Dashboard() {
 
       {/* Addresses Card */}
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
-        <h3 className="text-lg font-bold text-white mb-4">Your Addresses</h3>
+        <h3 className="text-lg font-bold text-white mb-4">Your Address</h3>
         
         <div className="space-y-3">
-          <div className="bg-gray-700/50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Ethereum (ETH)</span>
-              <button className="text-xs text-purple-400 hover:text-purple-300">
-                Copy
-              </button>
+          {isEthereum && (
+            <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Ethereum Address</span>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(wallet?.ethereum?.address);
+                    toast.success('Address copied!');
+                  }}
+                  className="text-xs text-purple-400 hover:text-purple-300"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-white font-mono text-sm break-all">
+                {wallet?.ethereum?.address}
+              </p>
             </div>
-            <p className="text-white font-mono text-sm break-all">
-              {wallet?.ethereum?.address}
-            </p>
-          </div>
+          )}
 
-          <div className="bg-gray-700/50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Bitcoin (BTC)</span>
-              <button className="text-xs text-purple-400 hover:text-purple-300">
-                Copy
-              </button>
+          {isBitcoin && (
+            <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Bitcoin Address</span>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(wallet?.bitcoin?.address);
+                    toast.success('Address copied!');
+                  }}
+                  className="text-xs text-purple-400 hover:text-purple-300"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-white font-mono text-sm break-all">
+                {wallet?.bitcoin?.address}
+              </p>
             </div>
-            <p className="text-white font-mono text-sm break-all">
-              {wallet?.bitcoin?.address}
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
@@ -165,7 +231,7 @@ export default function Dashboard() {
                 
                 <div className="text-right">
                   <p className="text-white font-semibold">
-                    {parseFloat(asset.balance).toFixed(6)} {asset.symbol}
+                    {asset.balance} {asset.symbol}
                   </p>
                   <p className="text-gray-400 text-sm">
                     ${value.toFixed(2)}
@@ -185,6 +251,12 @@ export default function Dashboard() {
           <div className="text-center py-8 text-gray-400">
             <p>No transactions yet</p>
             <p className="text-sm mt-2">Your transaction history will appear here</p>
+            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+              <p className="text-yellow-300 text-xs">
+                💡 <strong>Note:</strong> Transaction history requires Etherscan API key configuration in the backend.
+                Your transactions are still processed on the blockchain even if they don't appear here.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -213,7 +285,7 @@ export default function Dashboard() {
                 
                 <div className="text-right">
                   <p className="text-white font-semibold">
-                    {parseFloat(tx.value || 0).toFixed(6)}
+                    {tx.value || '0'}
                   </p>
                   <p className="text-gray-400 text-sm">
                     {new Date(tx.timestamp * 1000).toLocaleDateString()}

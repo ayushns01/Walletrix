@@ -1,18 +1,26 @@
+import dotenv from 'dotenv';
+
+// Load environment variables FIRST before importing other modules
+dotenv.config();
+
+// Debug: Check if environment variables are loaded
+console.log('🔧 Environment Debug:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('ETHEREUM_MAINNET_RPC:', process.env.ETHEREUM_MAINNET_RPC);
+console.log('Working Directory:', process.cwd());
+console.log('Env file should be at:', process.cwd() + '/.env');
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import walletRoutes from './routes/walletRoutes.js';
 import blockchainRoutes from './routes/blockchainRoutes.js';
 import tokenRoutes from './routes/tokenRoutes.js';
 import priceRoutes from './routes/priceRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
