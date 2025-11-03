@@ -158,8 +158,17 @@ export function WalletProvider({ children }) {
 
   // Get network info from selected network
   const getNetworkInfo = () => {
-    const [chain, network] = selectedNetwork.split('-');
-    return { chain, network };
+    // Handle multi-chain network parsing
+    const parts = selectedNetwork.split('-');
+    
+    if (parts.length >= 2) {
+      const chain = parts[0];
+      const network = parts.slice(1).join('-');
+      return { chain, network };
+    }
+    
+    // Fallback for legacy format
+    return { chain: 'ethereum', network: 'mainnet' };
   };
 
   // Fetch balances
@@ -169,43 +178,68 @@ export function WalletProvider({ children }) {
     try {
       const { chain, network } = getNetworkInfo();
       
-      console.log('Fetching balances for:', { chain, network, address: wallet[chain]?.address });
+      console.log('Fetching balances for:', { chain, network, selectedNetwork });
       
-      if (chain === 'ethereum') {
-        const ethBalance = await blockchainAPI.getEthereumBalance(wallet.ethereum.address, network);
-        console.log('ETH Balance API response:', ethBalance);
-        
-        if (ethBalance.success) {
-          const balance = ethBalance.balance?.eth || ethBalance.data?.balance || '0';
-          console.log('Setting ETH balance to:', balance);
-          setBalances({
-            ethereum: balance,
-            bitcoin: '0',
-          });
-        } else {
-          console.log('ETH balance fetch failed, setting to 0');
-          setBalances({ ethereum: '0', bitcoin: '0' });
+      // Initialize balance object
+      const newBalances = {
+        ethereum: '0',
+        bitcoin: '0',
+        solana: '0',
+        polygon: '0',
+        arbitrum: '0',
+        optimism: '0',
+        bsc: '0',
+        avalanche: '0',
+        base: '0',
+      };
+      
+      if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        // Handle EVM-compatible chains
+        const address = wallet.ethereum?.address; // All EVM chains use the same address format
+        if (address) {
+          const ethBalance = await blockchainAPI.getEthereumBalance(address, selectedNetwork);
+          console.log(`${chain.toUpperCase()} Balance API response:`, ethBalance);
+          
+          if (ethBalance.success) {
+            const balance = ethBalance.balance?.eth || ethBalance.data?.balance || '0';
+            console.log(`Setting ${chain} balance to:`, balance);
+            newBalances[chain] = balance;
+          }
         }
       } else if (chain === 'bitcoin') {
-        const btcBalance = await blockchainAPI.getBitcoinBalance(wallet.bitcoin.address, network);
+        const btcBalance = await blockchainAPI.getBitcoinBalance(wallet.bitcoin?.address, network);
         console.log('BTC Balance API response:', btcBalance);
         
         if (btcBalance.success) {
           const balance = btcBalance.balance?.btc || btcBalance.data?.balance || '0';
           console.log('Setting BTC balance to:', balance);
-          setBalances({
-            ethereum: '0',
-            bitcoin: balance,
-          });
-        } else {
-          console.log('BTC balance fetch failed, setting to 0');
-          setBalances({ ethereum: '0', bitcoin: '0' });
+          newBalances.bitcoin = balance;
+        }
+      } else if (chain === 'solana') {
+        // Handle Solana balance (when implemented)
+        const address = wallet.solana?.address;
+        if (address) {
+          // For now, set to 0 - implement Solana balance API later
+          console.log('Solana balance fetching not yet implemented');
+          newBalances.solana = '0';
         }
       }
+      
+      setBalances(newBalances);
     } catch (error) {
       console.error('Error fetching balances:', error);
-      // Set to zero on error, don't crash
-      setBalances({ ethereum: '0', bitcoin: '0' });
+      // Set all to zero on error
+      setBalances({
+        ethereum: '0',
+        bitcoin: '0',
+        solana: '0',
+        polygon: '0',
+        arbitrum: '0',
+        optimism: '0',
+        bsc: '0',
+        avalanche: '0',
+        base: '0',
+      });
     }
   };
 
@@ -281,36 +315,54 @@ export function WalletProvider({ children }) {
     try {
       const { chain, network } = getNetworkInfo();
       
-      console.log('Fetching transactions for:', { chain, network, address: wallet[chain]?.address });
+      console.log('Fetching transactions for:', { chain, network, selectedNetwork, address: wallet[chain]?.address });
       
-      if (chain === 'ethereum') {
-        const ethTxs = await blockchainAPI.getEthereumTransactions(wallet.ethereum.address, 1, 10, network);
-        console.log('Ethereum transactions API response:', ethTxs);
+      if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        // For EVM chains, extract the correct network parameter for the backend
+        let networkParam;
         
-        if (ethTxs.success) {
-          const allTxs = (ethTxs.data?.transactions || []).map(tx => ({ 
-            ...tx, 
-            network: `${chain}-${network}` 
-          }));
-          console.log('Setting transactions:', allTxs);
-          setTransactions(allTxs);
+        if (chain === 'ethereum') {
+          // For ethereum networks, use just the network part (e.g., 'sepolia', 'mainnet', 'goerli')
+          networkParam = network;
         } else {
-          console.log('Transaction fetch failed, setting empty array');
-          setTransactions([]);
+          // For other EVM chains, use the full selectedNetwork (e.g., 'polygon-mainnet', 'bsc-mainnet')
+          networkParam = selectedNetwork;
+        }
+        
+        const address = wallet.ethereum?.address; // All EVM chains use the same address format
+        
+        if (address) {
+          console.log('Calling Ethereum transactions API with:', { address, networkParam, chain, selectedNetwork });
+          const ethTxs = await blockchainAPI.getEthereumTransactions(address, 1, 10, networkParam);
+          console.log('Ethereum transactions API response:', ethTxs);
+          
+          if (ethTxs.success && ethTxs.transactions) {
+            const allTxs = ethTxs.transactions.map(tx => ({ 
+              ...tx, 
+              network: selectedNetwork 
+            }));
+            console.log('Setting transactions:', allTxs);
+            setTransactions(allTxs);
+          } else {
+            console.log('Transaction fetch failed or no data, setting empty array');
+            setTransactions([]);
+          }
         }
       } else if (chain === 'bitcoin') {
         const btcTxs = await blockchainAPI.getBitcoinTransactions(wallet.bitcoin.address, network);
         console.log('Bitcoin transactions API response:', btcTxs);
         
-        if (btcTxs.success) {
-          const allTxs = (btcTxs.data?.transactions || []).map(tx => ({ 
+        if (btcTxs.success && btcTxs.transactions) {
+          const allTxs = btcTxs.transactions.map(tx => ({ 
             ...tx, 
-            network: `${chain}-${network}` 
+            network: selectedNetwork 
           }));
           setTransactions(allTxs);
         } else {
           setTransactions([]);
         }
+      } else {
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);

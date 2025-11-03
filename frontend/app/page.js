@@ -10,6 +10,7 @@ import Dashboard from '@/components/Dashboard'
 import SendModal from '@/components/SendModal'
 import ReceiveModal from '@/components/ReceiveModal'
 import AccountDetails from '@/components/AccountDetails'
+import NetworkSelector from '@/components/NetworkSelector'
 
 export default function Home() {
   const { wallet, isLocked, lockWallet, deleteWallet, balances, tokens, prices } = useWallet()
@@ -100,26 +101,30 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Top Header with Logo and Network Selector */}
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <Wallet className="w-8 h-8 text-purple-400" />
             <h1 className="text-2xl font-bold text-white">Walletrix</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-            <button
-              onClick={lockWallet}
-              className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
-              title="Lock Wallet"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+          
+          <div className="flex items-center gap-4">
+            <NetworkSelector />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={lockWallet}
+                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                title="Lock Wallet"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </header>
 

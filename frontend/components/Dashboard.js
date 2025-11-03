@@ -3,7 +3,6 @@
 import { useWallet } from '@/contexts/WalletContext';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import NetworkSelector from './NetworkSelector';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -123,7 +122,6 @@ export default function Dashboard() {
               <p className="text-sm opacity-90">Total Portfolio Value</p>
             </div>
             <div className="flex items-center gap-2">
-              <NetworkSelector />
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -247,16 +245,20 @@ export default function Dashboard() {
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
         <h3 className="text-lg font-bold text-white mb-4">Recent Transactions</h3>
         
+        {console.log('Dashboard transactions debug:', {
+          transactions,
+          transactionsLength: transactions.length,
+          transactionsType: typeof transactions,
+          isArray: Array.isArray(transactions),
+          selectedNetwork,
+          walletAddress: wallet?.ethereum?.address
+        })}
+        
         {transactions.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p>No transactions yet</p>
             <p className="text-sm mt-2">Your transaction history will appear here</p>
-            <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-300 text-xs">
-                💡 <strong>Note:</strong> Transaction history requires Etherscan API key configuration in the backend.
-                Your transactions are still processed on the blockchain even if they don't appear here.
-              </p>
-            </div>
+            {console.log('Showing no transactions message')}
           </div>
         ) : (
           <div className="space-y-3">
@@ -288,7 +290,9 @@ export default function Dashboard() {
                     {tx.value || '0'}
                   </p>
                   <p className="text-gray-400 text-sm">
-                    {new Date(tx.timestamp * 1000).toLocaleDateString()}
+                    {tx.timestamp ? (
+                      new Date(tx.timestamp.includes('T') ? tx.timestamp : parseInt(tx.timestamp) * 1000).toLocaleDateString()
+                    ) : 'Unknown date'}
                   </p>
                 </div>
               </div>

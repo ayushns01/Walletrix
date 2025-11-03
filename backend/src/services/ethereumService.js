@@ -10,9 +10,68 @@ class EthereumService {
   constructor() {
     // Initialize providers as null - they'll be created lazily
     this.providers = {
+      // Ethereum networks
       mainnet: null,
       sepolia: null,
       goerli: null,
+      holesky: null,
+      
+      // Polygon networks
+      'polygon-mainnet': null,
+      'polygon-mumbai': null,
+      
+      // Arbitrum networks
+      'arbitrum-one': null,
+      'arbitrum-goerli': null,
+      
+      // Optimism networks
+      'optimism-mainnet': null,
+      'optimism-goerli': null,
+      
+      // BSC networks
+      'bsc-mainnet': null,
+      'bsc-testnet': null,
+      
+      // Avalanche networks
+      'avalanche-mainnet': null,
+      'avalanche-fuji': null,
+      
+      // Base networks
+      'base-mainnet': null,
+      'base-goerli': null,
+    };
+    
+    // Network configurations
+    this.networkConfigs = {
+      // Ethereum networks
+      mainnet: { rpc: process.env.ETHEREUM_MAINNET_RPC || 'https://ethereum.publicnode.com', chainId: 1 },
+      sepolia: { rpc: process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com', chainId: 11155111 },
+      goerli: { rpc: process.env.ETHEREUM_GOERLI_RPC || 'https://ethereum-goerli.publicnode.com', chainId: 5 },
+      holesky: { rpc: process.env.ETHEREUM_HOLESKY_RPC || 'https://ethereum-holesky.publicnode.com', chainId: 17000 },
+      
+      // Polygon networks
+      'polygon-mainnet': { rpc: process.env.POLYGON_MAINNET_RPC || 'https://polygon-rpc.com', chainId: 137 },
+      'polygon-mumbai': { rpc: process.env.POLYGON_MUMBAI_RPC || 'https://rpc-mumbai.maticvigil.com', chainId: 80001 },
+      
+      // Arbitrum networks
+      'arbitrum-one': { rpc: process.env.ARBITRUM_ONE_RPC || 'https://arb1.arbitrum.io/rpc', chainId: 42161 },
+      'arbitrum-goerli': { rpc: process.env.ARBITRUM_GOERLI_RPC || 'https://goerli-rollup.arbitrum.io/rpc', chainId: 421613 },
+      
+      // Optimism networks
+      'optimism-mainnet': { rpc: process.env.OPTIMISM_MAINNET_RPC || 'https://mainnet.optimism.io', chainId: 10 },
+      'optimism-goerli': { rpc: process.env.OPTIMISM_GOERLI_RPC || 'https://goerli.optimism.io', chainId: 420 },
+      
+      // BSC networks
+      'bsc-mainnet': { rpc: process.env.BSC_MAINNET_RPC || 'https://bsc-dataseed.binance.org', chainId: 56 },
+      'bsc-testnet': { rpc: process.env.BSC_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545', chainId: 97 },
+      
+      // Avalanche networks
+      'avalanche-mainnet': { rpc: process.env.AVALANCHE_MAINNET_RPC || 'https://api.avax.network/ext/bc/C/rpc', chainId: 43114 },
+      'avalanche-fuji': { rpc: process.env.AVALANCHE_FUJI_RPC || 'https://api.avax-test.network/ext/bc/C/rpc', chainId: 43113 },
+      
+      // Base networks
+      'base-mainnet': { rpc: process.env.BASE_MAINNET_RPC || 'https://mainnet.base.org', chainId: 8453 },
+      'base-goerli': { rpc: process.env.BASE_GOERLI_RPC || 'https://goerli.base.org', chainId: 84531 },
     };
     
     this._initialized = false;
@@ -25,24 +84,18 @@ class EthereumService {
     if (this._initialized) return;
     
     try {
-      // Mainnet provider (using public RPC or Infura/Alchemy if configured)
-      const mainnetRpc = process.env.ETHEREUM_MAINNET_RPC || 'https://ethereum.publicnode.com';
-      this.providers.mainnet = new ethers.JsonRpcProvider(mainnetRpc);
+      // Initialize all providers
+      Object.keys(this.networkConfigs).forEach(network => {
+        const config = this.networkConfigs[network];
+        this.providers[network] = new ethers.JsonRpcProvider(config.rpc);
+      });
 
-      // Sepolia testnet provider
-      const sepoliaRpc = process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com';
-      this.providers.sepolia = new ethers.JsonRpcProvider(sepoliaRpc);
-      
-      // Goerli testnet provider
-      const goerliRpc = process.env.ETHEREUM_GOERLI_RPC || 'https://ethereum-goerli.publicnode.com';
-      this.providers.goerli = new ethers.JsonRpcProvider(goerliRpc);
-
-      console.log('✅ Ethereum providers initialized (mainnet, sepolia, goerli)');
-      console.log('🔗 Using mainnet RPC:', mainnetRpc);
+      console.log('✅ Multi-network providers initialized');
+      console.log('🔗 Supported networks:', Object.keys(this.networkConfigs).join(', '));
       
       this._initialized = true;
     } catch (error) {
-      console.error('Error initializing Ethereum providers:', error);
+      console.error('Error initializing providers:', error);
     }
   }
 
@@ -50,9 +103,37 @@ class EthereumService {
    * Get provider for specific network
    */
   getProvider(network = 'mainnet') {
-    // Initialize providers if not already done
     this.initializeProviders();
-    return this.providers[network] || this.providers.mainnet;
+    
+    // Handle network mapping for different naming conventions
+    const networkMap = {
+      'ethereum-mainnet': 'mainnet',
+      'ethereum-sepolia': 'sepolia',
+      'ethereum-goerli': 'goerli',
+      'ethereum-holesky': 'holesky',
+      'polygon-mainnet': 'polygon-mainnet',
+      'polygon-mumbai': 'polygon-mumbai',
+      'arbitrum-one': 'arbitrum-one',
+      'arbitrum-goerli': 'arbitrum-goerli',
+      'optimism-mainnet': 'optimism-mainnet',
+      'optimism-goerli': 'optimism-goerli',
+      'bsc-mainnet': 'bsc-mainnet',
+      'bsc-testnet': 'bsc-testnet',
+      'avalanche-mainnet': 'avalanche-mainnet',
+      'avalanche-fuji': 'avalanche-fuji',
+      'base-mainnet': 'base-mainnet',
+      'base-goerli': 'base-goerli',
+    };
+    
+    const mappedNetwork = networkMap[network] || network;
+    const provider = this.providers[mappedNetwork];
+    
+    if (!provider) {
+      console.warn(`Provider not found for network: ${network}, falling back to mainnet`);
+      return this.providers.mainnet;
+    }
+    
+    return provider;
   }
 
   /**
@@ -197,22 +278,59 @@ class EthereumService {
         };
       }
 
-      const baseUrls = {
-        mainnet: 'https://api.etherscan.io',
-        sepolia: 'https://api-sepolia.etherscan.io',
-        goerli: 'https://api-goerli.etherscan.io',
-      };
-
-      const baseUrl = baseUrls[network] || baseUrls.mainnet;
-      const url = `${baseUrl}/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=${apiKey}`;
+      // Use unified Etherscan V2 API endpoint with chainid parameter
+      // This replaces the old per-explorer URLs (polygonscan, bscscan, etc.)
+      const v2BaseUrl = 'https://api.etherscan.io/v2/api';
+      const networkConfig = this.networkConfigs[network] || this.networkConfigs.mainnet;
+      const chainId = networkConfig.chainId;
+      
+      const url = `${v2BaseUrl}?chainid=${chainId}&module=account&action=txlist&address=${address}&page=1&offset=50&sort=desc&apikey=${apiKey}`;
 
       const response = await axios.get(url);
       
-      if (response.data.status !== '1') {
-        throw new Error(response.data.message || 'Failed to fetch transactions');
+      console.log('Etherscan V2 API response:', {
+        status: response.data.status,
+        message: response.data.message,
+        resultType: typeof response.data.result,
+        isArray: Array.isArray(response.data.result),
+        network,
+        chainId
+      });
+      
+      // Handle both successful responses and graceful error cases
+      if (response.data.status !== '1' && response.data.status !== 1) {
+        const errorMessage = response.data.message || 'Failed to fetch transactions';
+        console.warn('Etherscan V2 API non-success status:', errorMessage);
+        
+        // If we still got transaction data despite status, process it
+        if (Array.isArray(response.data.result) && response.data.result.length > 0) {
+          console.log('Processing transactions despite non-success status');
+        } else {
+          return {
+            success: true,
+            address,
+            network,
+            transactions: [],
+            count: 0,
+            message: `Transaction history unavailable: ${errorMessage}`,
+          };
+        }
       }
 
-      const transactions = response.data.result.slice(0, 50).map(tx => ({
+      const rawTransactions = response.data.result || [];
+      if (!Array.isArray(rawTransactions)) {
+        console.warn('Unexpected V2 response format, result is not array:', typeof rawTransactions);
+        return {
+          success: true,
+          address,
+          network,
+          transactions: [],
+          count: 0,
+          message: 'Unable to load transaction history at this time.',
+        };
+      }
+
+      const transactions = rawTransactions.slice(0, 50).map(tx => ({
         hash: tx.hash,
         from: tx.from,
         to: tx.to,
