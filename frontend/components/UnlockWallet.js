@@ -25,29 +25,33 @@ export default function UnlockWallet() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/20">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center">
-              <Lock className="w-10 h-10 text-purple-400" />
+    <div className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-black/40 to-blue-950/30"></div>
+      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-20 right-20 w-48 h-48 bg-blue-600/10 rounded-full blur-2xl"></div>
+      
+      <div className="max-w-md w-full relative z-10">
+        <div className="glass-effect rounded-3xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
+          <div className="flex items-center justify-center mb-8">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-full flex items-center justify-center border border-blue-500/30 shadow-lg shadow-blue-500/20">
+              <Lock className="w-12 h-12 text-blue-300" />
             </div>
           </div>
           
-          <h2 className="text-2xl font-bold text-white text-center mb-2">
+          <h2 className="text-3xl font-bold text-blue-100 text-center mb-3 gradient-text">
             Wallet Locked
           </h2>
-          <p className="text-gray-400 text-center mb-8">
+          <p className="text-blue-300/80 text-center mb-8 text-lg">
             Enter your password to unlock your wallet
           </p>
 
-          <form onSubmit={handleUnlock} className="space-y-4">
+          <form onSubmit={handleUnlock} className="space-y-6">
             <div>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-6 py-4 bg-gradient-to-r from-black/60 to-blue-950/40 border border-blue-500/30 rounded-xl text-blue-100 placeholder-blue-300/50 focus:outline-none focus:border-blue-400/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                 placeholder="Enter your password"
                 autoFocus
               />
@@ -56,16 +60,16 @@ export default function UnlockWallet() {
             <button
               type="submit"
               disabled={loading || !password}
-              className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+              className="w-full py-4 px-6 bg-gradient-to-r from-blue-600/80 to-blue-800/80 hover:from-blue-500/90 hover:to-blue-700/90 disabled:from-gray-600/50 disabled:to-gray-700/50 disabled:cursor-not-allowed text-blue-100 font-bold rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 btn-glow text-lg"
             >
               {loading ? 'Unlocking...' : 'Unlock Wallet'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400">
+          <div className="mt-8 text-center">
+            <p className="text-sm text-blue-300/70">
               Forgot your password?{' '}
-              <a href="#" className="text-purple-400 hover:text-purple-300">
+              <a href="#" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors duration-300">
                 Restore from recovery phrase
               </a>
             </p>

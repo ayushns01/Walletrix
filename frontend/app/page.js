@@ -39,29 +39,29 @@ export default function Home() {
   // Show wallet setup screens
   if (!wallet) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      <main className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black">
         <div className="container mx-auto px-4 py-8">
           {view === 'welcome' && (
             <div className="max-w-md mx-auto text-center py-20">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/20">
-                <Wallet className="w-20 h-20 text-purple-400 mx-auto mb-6" />
-                <h2 className="text-3xl font-bold text-white mb-4">Welcome to Walletrix</h2>
-                <p className="text-gray-300 mb-8">
-                  Your secure, independent cryptocurrency wallet. Manage Bitcoin, Ethereum, and more.
+              <div className="glass-effect rounded-3xl p-10 border border-blue-500/30 shadow-2xl shadow-blue-500/20">
+                <Wallet className="w-24 h-24 text-blue-400 mx-auto mb-8 blue-glow" />
+                <h2 className="text-4xl font-bold gradient-text mb-6">Welcome to Walletrix</h2>
+                <p className="text-blue-100/80 mb-10 text-lg leading-relaxed">
+                  Your secure, independent cryptocurrency wallet. Manage Bitcoin, Ethereum, and more with ultimate security.
                 </p>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <button
                     onClick={() => setView('create')}
-                    className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 btn-glow shadow-lg shadow-blue-500/30"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-6 h-6" />
                     Create New Wallet
                   </button>
                   <button
                     onClick={() => setView('import')}
-                    className="w-full py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-4 px-8 bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-900 text-blue-100 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 border border-blue-500/30 hover:border-blue-400/50"
                   >
-                    <FileDown className="w-5 h-5" />
+                    <FileDown className="w-6 h-6" />
                     Import Existing Wallet
                   </button>
                 </div>
@@ -73,7 +73,7 @@ export default function Home() {
             <div className="py-8">
               <button
                 onClick={() => setView('welcome')}
-                className="mb-6 text-gray-400 hover:text-white transition-colors"
+                className="mb-8 text-blue-300 hover:text-blue-100 transition-colors text-lg font-medium"
               >
                 ← Back
               </button>
@@ -85,7 +85,7 @@ export default function Home() {
             <div className="py-8">
               <button
                 onClick={() => setView('welcome')}
-                className="mb-6 text-gray-400 hover:text-white transition-colors"
+                className="mb-8 text-blue-300 hover:text-blue-100 transition-colors text-lg font-medium"
               >
                 ← Back
               </button>
@@ -99,30 +99,30 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+    <main className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black">
       <div className="container mx-auto px-4 py-8">
         {/* Top Header with Logo and Network Selector */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <Wallet className="w-8 h-8 text-purple-400" />
-            <h1 className="text-2xl font-bold text-white">Walletrix</h1>
+        <header className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3">
+            <Wallet className="w-10 h-10 text-blue-400 blue-glow" />
+            <h1 className="text-3xl font-bold gradient-text">Walletrix</h1>
           </div>
           
           <div className="flex items-center gap-4">
             <NetworkSelector />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-6 h-6" />
               </button>
               <button
                 onClick={lockWallet}
-                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
                 title="Lock Wallet"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -130,16 +130,16 @@ export default function Home() {
 
         {/* Settings Dropdown */}
         {showSettings && (
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-4">Settings</h3>
-              <div className="space-y-3">
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="glass-effect rounded-2xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
+              <h3 className="text-xl font-bold text-blue-100 mb-6">Settings</h3>
+              <div className="space-y-4">
                 <button
                   onClick={() => {
                     setShowAccountDetails(true);
                     setShowSettings(false);
                   }}
-                  className="w-full py-3 px-4 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 font-semibold rounded-lg transition-colors text-left"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40"
                 >
                   Account Details & Private Keys
                 </button>
@@ -151,7 +151,7 @@ export default function Home() {
                       setShowSettings(false)
                     }
                   }}
-                  className="w-full py-3 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold rounded-lg transition-colors text-left"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-red-900/30 to-red-800/20 hover:from-red-800/40 hover:to-red-700/30 text-red-300 font-semibold rounded-xl transition-all duration-300 text-left border border-red-500/20 hover:border-red-400/40"
                 >
                   Delete Wallet
                 </button>
@@ -161,9 +161,9 @@ export default function Home() {
         )}
 
         {/* Quick Actions Bar */}
-        <div className="max-w-4xl mx-auto mb-6">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-purple-500/20">
-            <div className="flex gap-4 justify-center">
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
+            <div className="flex gap-6 justify-center">
               <button
                 onClick={() => handleQuickAction('send', {
                   name: 'Ethereum',
@@ -172,9 +172,9 @@ export default function Home() {
                   priceData: prices.ethereum,
                   icon: 'Ξ',
                 })}
-                className="flex items-center gap-2 py-3 px-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-3 py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 btn-glow shadow-lg shadow-blue-500/30"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
                 Send
               </button>
               <button
@@ -183,9 +183,9 @@ export default function Home() {
                   symbol: 'ETH',
                   icon: 'Ξ',
                 })}
-                className="flex items-center gap-2 py-3 px-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-3 py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 btn-glow shadow-lg shadow-blue-500/30"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-5 h-5" />
                 Receive
               </button>
             </div>
