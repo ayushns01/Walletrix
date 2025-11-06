@@ -2,7 +2,7 @@
 
 import { Toaster } from 'react-hot-toast'
 import './globals.css'
-import { WalletProvider } from '@/contexts/WalletContext'
+import { WalletProvider } from '@/contexts/DatabaseWalletContext'
 
 export default function RootLayout({ children }) {
   return (

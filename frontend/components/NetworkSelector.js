@@ -1,6 +1,6 @@
 'use client'
 
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { ChevronDown, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Walletrix Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c0392b;
+        }
+        .success {
+            background: #27ae60;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        .info {
+            background: #3498db;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Walletrix Authentication Data</h1>
+        
+        <div class="info">
+            <h3>This will clear:</h3>
+            <ul style="text-align: left;">
+                <li>Authentication tokens (JWT)</li>
+                <li>User session data</li>
+                <li>Wallet data in browser storage</li>
+                <li>All cached application data</li>
+            </ul>
+        </div>
+        
+        <button onclick="clearAllData()">🗑️ Clear All Authentication Data</button>
+        <button onclick="clearWalletData()">💼 Clear Wallet Data Only</button>
+        <button onclick="clearTokens()">🔑 Clear Tokens Only</button>
+        
+        <div id="success" class="success">
+            ✅ Data cleared successfully! You can now close this tab.
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #888;">
+            <p>After clearing data, refresh your Walletrix app (localhost:3000) to see the changes.</p>
+        </div>
+    </div>
+
+    <script>
+        function clearAllData() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear specific Walletrix items (in case they exist in other storage)
+            const walletrixKeys = [
+                'walletrix_auth_token',
+                'walletrix_user',
+                'walletrix_wallet',
+                'walletrix_preferences',
+                'walletrix_session',
+                'walletrix_cache'
+            ];
+            
+            walletrixKeys.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+            
+            // Clear any cookies (if any)
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            showSuccess();
+            console.log('All Walletrix data cleared');
+        }
+        
+        function clearWalletData() {
+            const walletKeys = [
+                'walletrix_wallet',
+                'walletrix_wallets',
+                'walletrix_active_wallet'
+            ];
+            
+            walletKeys.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+            
+            showSuccess();
+            console.log('Wallet data cleared');
+        }
+        
+        function clearTokens() {
+            const tokenKeys = [
+                'walletrix_auth_token',
+                'walletrix_user',
+                'walletrix_session'
+            ];
+            
+            tokenKeys.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+            
+            showSuccess();
+            console.log('Authentication tokens cleared');
+        }
+        
+        function showSuccess() {
+            document.getElementById('success').style.display = 'block';
+        }
+        
+        // Auto-clear on page load (optional)
+        // clearAllData();
+    </script>
+</body>
+</html>

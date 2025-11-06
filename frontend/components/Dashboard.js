@@ -1,6 +1,6 @@
 'use client'
 
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';

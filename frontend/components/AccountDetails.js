@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Copy, Key, Shield, AlertTriangle, Download, Check } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { walletAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 

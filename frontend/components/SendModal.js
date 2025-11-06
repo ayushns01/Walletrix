@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Send as SendIcon, AlertCircle } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { transactionAPI, blockchainAPI, walletAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 

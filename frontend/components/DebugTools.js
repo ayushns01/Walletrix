@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { blockchainAPI } from '@/lib/api';
 import { RefreshCw, Search } from 'lucide-react';
 

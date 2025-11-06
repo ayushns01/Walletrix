@@ -8,13 +8,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: walletrix
-      POSTGRES_USER: walletrix
-      POSTGRES_PASSWORD: walletrix_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - walletrix-network
 
@@ -41,9 +40,9 @@ services:
       - "3001:3001"
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://walletrix:walletrix_password@postgres:5432/walletrix
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/walletrix
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: development-jwt-secret-change-in-production
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-walletrix-2024
       API_PORT: 3001
       FRONTEND_URL: http://localhost:3000
     depends_on:

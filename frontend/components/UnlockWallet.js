@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { Lock, Trash2 } from 'lucide-react';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
+import toast from 'react-hot-toast';
 
-export default function UnlockWallet() {
+export default function UnlockWallet({ onDeleteWallet }) {
   const { unlockWallet } = useWallet();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,13 +67,31 @@ export default function UnlockWallet() {
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-4">
             <p className="text-sm text-blue-300/70">
               Forgot your password?{' '}
               <a href="#" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors duration-300">
                 Restore from recovery phrase
               </a>
             </p>
+            
+            {/* Delete wallet option */}
+            {onDeleteWallet && (
+              <div className="pt-4 border-t border-blue-500/20">
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this wallet? Make sure you have backed up your recovery phrase!')) {
+                      onDeleteWallet();
+                      toast.success('Wallet deleted. You can now create a new one.');
+                    }
+                  }}
+                  className="text-red-400 hover:text-red-300 font-medium transition-colors duration-300 flex items-center gap-2 mx-auto hover:bg-red-500/10 px-3 py-2 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Wallet & Start Fresh
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

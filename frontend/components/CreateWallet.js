@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Wallet, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import toast from 'react-hot-toast';
 
 export default function CreateWallet({ onComplete }) {
@@ -16,6 +16,8 @@ export default function CreateWallet({ onComplete }) {
   const [loading, setLoading] = useState(false);
 
   const handleCreateWallet = async () => {
+    console.log('Creating wallet...'); // Debug log
+    
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
@@ -28,11 +30,14 @@ export default function CreateWallet({ onComplete }) {
 
     try {
       setLoading(true);
+      console.log('Calling generateWallet...'); // Debug log
       const walletData = await generateWallet(password);
+      console.log('Wallet generated:', walletData); // Debug log
       setMnemonic(walletData.mnemonic);
       setStep(2);
     } catch (error) {
-      console.error(error);
+      console.error('Error in handleCreateWallet:', error);
+      toast.error('Failed to create wallet: ' + error.message);
     } finally {
       setLoading(false);
     }

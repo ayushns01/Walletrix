@@ -21,6 +21,8 @@ import blockchainRoutes from './routes/blockchainRoutes.js';
 import tokenRoutes from './routes/tokenRoutes.js';
 import priceRoutes from './routes/priceRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -140,7 +142,9 @@ app.get('/api/v1', (req, res) => {
 });
 
 // Use all routes
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/wallets', databaseWalletRoutes);
 app.use('/api/v1/blockchain', blockchainRoutes);
 app.use('/api/v1/tokens', tokenRoutes);
 app.use('/api/v1/prices', priceRoutes);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Download, AlertCircle } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/DatabaseWalletContext';
 import toast from 'react-hot-toast';
 
 export default function ImportWallet({ onComplete }) {
@@ -13,6 +13,8 @@ export default function ImportWallet({ onComplete }) {
   const [loading, setLoading] = useState(false);
 
   const handleImport = async () => {
+    console.log('Importing wallet...'); // Debug log
+    
     const words = mnemonic.trim().split(/\s+/);
     
     if (words.length !== 12) {
@@ -32,10 +34,13 @@ export default function ImportWallet({ onComplete }) {
 
     try {
       setLoading(true);
+      console.log('Calling importWallet...'); // Debug log
       await importWallet(mnemonic.trim(), password);
+      console.log('Wallet imported successfully'); // Debug log
       onComplete();
     } catch (error) {
-      console.error(error);
+      console.error('Error in handleImport:', error);
+      toast.error('Failed to import wallet: ' + error.message);
     } finally {
       setLoading(false);
     }
