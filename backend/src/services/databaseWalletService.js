@@ -11,9 +11,9 @@ class DatabaseWalletService {
           userId,
           name,
           description,
-          encryptedData,
+          encryptedPrivateKeys: encryptedData,
           addresses,
-          lastAccessed: new Date()
+          lastAccessedAt: new Date()
         }
       });
 
@@ -25,7 +25,7 @@ class DatabaseWalletService {
           description: wallet.description,
           addresses: wallet.addresses,
           createdAt: wallet.createdAt,
-          lastAccessed: wallet.lastAccessed
+          lastAccessedAt: wallet.lastAccessedAt
         }
       };
     } catch (error) {
@@ -53,10 +53,10 @@ class DatabaseWalletService {
           description: true,
           addresses: true,
           createdAt: true,
-          lastAccessed: true
+          lastAccessedAt: true
         },
         orderBy: {
-          lastAccessed: 'desc'
+          lastAccessedAt: 'desc'
         }
       });
 

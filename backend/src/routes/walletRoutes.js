@@ -1,31 +1,31 @@
 import express from 'express';
 import walletController from '../controllers/walletController.js';
+import { validationRules, handleValidationErrors } from '../middleware/validation.js';
 
 const router = express.Router();
 
-/**
- * Wallet Routes
- */
-
 // Generate new wallet
-router.post('/generate', walletController.generateWallet);
+router.post('/generate', validationRules.generateWallet, handleValidationErrors, walletController.generateWallet);
 
 // Import wallet from mnemonic
-router.post('/import/mnemonic', walletController.importFromMnemonic);
+router.post('/import/mnemonic', validationRules.importMnemonic, handleValidationErrors, walletController.importFromMnemonic);
 
 // Import wallet from private key
-router.post('/import/private-key', walletController.importFromPrivateKey);
+router.post('/import/private-key', validationRules.importPrivateKey, handleValidationErrors, walletController.importFromPrivateKey);
 
 // Derive multiple accounts
-router.post('/derive-accounts', walletController.deriveAccounts);
+router.post('/derive-accounts', validationRules.importMnemonic, handleValidationErrors, walletController.deriveAccounts);
 
 // Validate address
-router.get('/validate/:network/:address', walletController.validateAddress);
+router.get('/validate/:network/:address', validationRules.validateAddress, handleValidationErrors, walletController.validateAddress);
+
+// Validate password strength
+router.post('/validate-password', walletController.validatePasswordStrength);
 
 // Encrypt data
-router.post('/encrypt', walletController.encryptData);
+router.post('/encrypt', validationRules.encryptData, handleValidationErrors, walletController.encryptData);
 
 // Decrypt data
-router.post('/decrypt', walletController.decryptData);
+router.post('/decrypt', validationRules.decryptData, handleValidationErrors, walletController.decryptData);
 
 export default router;

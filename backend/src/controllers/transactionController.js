@@ -255,6 +255,353 @@ class TransactionController {
       });
     }
   }
+
+  /**
+   * Get transaction status
+   * GET /api/v1/transactions/:transactionId/status
+   */
+  async getTransactionStatus(req, res) {
+    try {
+      const { transactionId } = req.params;
+      
+      const { getTransactionDetails } = await import('../services/transactionMonitorService.js');
+      const transaction = await getTransactionDetails(transactionId);
+      
+      if (!transaction) {
+        return res.status(404).json({
+          success: false,
+          error: 'Transaction not found',
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        transaction,
+      });
+    } catch (error) {
+      console.error('Error getting transaction status:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get transaction status',
+      });
+    }
+  }
+
+  /**
+   * Get all pending transactions
+   * GET /api/v1/transactions/pending
+   */
+  async getPendingTransactions(req, res) {
+    try {
+      const { getPendingTransactions } = await import('../services/transactionMonitorService.js');
+      const transactions = await getPendingTransactions();
+      
+      res.status(200).json({
+        success: true,
+        count: transactions.length,
+        transactions,
+      });
+    } catch (error) {
+      console.error('Error getting pending transactions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get pending transactions',
+      });
+    }
+  }
+
+  /**
+   * Get monitoring status
+   * GET /api/v1/transactions/monitoring/status
+   */
+  async getMonitoringStatus(req, res) {
+    try {
+      const { getMonitoringStatus } = await import('../services/transactionMonitorService.js');
+      const status = getMonitoringStatus();
+      
+      res.status(200).json({
+        success: true,
+        ...status,
+      });
+    } catch (error) {
+      console.error('Error getting monitoring status:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get monitoring status',
+      });
+    }
+  }
+
+  /**
+   * Get wallet transactions with advanced filtering, search, pagination and sorting
+   * GET /api/v1/transactions/wallet/:walletId
+   * Query params: page, limit, network, status, type, sortBy, sortOrder, search, dateFrom, dateTo, amountMin, amountMax
+   */
+  async getWalletTransactions(req, res) {
+    try {
+      const { walletId } = req.params;
+      const {
+        page = 1,
+        limit = 20,
+        network,
+        status,
+        type, // 'incoming', 'outgoing'
+        sortBy = 'timestamp',
+        sortOrder = 'desc',
+        search,
+        dateFrom,
+        dateTo,
+        amountMin,
+        amountMax,
+        tokenSymbol,
+        category
+      } = req.query;
+
+      // Validation
+      if (!walletId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet ID is required',
+        });
+      }
+
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Valid sort fields
+      const validSortFields = ['timestamp', 'amount', 'status', 'network', 'gasUsed'];
+      const sortField = validSortFields.includes(sortBy) ? sortBy : 'timestamp';
+      const sortDirection = sortOrder.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+      const databaseTransactionService = await import('../services/databaseTransactionService.js');
+      const result = await databaseTransactionService.default.getWalletTransactionsAdvanced(walletId, {
+        limit: limitNum,
+        offset,
+        network,
+        status,
+        type,
+        sortBy: sortField,
+        sortOrder: sortDirection,
+        search,
+        dateFrom,
+        dateTo,
+        amountMin: amountMin ? parseFloat(amountMin) : null,
+        amountMax: amountMax ? parseFloat(amountMax) : null,
+        tokenSymbol,
+        category
+      });
+
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      // Calculate pagination metadata
+      const totalPages = Math.ceil(result.total / limitNum);
+      const hasNextPage = pageNum < totalPages;
+      const hasPreviousPage = pageNum > 1;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          transactions: result.transactions,
+          pagination: {
+            currentPage: pageNum,
+            totalPages,
+            totalItems: result.total,
+            itemsPerPage: limitNum,
+            hasNextPage,
+            hasPreviousPage,
+            nextPage: hasNextPage ? pageNum + 1 : null,
+            previousPage: hasPreviousPage ? pageNum - 1 : null
+          },
+          filters: {
+            network,
+            status,
+            type,
+            tokenSymbol,
+            category,
+            search,
+            dateFrom,
+            dateTo,
+            amountMin,
+            amountMax
+          },
+          sorting: {
+            sortBy: sortField,
+            sortOrder: sortDirection
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error getting wallet transactions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get wallet transactions',
+      });
+    }
+  }
+
+  /**
+   * Get transaction statistics and analytics
+   * GET /api/v1/transactions/wallet/:walletId/analytics
+   * Query params: network, timeframe (7d, 30d, 90d, 1y), currency
+   */
+  async getTransactionAnalytics(req, res) {
+    try {
+      const { walletId } = req.params;
+      const { network, timeframe = '30d', currency = 'USD' } = req.query;
+
+      if (!walletId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet ID is required',
+        });
+      }
+
+      const databaseTransactionService = await import('../services/databaseTransactionService.js');
+      const result = await databaseTransactionService.default.getTransactionAnalytics(walletId, {
+        network,
+        timeframe,
+        currency
+      });
+
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.analytics
+      });
+    } catch (error) {
+      console.error('Error getting transaction analytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get transaction analytics',
+      });
+    }
+  }
+
+  /**
+   * Export transactions in various formats
+   * GET /api/v1/transactions/wallet/:walletId/export
+   * Query params: format (csv, json), network, dateFrom, dateTo
+   */
+  async exportTransactions(req, res) {
+    try {
+      const { walletId } = req.params;
+      const { format = 'json', network, dateFrom, dateTo } = req.query;
+
+      if (!walletId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet ID is required',
+        });
+      }
+
+      if (!['csv', 'json'].includes(format)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid format. Supported formats: csv, json',
+        });
+      }
+
+      const databaseTransactionService = await import('../services/databaseTransactionService.js');
+      const result = await databaseTransactionService.default.exportTransactions(walletId, {
+        format,
+        network,
+        dateFrom,
+        dateTo
+      });
+
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      // Set appropriate headers
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `transactions_${walletId}_${timestamp}.${format}`;
+
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        res.send(result.data);
+      } else {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        res.json({
+          success: true,
+          exported_at: new Date().toISOString(),
+          wallet_id: walletId,
+          filters: { network, dateFrom, dateTo },
+          data: result.data
+        });
+      }
+    } catch (error) {
+      console.error('Error exporting transactions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to export transactions',
+      });
+    }
+  }
+
+  /**
+   * Start monitoring a transaction
+   * POST /api/v1/transactions/:transactionId/monitor
+   */
+  async startTransactionMonitoring(req, res) {
+    try {
+      const { transactionId } = req.params;
+      const { txHash, network } = req.body;
+      
+      if (!txHash || !network) {
+        return res.status(400).json({
+          success: false,
+          error: 'txHash and network are required',
+        });
+      }
+      
+      const { startMonitoring } = await import('../services/transactionMonitorService.js');
+      await startMonitoring(transactionId, txHash, network);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Transaction monitoring started',
+      });
+    } catch (error) {
+      console.error('Error starting transaction monitoring:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start transaction monitoring',
+      });
+    }
+  }
+
+  /**
+   * Stop monitoring a transaction
+   * POST /api/v1/transactions/:transactionId/stop-monitoring
+   */
+  async stopTransactionMonitoring(req, res) {
+    try {
+      const { transactionId } = req.params;
+      
+      const { stopMonitoring } = await import('../services/transactionMonitorService.js');
+      stopMonitoring(transactionId);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Transaction monitoring stopped',
+      });
+    } catch (error) {
+      console.error('Error stopping transaction monitoring:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to stop transaction monitoring',
+      });
+    }
+  }
 }
 
 export default new TransactionController();

@@ -50,7 +50,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          name: formData.name
+          displayName: formData.name
         }),
       });
 
@@ -86,6 +86,8 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
       confirmPassword: ''
     });
   };
+
+  console.log('AuthModal render - isOpen:', isOpen);
 
   if (!isOpen) return null;
 

@@ -118,6 +118,390 @@ class DatabaseTransactionService {
       };
     }
   }
+
+  /**
+   * Get wallet transactions with advanced filtering, search, pagination and sorting
+   */
+  async getWalletTransactionsAdvanced(walletId, options = {}) {
+    try {
+      const {
+        network = null,
+        status = null,
+        type = null, // 'incoming', 'outgoing'
+        limit = 20,
+        offset = 0,
+        sortBy = 'timestamp',
+        sortOrder = 'desc',
+        search = null,
+        dateFrom = null,
+        dateTo = null,
+        amountMin = null,
+        amountMax = null,
+        tokenSymbol = null,
+        category = null
+      } = options;
+
+      // Build WHERE clause
+      const whereClause = { walletId };
+
+      // Network filter
+      if (network) {
+        whereClause.network = network;
+      }
+
+      // Status filter
+      if (status) {
+        whereClause.status = status;
+      }
+
+      // Type filter (incoming/outgoing)
+      if (type === 'incoming') {
+        whereClause.isIncoming = true;
+      } else if (type === 'outgoing') {
+        whereClause.isIncoming = false;
+      }
+
+      // Token symbol filter
+      if (tokenSymbol) {
+        whereClause.tokenSymbol = tokenSymbol;
+      }
+
+      // Category filter
+      if (category) {
+        whereClause.category = category;
+      }
+
+      // Date range filter
+      if (dateFrom || dateTo) {
+        whereClause.timestamp = {};
+        if (dateFrom) {
+          whereClause.timestamp.gte = new Date(dateFrom);
+        }
+        if (dateTo) {
+          whereClause.timestamp.lte = new Date(dateTo);
+        }
+      }
+
+      // Amount range filter
+      if (amountMin !== null || amountMax !== null) {
+        whereClause.amount = {};
+        if (amountMin !== null) {
+          whereClause.amount.gte = amountMin.toString();
+        }
+        if (amountMax !== null) {
+          whereClause.amount.lte = amountMax.toString();
+        }
+      }
+
+      // Search filter (across multiple fields)
+      if (search) {
+        const searchTerm = search.toLowerCase();
+        whereClause.OR = [
+          { txHash: { contains: searchTerm, mode: 'insensitive' } },
+          { fromAddress: { contains: searchTerm, mode: 'insensitive' } },
+          { toAddress: { contains: searchTerm, mode: 'insensitive' } },
+          { tokenSymbol: { contains: searchTerm, mode: 'insensitive' } },
+          { category: { contains: searchTerm, mode: 'insensitive' } }
+        ];
+      }
+
+      // Build ORDER BY clause
+      const orderBy = {};
+      orderBy[sortBy] = sortOrder;
+
+      const transactions = await prisma.transaction.findMany({
+        where: whereClause,
+        orderBy,
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          network: true,
+          txHash: true,
+          fromAddress: true,
+          toAddress: true,
+          amount: true,
+          tokenSymbol: true,
+          tokenAddress: true,
+          status: true,
+          blockNumber: true,
+          gasUsed: true,
+          gasPrice: true,
+          nonce: true,
+          timestamp: true,
+          isIncoming: true,
+          usdValue: true,
+          category: true,
+          metadata: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      const total = await prisma.transaction.count({ where: whereClause });
+
+      // Convert BigInt fields to strings for JSON serialization
+      const serializedTransactions = transactions.map(tx => ({
+        ...tx,
+        blockNumber: tx.blockNumber ? tx.blockNumber.toString() : null,
+        gasUsed: tx.gasUsed ? tx.gasUsed.toString() : null
+      }));
+
+      return {
+        success: true,
+        transactions: serializedTransactions,
+        total,
+        hasMore: offset + limit < total
+      };
+    } catch (error) {
+      console.error('Error getting wallet transactions with advanced filtering:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get transaction analytics and statistics
+   */
+  async getTransactionAnalytics(walletId, options = {}) {
+    try {
+      const { network = null, timeframe = '30d', currency = 'USD' } = options;
+
+      // Calculate date range based on timeframe
+      const now = new Date();
+      let dateFrom;
+      
+      switch (timeframe) {
+        case '7d':
+          dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          dateFrom = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '1y':
+          dateFrom = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+
+      const whereClause = {
+        walletId,
+        timestamp: {
+          gte: dateFrom,
+          lte: now
+        }
+      };
+
+      if (network) {
+        whereClause.network = network;
+      }
+
+      // Get basic statistics
+      const totalTransactions = await prisma.transaction.count({ where: whereClause });
+      const incomingTransactions = await prisma.transaction.count({
+        where: { ...whereClause, isIncoming: true }
+      });
+      const outgoingTransactions = await prisma.transaction.count({
+        where: { ...whereClause, isIncoming: false }
+      });
+
+      // Get transaction volume by token
+      const volumeByToken = await prisma.transaction.groupBy({
+        by: ['tokenSymbol', 'isIncoming'],
+        where: whereClause,
+        _sum: {
+          usdValue: true
+        },
+        _count: {
+          id: true
+        }
+      });
+
+      // Calculate daily transaction counts
+      const dailyTransactions = await prisma.$queryRaw`
+        SELECT 
+          DATE(timestamp) as date,
+          COUNT(*) as count,
+          SUM(CASE WHEN "isIncoming" = true THEN "usdValue" ELSE 0 END) as incoming_volume,
+          SUM(CASE WHEN "isIncoming" = false THEN "usdValue" ELSE 0 END) as outgoing_volume
+        FROM "Transaction"
+        WHERE "walletId" = ${walletId}
+          AND "timestamp" >= ${dateFrom}
+          AND "timestamp" <= ${now}
+          ${network ? prisma.$queryRaw`AND "network" = ${network}` : prisma.$queryRaw``}
+        GROUP BY DATE(timestamp)
+        ORDER BY date DESC
+        LIMIT 30
+      `;
+
+      // Get top token interactions
+      const topTokens = await prisma.transaction.groupBy({
+        by: ['tokenSymbol'],
+        where: whereClause,
+        _count: {
+          id: true
+        },
+        _sum: {
+          usdValue: true
+        },
+        orderBy: {
+          _count: {
+            id: 'desc'
+          }
+        },
+        take: 10
+      });
+
+      // Calculate success rate
+      const successfulTransactions = await prisma.transaction.count({
+        where: { ...whereClause, status: 'confirmed' }
+      });
+      const successRate = totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0;
+
+      return {
+        success: true,
+        analytics: {
+          timeframe,
+          dateRange: {
+            from: dateFrom.toISOString(),
+            to: now.toISOString()
+          },
+          overview: {
+            totalTransactions,
+            incomingTransactions,
+            outgoingTransactions,
+            successRate: Math.round(successRate * 100) / 100
+          },
+          volumeByToken: volumeByToken.map(item => ({
+            token: item.tokenSymbol,
+            direction: item.isIncoming ? 'incoming' : 'outgoing',
+            volume: item._sum.usdValue || 0,
+            count: item._count.id
+          })),
+          dailyActivity: dailyTransactions.map(item => ({
+            date: item.date,
+            count: Number(item.count),
+            incomingVolume: Number(item.incoming_volume) || 0,
+            outgoingVolume: Number(item.outgoing_volume) || 0
+          })),
+          topTokens: topTokens.map(item => ({
+            token: item.tokenSymbol,
+            transactionCount: item._count.id,
+            totalVolume: item._sum.usdValue || 0
+          }))
+        }
+      };
+    } catch (error) {
+      console.error('Error getting transaction analytics:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Export transactions in different formats
+   */
+  async exportTransactions(walletId, options = {}) {
+    try {
+      const { format = 'json', network = null, dateFrom = null, dateTo = null } = options;
+
+      const whereClause = { walletId };
+      if (network) whereClause.network = network;
+      
+      if (dateFrom || dateTo) {
+        whereClause.timestamp = {};
+        if (dateFrom) whereClause.timestamp.gte = new Date(dateFrom);
+        if (dateTo) whereClause.timestamp.lte = new Date(dateTo);
+      }
+
+      const transactions = await prisma.transaction.findMany({
+        where: whereClause,
+        orderBy: { timestamp: 'desc' }
+      });
+
+      // Convert BigInt fields to strings for serialization
+      const serializedTransactions = transactions.map(tx => ({
+        ...tx,
+        blockNumber: tx.blockNumber ? tx.blockNumber.toString() : null,
+        gasUsed: tx.gasUsed ? tx.gasUsed.toString() : null
+      }));
+
+      if (format === 'csv') {
+        // Convert to CSV format
+        if (serializedTransactions.length === 0) {
+          return {
+            success: true,
+            data: 'No transactions found for the specified criteria'
+          };
+        }
+
+        const headers = [
+          'Date',
+          'Network',
+          'Transaction Hash',
+          'From Address',
+          'To Address',
+          'Amount',
+          'Token Symbol',
+          'Status',
+          'Block Number',
+          'Gas Used',
+          'Gas Price',
+          'USD Value',
+          'Direction',
+          'Category'
+        ];
+
+        const csvRows = [headers.join(',')];
+        
+        serializedTransactions.forEach(tx => {
+          const row = [
+            tx.timestamp.toISOString(),
+            tx.network,
+            tx.txHash,
+            tx.fromAddress,
+            tx.toAddress,
+            tx.amount,
+            tx.tokenSymbol,
+            tx.status,
+            tx.blockNumber || '',
+            tx.gasUsed || '',
+            tx.gasPrice || '',
+            tx.usdValue || '',
+            tx.isIncoming ? 'Incoming' : 'Outgoing',
+            tx.category
+          ].map(field => `"${String(field).replace(/"/g, '""')}"`);
+          
+          csvRows.push(row.join(','));
+        });
+
+        return {
+          success: true,
+          data: csvRows.join('\n')
+        };
+      } else {
+        // Return JSON format
+        return {
+          success: true,
+          data: serializedTransactions
+        };
+      }
+    } catch (error) {
+      console.error('Error exporting transactions:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 export default new DatabaseTransactionService();

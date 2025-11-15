@@ -15,6 +15,70 @@ const bip32 = BIP32Factory(ecc);
 
 class WalletService {
   /**
+   * Validate password strength
+   * @param {string} password - Password to validate
+   * @returns {Object} - Validation result with score and suggestions
+   */
+  validatePasswordStrength(password) {
+    const minLength = 12;
+    const suggestions = [];
+    let score = 0;
+
+    // Length check
+    if (password.length < minLength) {
+      suggestions.push(`Password should be at least ${minLength} characters long`);
+    } else if (password.length >= minLength) {
+      score += 25;
+    }
+    
+    if (password.length >= 16) {
+      score += 10;
+    }
+
+    // Character variety checks
+    if (/[a-z]/.test(password)) {
+      score += 15;
+    } else {
+      suggestions.push('Add lowercase letters');
+    }
+
+    if (/[A-Z]/.test(password)) {
+      score += 15;
+    } else {
+      suggestions.push('Add uppercase letters');
+    }
+
+    if (/[0-9]/.test(password)) {
+      score += 15;
+    } else {
+      suggestions.push('Add numbers');
+    }
+
+    if (/[^a-zA-Z0-9]/.test(password)) {
+      score += 20;
+    } else {
+      suggestions.push('Add special characters (!@#$%^&*)');
+    }
+
+    // Check for common patterns
+    const commonPatterns = ['123', 'password', 'qwerty', 'abc', '111', '000'];
+    const lowerPassword = password.toLowerCase();
+    if (commonPatterns.some(pattern => lowerPassword.includes(pattern))) {
+      score -= 20;
+      suggestions.push('Avoid common patterns');
+    }
+
+    const strength = score < 40 ? 'weak' : score < 70 ? 'medium' : score < 90 ? 'strong' : 'very strong';
+
+    return {
+      valid: score >= 70,
+      score,
+      strength,
+      suggestions
+    };
+  }
+
+  /**
    * Generate a new wallet with mnemonic phrase
    * @returns {Object} - { mnemonic, ethWallet, btcWallet }
    */
@@ -194,15 +258,40 @@ class WalletService {
   }
 
   /**
-   * Encrypt sensitive data (private key, mnemonic)
+   * Encrypt sensitive data (private key, mnemonic) with PBKDF2
    * @param {string} data - Data to encrypt
    * @param {string} password - Encryption password
-   * @returns {string} - Encrypted data
+   * @returns {string} - Encrypted data with salt
    */
   encryptData(data, password) {
     try {
-      const encrypted = CryptoJS.AES.encrypt(data, password).toString();
-      return encrypted;
+      // Generate random salt
+      const salt = CryptoJS.lib.WordArray.random(128/8);
+      
+      // Derive key using PBKDF2 with 100,000 iterations (recommended for 2024+)
+      const key = CryptoJS.PBKDF2(password, salt, {
+        keySize: 256/32,
+        iterations: 100000,
+        hasher: CryptoJS.algo.SHA256
+      });
+      
+      // Generate random IV for AES
+      const iv = CryptoJS.lib.WordArray.random(128/8);
+      
+      // Encrypt using AES-256-CBC
+      const encrypted = CryptoJS.AES.encrypt(data, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      
+      // Combine salt + iv + ciphertext for storage
+      const combined = CryptoJS.lib.WordArray.create()
+        .concat(salt)
+        .concat(iv)
+        .concat(encrypted.ciphertext);
+      
+      return CryptoJS.enc.Base64.stringify(combined);
     } catch (error) {
       console.error('Error encrypting data:', error);
       throw error;
@@ -210,24 +299,67 @@ class WalletService {
   }
 
   /**
-   * Decrypt sensitive data
-   * @param {string} encryptedData - Encrypted data
+   * Decrypt sensitive data with PBKDF2
+   * @param {string} encryptedData - Encrypted data with salt and IV
    * @param {string} password - Decryption password
    * @returns {string} - Decrypted data
    */
   decryptData(encryptedData, password) {
     try {
-      const bytes = CryptoJS.AES.decrypt(encryptedData, password);
-      const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+      // Check if this is old format (CryptoJS.AES.encrypt output)
+      // Old format starts with "U2FsdGVkX1" (base64 of "Salted__")
+      if (encryptedData.startsWith('U2FsdGVk')) {
+        // Fallback to old decryption method for backward compatibility
+        const bytes = CryptoJS.AES.decrypt(encryptedData, password);
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decrypted) {
+          throw new Error('Invalid password or corrupted data');
+        }
+        
+        return decrypted;
+      }
       
-      if (!decrypted) {
+      // New format: base64(salt + iv + ciphertext)
+      const combined = CryptoJS.enc.Base64.parse(encryptedData);
+      
+      // Extract salt (first 16 bytes)
+      const salt = CryptoJS.lib.WordArray.create(combined.words.slice(0, 4));
+      
+      // Extract IV (next 16 bytes)
+      const iv = CryptoJS.lib.WordArray.create(combined.words.slice(4, 8));
+      
+      // Extract ciphertext (remaining bytes)
+      const ciphertext = CryptoJS.lib.WordArray.create(combined.words.slice(8));
+      
+      // Derive key using PBKDF2 with same parameters
+      const key = CryptoJS.PBKDF2(password, salt, {
+        keySize: 256/32,
+        iterations: 100000,
+        hasher: CryptoJS.algo.SHA256
+      });
+      
+      // Decrypt using AES-256-CBC
+      const decrypted = CryptoJS.AES.decrypt(
+        { ciphertext: ciphertext },
+        key,
+        {
+          iv: iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        }
+      );
+      
+      const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+      
+      if (!decryptedText) {
         throw new Error('Invalid password or corrupted data');
       }
       
-      return decrypted;
+      return decryptedText;
     } catch (error) {
       console.error('Error decrypting data:', error);
-      throw error;
+      throw new Error('Invalid password or corrupted data');
     }
   }
 

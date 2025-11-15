@@ -251,6 +251,37 @@ class WalletController {
   }
 
   /**
+   * Validate password strength
+   * POST /api/v1/wallet/validate-password
+   * Body: { password: string }
+   */
+  async validatePasswordStrength(req, res) {
+    try {
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          error: 'Password is required',
+        });
+      }
+
+      const validation = walletService.validatePasswordStrength(password);
+
+      res.status(200).json({
+        success: true,
+        validation,
+      });
+    } catch (error) {
+      console.error('Error in validatePasswordStrength:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to validate password',
+      });
+    }
+  }
+
+  /**
    * Decrypt data
    * POST /api/v1/wallet/decrypt
    * Body: { encryptedData: string, password: string }

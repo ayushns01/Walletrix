@@ -26,4 +26,29 @@ router.post('/token/create', transactionController.createTokenTransaction);
 // Create Bitcoin transaction (without sending)
 router.post('/bitcoin/create', transactionController.createBitcoinTransaction);
 
+// Get transaction status
+router.get('/:transactionId/status', transactionController.getTransactionStatus);
+
+// Get all pending transactions
+router.get('/pending', transactionController.getPendingTransactions);
+
+// Get monitoring status
+router.get('/monitoring/status', transactionController.getMonitoringStatus);
+
+// Manually trigger monitoring for a transaction
+router.post('/:transactionId/monitor', transactionController.startTransactionMonitoring);
+
+// Stop monitoring a transaction
+router.post('/:transactionId/stop-monitoring', transactionController.stopTransactionMonitoring);
+
+// Enhanced transaction history endpoints
+// Get wallet transactions with advanced filtering, search, pagination and sorting
+router.get('/wallet/:walletId', transactionController.getWalletTransactions);
+
+// Get transaction analytics and statistics
+router.get('/wallet/:walletId/analytics', transactionController.getTransactionAnalytics);
+
+// Export transactions in various formats
+router.get('/wallet/:walletId/export', transactionController.exportTransactions);
+
 export default router;

@@ -106,8 +106,14 @@ export function WalletProvider({ children }) {
     if (!token) return;
 
     try {
-      const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets`
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
       
       const data = await response.json();
@@ -249,9 +255,15 @@ export function WalletProvider({ children }) {
 
   // Authentication functions
   const login = (userData, token) => {
+    console.log('Login called with token:', token ? 'present' : 'missing');
     setUser(userData);
     setAuthToken(token);
     setIsAuthenticated(true);
+    
+    // Store in localStorage as well
+    localStorage.setItem('walletrix_auth_token', token);
+    localStorage.setItem('walletrix_user', JSON.stringify(userData));
+    
     loadUserWallets(token);
   };
 
@@ -267,13 +279,29 @@ export function WalletProvider({ children }) {
 
   // Create new wallet in database
   const createDatabaseWallet = async (name, encryptedData, addresses, description) => {
-    if (!authToken) throw new Error('Authentication required');
+    console.log('createDatabaseWallet called, authToken:', authToken ? 'present' : 'missing');
+    console.log('isAuthenticated:', isAuthenticated);
+    
+    if (!authToken) {
+      const storedToken = localStorage.getItem('walletrix_auth_token');
+      console.log('No authToken in state, checking localStorage:', storedToken ? 'present' : 'missing');
+      if (!storedToken) {
+        throw new Error('Authentication required');
+      }
+      // Use stored token if state hasn't updated yet
+      setAuthToken(storedToken);
+    }
 
     try {
-      const response = await authenticatedFetch(
+      const tokenToUse = authToken || localStorage.getItem('walletrix_auth_token');
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets`,
         {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenToUse}`
+          },
           body: JSON.stringify({
             name,
             encryptedData,

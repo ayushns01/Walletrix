@@ -10,34 +10,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Core Authentication & User Management
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String?
-  avatar       String?
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lastLogin    DateTime?
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  username          String?   @unique
+  displayName       String?   @map("display_name")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  isActive          Boolean   @default(true) @map("is_active")
+  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret   String?   @map("two_factor_secret") // Encrypted TOTP secret
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastLoginAt       DateTime? @map("last_login_at")
 
   // Relations
-  wallets     Wallet[]
-  preferences UserPreferences?
+  wallets      Wallet[]
+  sessions     UserSession[]
+  preferences  UserPreferences?
+  activityLogs ActivityLog[]
+  addressBook  AddressBookEntry[]
 
   @@map("users")
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
 }
 
+// Secure Session Management
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  sessionToken String   @unique @map("session_token")
+  refreshToken String   @unique @map("refresh_token")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  lastUsedAt   DateTime @default(now()) @map("last_used_at")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([refreshToken])
+  @@index([expiresAt])
+}
+
+// User Preferences and Settings
 model UserPreferences {
-  id              String  @id @default(cuid())
-  userId          String  @unique
-  defaultNetwork  String  @default("ethereum-mainnet")
-  currency        String  @default("USD")
-  theme           String  @default("dark")
-  notifications   Json    @default("{}")
-  language        String  @default("en")
-  timezone        String  @default("UTC")
-  updatedAt       DateTime @updatedAt
+  userId             String   @id @map("user_id")
+  defaultNetwork     String   @default("ethereum") @map("default_network")
+  preferredCurrency  String   @default("USD") @map("preferred_currency")
+  theme              String   @default("dark")
+  language           String   @default("en")
+  timezone           String   @default("UTC")
+  notifications      Json     @default("{}")
+  privacySettings    Json     @default("{}") @map("privacy_settings")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -45,123 +79,168 @@ model UserPreferences {
   @@map("user_preferences")
 }
 
+// Wallet Management with Enhanced Security
 model Wallet {
-  id            String   @id @default(cuid())
-  userId        String
-  name          String   @default("My Wallet")
-  description   String?
-  encryptedData String   // Encrypted private keys and mnemonic
-  addresses     Json     // {"ethereum": "0x...", "bitcoin": "1...", "solana": "..."}
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastAccessed  DateTime @default(now())
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  name                 String   @default("My Wallet")
+  description          String?
+  walletType           String   @default("hd") @map("wallet_type") // 'hd', 'imported', 'hardware'
+  encryptedMnemonic    String?  @map("encrypted_mnemonic") // Only for HD wallets
+  encryptedPrivateKeys Json     @map("encrypted_private_keys") // Network-specific encrypted keys
+  addresses            Json     // {"ethereum": "0x...", "bitcoin": "bc1..."}
+  derivationPath       String?  @map("derivation_path") // HD wallet derivation path
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  lastAccessedAt       DateTime @default(now()) @map("last_accessed_at")
 
   // Relations
-  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions        Transaction[]
-  portfolioSnapshots  PortfolioSnapshot[]
-  watchedTokens       WatchedToken[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   @@map("wallets")
+  @@index([userId])
+  @@index([isActive])
+  @@index([walletType])
 }
 
+// Optimized Transaction Storage
 model Transaction {
-  id            String   @id @default(cuid())
-  walletId      String
-  network       String   // ethereum-mainnet, polygon-mainnet, etc.
-  txHash        String   @unique
-  fromAddress   String
-  toAddress     String
-  amount        String   // Stored as string to handle large numbers
-  tokenSymbol   String   @default("ETH")
-  tokenAddress  String?
-  status        String   // success, failed, pending
-  blockNumber   BigInt?
-  gasUsed       BigInt?
-  gasPrice      String?
-  nonce         Int?
-  timestamp     DateTime
-  isIncoming    Boolean  // true if receiving, false if sending
-  usdValue      Decimal? @db.Decimal(18, 2)
-  category      String?  // send, receive, swap, contract_interaction
-  metadata      Json?    // Additional transaction data
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String    @id @default(cuid())
+  walletId         String    @map("wallet_id")
+  network          String
+  txHash           String    @map("tx_hash")
+  blockNumber      BigInt?   @map("block_number")
+  fromAddress      String    @map("from_address")
+  toAddress        String    @map("to_address")
+  amount           Decimal   @db.Decimal(36, 18) // High precision for crypto amounts
+  tokenSymbol      String    @default("ETH") @map("token_symbol")
+  tokenAddress     String?   @map("token_address")
+  tokenDecimals    Int       @default(18) @map("token_decimals")
+  status           String    @default("pending")
+  gasUsed          BigInt?   @map("gas_used")
+  gasPrice         Decimal?  @map("gas_price") @db.Decimal(36, 0) // Wei precision
+  nonce            Int?
+  transactionFee   Decimal?  @map("transaction_fee") @db.Decimal(36, 18)
+  timestamp        DateTime
+  isIncoming       Boolean   @map("is_incoming")
+  usdValueAtTime   Decimal?  @map("usd_value_at_time") @db.Decimal(15, 2)
+  category         String    @default("transfer")
+  metadata         Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relations
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
-  @@index([walletId, timestamp])
-  @@index([txHash])
-  @@index([network])
   @@map("transactions")
+  @@unique([txHash, network], name: "unique_tx_per_network")
+  @@index([walletId])
+  @@index([walletId, timestamp(sort: Desc)], name: "wallet_transactions_by_time")
+  @@index([status])
+  @@index([network])
+  @@index([tokenSymbol])
+  @@index([category])
+  @@index([amount])
 }
 
-model PortfolioSnapshot {
+// Security Audit Trail
+model ActivityLog {
   id           String   @id @default(cuid())
-  walletId     String
-  network      String
-  totalValueUSD Decimal @db.Decimal(18, 2)
-  balances     Json     // {"ETH": "1.5", "USDC": "1000", ...}
-  tokenPrices  Json     // {"ETH": 2000, "USDC": 1, ...}
-  snapshotDate DateTime @db.Date
-  createdAt    DateTime @default(now())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  details      Json?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  success      Boolean
+  timestamp    DateTime @default(now())
 
   // Relations
-  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@unique([walletId, network, snapshotDate])
-  @@index([walletId, snapshotDate])
-  @@map("portfolio_snapshots")
+  @@map("activity_logs")
+  @@index([userId])
+  @@index([timestamp(sort: Desc)])
+  @@index([action])
 }
 
-model WatchedToken {
-  id           String   @id @default(cuid())
-  walletId     String
-  network      String
-  tokenAddress String
-  tokenSymbol  String
-  tokenName    String
-  decimals     Int
-  isActive     Boolean  @default(true)
-  addedAt      DateTime @default(now())
+// Address Book for Frequent Contacts
+model AddressBookEntry {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  name       String
+  address    String
+  network    String
+  notes      String?
+  isFavorite Boolean  @default(false) @map("is_favorite")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([walletId, network, tokenAddress])
-  @@map("watched_tokens")
+  @@map("address_book")
+  @@unique([userId, address, network], name: "unique_address_per_user_network")
+  @@index([userId])
+  @@index([network])
 }
 
+// Price Caching for Performance
 model PriceCache {
-  id          String   @id @default(cuid())
-  coinId      String   @unique // ethereum, bitcoin, polygon, etc.
-  symbol      String
+  symbol      String   @id
   name        String
-  currentPrice Decimal @db.Decimal(18, 8)
-  marketCap   Decimal? @db.Decimal(20, 2)
-  volume24h   Decimal? @db.Decimal(20, 2)
-  change24h   Decimal? @db.Decimal(10, 4)
-  change7d    Decimal? @db.Decimal(10, 4)
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
+  priceUsd    Decimal  @map("price_usd") @db.Decimal(15, 8)
+  marketCap   Decimal? @map("market_cap") @db.Decimal(20, 2)
+  volume24h   Decimal? @map("volume_24h") @db.Decimal(20, 2)
+  change24h   Decimal? @map("change_24h") @db.Decimal(10, 4)
+  change7d    Decimal? @map("change_7d") @db.Decimal(10, 4)
+  lastUpdated DateTime @default(now()) @map("last_updated")
 
   @@map("price_cache")
+  @@index([lastUpdated])
 }
 
-model ApiUsage {
-  id          String   @id @default(cuid())
-  endpoint    String
-  method      String
-  userId      String?
-  walletId    String?
-  network     String?
-  responseTime Int     // in milliseconds
-  status      Int      // HTTP status code
-  timestamp   DateTime @default(now())
+// Enums for Type Safety
+enum WalletType {
+  HD       @map("hd")
+  IMPORTED @map("imported")
+  HARDWARE @map("hardware")
 
-  @@index([endpoint, timestamp])
-  @@index([userId, timestamp])
-  @@map("api_usage")
+  @@map("wallet_type")
+}
+
+enum TransactionStatus {
+  PENDING   @map("pending")
+  CONFIRMED @map("confirmed")
+  FAILED    @map("failed")
+  DROPPED   @map("dropped")
+
+  @@map("transaction_status")
+}
+
+enum TransactionCategory {
+  TRANSFER @map("transfer")
+  SWAP     @map("swap")
+  DEFI     @map("defi")
+  NFT      @map("nft")
+  CONTRACT @map("contract")
+
+  @@map("transaction_category")
+}
+
+enum ActivityAction {
+  LOGIN              @map("login")
+  LOGOUT             @map("logout")
+  WALLET_CREATE      @map("wallet_create")
+  WALLET_DELETE      @map("wallet_delete")
+  TRANSACTION_SEND   @map("transaction_send")
+  SETTINGS_UPDATE    @map("settings_update")
+  PASSWORD_CHANGE    @map("password_change")
+  TWO_FA_ENABLE      @map("2fa_enable")
+  TWO_FA_DISABLE     @map("2fa_disable")
+
+  @@map("activity_action")
 }

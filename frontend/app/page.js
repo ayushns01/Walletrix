@@ -23,6 +23,7 @@ export default function Home() {
     prices,
     user,
     isAuthenticated,
+    login,
     logout,
     userWallets,
     activeWalletId,
@@ -38,6 +39,8 @@ export default function Home() {
   const [showAccountDetails, setShowAccountDetails] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showWalletSelector, setShowWalletSelector] = useState(false)
+
+  console.log('Page render - showAuthModal:', showAuthModal);
 
   // Handle quick send/receive
   const handleQuickAction = (action, asset) => {
@@ -80,7 +83,10 @@ export default function Home() {
                       Save your wallets securely and access them from any device
                     </p>
                     <button
-                      onClick={() => setShowAuthModal(true)}
+                      onClick={() => {
+                        console.log('Sign In button clicked');
+                        setShowAuthModal(true);
+                      }}
                       className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
                     >
                       <User className="w-5 h-5" />
@@ -133,6 +139,16 @@ export default function Home() {
             </div>
           )}
         </div>
+        
+        {/* Modals - Available on welcome screen */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onAuthenticated={(userData, token) => {
+            login(userData, token);
+            setShowAuthModal(false);
+          }}
+        />
       </main>
     )
   }
@@ -357,6 +373,10 @@ export default function Home() {
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          onAuthenticated={(userData, token) => {
+            login(userData, token);
+            setShowAuthModal(false);
+          }}
         />
 
         <WalletSelector
