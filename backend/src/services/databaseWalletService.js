@@ -1,10 +1,11 @@
 import prisma from '../lib/prisma.js';
+import activityLogService from './activityLogService.js';
 
 class DatabaseWalletService {
   /**
    * Create new wallet for user
    */
-  async createWallet(userId, name, encryptedData, addresses, description = null) {
+  async createWallet(userId, name, encryptedData, addresses, description = null, ipAddress = null, userAgent = null) {
     try {
       const wallet = await prisma.wallet.create({
         data: {
@@ -16,6 +17,9 @@ class DatabaseWalletService {
           lastAccessedAt: new Date()
         }
       });
+
+      // Log wallet creation
+      await activityLogService.logWalletCreate(userId, wallet.id, 'hd', ipAddress, userAgent);
 
       return {
         success: true,
@@ -53,16 +57,24 @@ class DatabaseWalletService {
           description: true,
           addresses: true,
           createdAt: true,
-          lastAccessedAt: true
+          lastAccessedAt: true,
+          encryptedPrivateKeys: true // Include the encrypted data
         },
         orderBy: {
           lastAccessedAt: 'desc'
         }
       });
 
+      // Map to the format expected by the frontend
+      const formattedWallets = wallets.map(wallet => ({
+        ...wallet,
+        encryptedData: wallet.encryptedPrivateKeys,
+        encryptedPrivateKeys: undefined // Optional: clean up original key
+      }));
+
       return {
         success: true,
-        wallets
+        wallets: formattedWallets
       };
     } catch (error) {
       console.error('Error getting wallets:', error);

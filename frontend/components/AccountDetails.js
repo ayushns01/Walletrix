@@ -39,7 +39,7 @@ export default function AccountDetails({ isOpen, onClose }) {
     try {
       setLoading(true);
       
-      const decrypted = await walletAPI.decryptData(wallet.encrypted, password);
+      const decrypted = await walletAPI.decryptData(wallet.encryptedData || wallet.encrypted, password);
       
       if (!decrypted.success) {
         toast.error('Invalid password');

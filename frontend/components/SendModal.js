@@ -7,7 +7,7 @@ import { transactionAPI, blockchainAPI, walletAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function SendModal({ isOpen, onClose, asset }) {
-  const { wallet, refreshData, selectedNetwork } = useWallet();
+  const { wallet, refreshData, selectedNetwork, activeWalletId } = useWallet();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
@@ -58,9 +58,9 @@ export default function SendModal({ isOpen, onClose, asset }) {
 
       // Decrypt wallet to get private key
       console.log('Wallet object:', wallet);
-      console.log('Wallet encrypted data exists:', !!wallet.encrypted);
+      console.log('Wallet encrypted data exists:', !!(wallet.encryptedData || wallet.encrypted));
       
-      const decrypted = await walletAPI.decryptData(wallet.encrypted, password);
+      const decrypted = await walletAPI.decryptData(wallet.encryptedData || wallet.encrypted, password);
       console.log('Decryption response:', decrypted);
       
       if (!decrypted.success) {
@@ -98,14 +98,16 @@ export default function SendModal({ isOpen, onClose, asset }) {
         result = await transactionAPI.sendBitcoinTransaction(
           walletData.bitcoin.privateKey,
           recipient,
-          parseFloat(amount)
+          parseFloat(amount),
+          null,
+          activeWalletId
         );
       } else if (asset.symbol === 'ETH') {
         result = await transactionAPI.sendEthereumTransaction(
           walletData.ethereum.privateKey,
           recipient,
           amount,
-          { network: networkName } // Pass network parameter
+          { network: networkName, walletId: activeWalletId } // Pass walletId
         );
       } else {
         // ERC-20 Token
@@ -114,7 +116,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
           asset.address,
           recipient,
           amount,
-          { network: networkName } // Pass network parameter
+          { network: networkName, walletId: activeWalletId, decimals: asset.decimals } // Pass walletId and decimals
         );
       }
 

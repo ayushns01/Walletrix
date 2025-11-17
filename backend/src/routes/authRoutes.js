@@ -84,6 +84,8 @@ const router = express.Router();
 router.post('/register', validationRules.register, handleValidationErrors, async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('user-agent');
 
     // Validate input
     if (!email || !password) {
@@ -100,7 +102,7 @@ router.post('/register', validationRules.register, handleValidationErrors, async
       });
     }
 
-    const result = await authService.register(email, password, displayName);
+    const result = await authService.register(email, password, displayName, ipAddress, userAgent);
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -209,6 +211,8 @@ router.post('/register', validationRules.register, handleValidationErrors, async
 router.post('/login', validationRules.login, handleValidationErrors, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('user-agent');
 
     if (!email || !password) {
       return res.status(400).json({
@@ -217,7 +221,7 @@ router.post('/login', validationRules.login, handleValidationErrors, async (req,
       });
     }
 
-    const result = await authService.login(email, password);
+    const result = await authService.login(email, password, ipAddress, userAgent);
 
     if (!result.success) {
       return res.status(401).json(result);

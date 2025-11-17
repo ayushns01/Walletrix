@@ -25,7 +25,7 @@ export const authLimiter = rateLimit({
  */
 export const walletGenerationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 wallet generations per hour
+  max: process.env.NODE_ENV === 'development' ? 100 : 10, // 100 in dev, 10 in production
   message: {
     success: false,
     error: 'Too many wallet generation requests. Please try again later.',

@@ -2,6 +2,39 @@ import prisma from '../lib/prisma.js';
 
 class DatabaseTransactionService {
   /**
+   * Create a new transaction record from a broadcasted transaction
+   */
+  async createTransactionFromBroadcast(walletId, txData) {
+    try {
+      const { txHash, fromAddress, toAddress, amount, network, tokenSymbol, tokenAddress, tokenDecimals } = txData;
+
+      const transaction = await prisma.transaction.create({
+        data: {
+          walletId,
+          network,
+          txHash,
+          fromAddress: fromAddress.toLowerCase(),
+          toAddress: toAddress.toLowerCase(),
+          amount,
+          tokenSymbol: tokenSymbol || (network === 'bitcoin' ? 'BTC' : 'ETH'),
+          tokenAddress: tokenAddress?.toLowerCase(),
+          tokenDecimals: tokenDecimals || 18,
+          status: 'pending', // Transactions are pending until confirmed
+          timestamp: new Date(),
+          isIncoming: false, // Outgoing transaction
+          category: 'transfer',
+        }
+      });
+
+      return { success: true, transaction };
+    } catch (error) {
+      console.error('Error creating transaction from broadcast:', error);
+      // Don't block the main flow, just log the error
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Cache transaction from blockchain
    */
   async cacheTransaction(walletId, transactionData) {
@@ -33,7 +66,7 @@ class DatabaseTransactionService {
           nonce: transactionData.nonce,
           timestamp: new Date(transactionData.timestamp),
           isIncoming: transactionData.isIncoming,
-          usdValue: transactionData.usdValue,
+          usdValueAtTime: transactionData.usdValueAtTime || transactionData.usdValue,
           category: transactionData.category || 'transfer',
           metadata: transactionData.metadata || {}
         }
@@ -223,14 +256,16 @@ class DatabaseTransactionService {
           amount: true,
           tokenSymbol: true,
           tokenAddress: true,
+          tokenDecimals: true,
           status: true,
           blockNumber: true,
           gasUsed: true,
           gasPrice: true,
           nonce: true,
+          transactionFee: true,
           timestamp: true,
           isIncoming: true,
-          usdValue: true,
+          usdValueAtTime: true,
           category: true,
           metadata: true,
           createdAt: true,
@@ -316,7 +351,7 @@ class DatabaseTransactionService {
         by: ['tokenSymbol', 'isIncoming'],
         where: whereClause,
         _sum: {
-          usdValue: true
+          usdValueAtTime: true
         },
         _count: {
           id: true
@@ -324,21 +359,39 @@ class DatabaseTransactionService {
       });
 
       // Calculate daily transaction counts
-      const dailyTransactions = await prisma.$queryRaw`
-        SELECT 
-          DATE(timestamp) as date,
-          COUNT(*) as count,
-          SUM(CASE WHEN "isIncoming" = true THEN "usdValue" ELSE 0 END) as incoming_volume,
-          SUM(CASE WHEN "isIncoming" = false THEN "usdValue" ELSE 0 END) as outgoing_volume
-        FROM "Transaction"
-        WHERE "walletId" = ${walletId}
-          AND "timestamp" >= ${dateFrom}
-          AND "timestamp" <= ${now}
-          ${network ? prisma.$queryRaw`AND "network" = ${network}` : prisma.$queryRaw``}
-        GROUP BY DATE(timestamp)
-        ORDER BY date DESC
-        LIMIT 30
-      `;
+      let dailyTransactions;
+      if (network) {
+        dailyTransactions = await prisma.$queryRawUnsafe(`
+          SELECT 
+            DATE(timestamp) as date,
+            COUNT(*) as count,
+            COALESCE(SUM(CASE WHEN is_incoming = true THEN COALESCE(usd_value_at_time, 0) ELSE 0 END), 0) as incoming_volume,
+            COALESCE(SUM(CASE WHEN is_incoming = false THEN COALESCE(usd_value_at_time, 0) ELSE 0 END), 0) as outgoing_volume
+          FROM transactions
+          WHERE wallet_id = $1
+            AND timestamp >= $2
+            AND timestamp <= $3
+            AND network = $4
+          GROUP BY DATE(timestamp)
+          ORDER BY date DESC
+          LIMIT 30
+        `, walletId, dateFrom, now, network);
+      } else {
+        dailyTransactions = await prisma.$queryRawUnsafe(`
+          SELECT 
+            DATE(timestamp) as date,
+            COUNT(*) as count,
+            COALESCE(SUM(CASE WHEN is_incoming = true THEN COALESCE(usd_value_at_time, 0) ELSE 0 END), 0) as incoming_volume,
+            COALESCE(SUM(CASE WHEN is_incoming = false THEN COALESCE(usd_value_at_time, 0) ELSE 0 END), 0) as outgoing_volume
+          FROM transactions
+          WHERE wallet_id = $1
+            AND timestamp >= $2
+            AND timestamp <= $3
+          GROUP BY DATE(timestamp)
+          ORDER BY date DESC
+          LIMIT 30
+        `, walletId, dateFrom, now);
+      }
 
       // Get top token interactions
       const topTokens = await prisma.transaction.groupBy({
@@ -348,7 +401,7 @@ class DatabaseTransactionService {
           id: true
         },
         _sum: {
-          usdValue: true
+          usdValueAtTime: true
         },
         orderBy: {
           _count: {
@@ -381,7 +434,7 @@ class DatabaseTransactionService {
           volumeByToken: volumeByToken.map(item => ({
             token: item.tokenSymbol,
             direction: item.isIncoming ? 'incoming' : 'outgoing',
-            volume: item._sum.usdValue || 0,
+            volume: item._sum.usdValueAtTime || 0,
             count: item._count.id
           })),
           dailyActivity: dailyTransactions.map(item => ({
@@ -393,7 +446,7 @@ class DatabaseTransactionService {
           topTokens: topTokens.map(item => ({
             token: item.tokenSymbol,
             transactionCount: item._count.id,
-            totalVolume: item._sum.usdValue || 0
+            totalVolume: item._sum.usdValueAtTime || 0
           }))
         }
       };
@@ -475,7 +528,7 @@ class DatabaseTransactionService {
             tx.blockNumber || '',
             tx.gasUsed || '',
             tx.gasPrice || '',
-            tx.usdValue || '',
+            tx.usdValueAtTime || '',
             tx.isIncoming ? 'Incoming' : 'Outgoing',
             tx.category
           ].map(field => `"${String(field).replace(/"/g, '""')}"`);

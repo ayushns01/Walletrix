@@ -30,6 +30,7 @@ import authRoutes from './routes/authRoutes.js';
 import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
+import sessionCleanupJob from './jobs/sessionCleanup.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -227,6 +228,10 @@ if (process.env.NODE_ENV !== 'test') {
     
     // Start periodic metrics logging (every hour)
     startMetricsLogging(60);
+    
+    // Start session cleanup job
+    sessionCleanupJob.start();
+    logger.info('Session cleanup job started');
     
     // Resume transaction monitoring for pending transactions
     try {

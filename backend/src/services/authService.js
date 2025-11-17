@@ -3,12 +3,13 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 import sessionService from './sessionService.js';
 import logger, { logAuth } from './loggerService.js';
+import activityLogService from './activityLogService.js';
 
 class AuthService {
   /**
    * Register a new user
    */
-  async register(email, password, displayName) {
+  async register(email, password, displayName, ipAddress = null, userAgent = null) {
     try {
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
@@ -47,8 +48,8 @@ class AuthService {
 
       // Generate token pair (access + refresh)
       const sessionInfo = {
-        ip: undefined, // Will be set by controller
-        userAgent: undefined, // Will be set by controller  
+        ip: ipAddress,
+        userAgent: userAgent,
         registrationTime: new Date().toISOString(),
       };
 
@@ -57,6 +58,23 @@ class AuthService {
       if (!tokenResult.success) {
         throw new Error('Failed to generate authentication tokens');
       }
+
+      // Create session in database
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await prisma.userSession.create({
+        data: {
+          userId: user.id,
+          sessionToken: tokenResult.accessToken,
+          refreshToken: tokenResult.refreshToken,
+          expiresAt,
+          ipAddress,
+          userAgent,
+          isActive: true
+        }
+      });
+
+      // Log registration activity
+      await activityLogService.logRegistration(user.id, ipAddress, userAgent);
 
       logAuth('User Registered', user.id, {
         email,
@@ -86,7 +104,7 @@ class AuthService {
   /**
    * Login user
    */
-  async login(email, password) {
+  async login(email, password, ipAddress = null, userAgent = null) {
     try {
       // Find user
       const user = await prisma.user.findUnique({
@@ -107,12 +125,16 @@ class AuthService {
       });
 
       if (!user) {
+        // Log failed login attempt
+        await activityLogService.logFailedLogin(email, ipAddress, userAgent, 'User not found');
         throw new Error('Invalid email or password');
       }
 
       // Check password
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
+        // Log failed login attempt
+        await activityLogService.logFailedLogin(email, ipAddress, userAgent, 'Invalid password');
         throw new Error('Invalid email or password');
       }
 
@@ -124,8 +146,8 @@ class AuthService {
 
       // Generate token pair (access + refresh)
       const sessionInfo = {
-        ip: undefined, // Will be set by controller
-        userAgent: undefined, // Will be set by controller  
+        ip: ipAddress,
+        userAgent: userAgent,
         loginTime: new Date().toISOString(),
       };
 
@@ -134,6 +156,23 @@ class AuthService {
       if (!tokenResult.success) {
         throw new Error('Failed to generate authentication tokens');
       }
+
+      // Create session in database
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await prisma.userSession.create({
+        data: {
+          userId: user.id,
+          sessionToken: tokenResult.accessToken,
+          refreshToken: tokenResult.refreshToken,
+          expiresAt,
+          ipAddress,
+          userAgent,
+          isActive: true
+        }
+      });
+
+      // Log successful login
+      await activityLogService.logLogin(user.id, ipAddress, userAgent, true);
 
       logAuth('User Logged In', user.id, {
         email,
@@ -212,7 +251,7 @@ class AuthService {
   /**
    * Update user preferences
    */
-  async updatePreferences(userId, preferences) {
+  async updatePreferences(userId, preferences, ipAddress = null, userAgent = null) {
     try {
       const updatedPreferences = await prisma.userPreferences.upsert({
         where: { userId },
@@ -222,6 +261,9 @@ class AuthService {
           ...preferences
         }
       });
+
+      // Log settings update
+      await activityLogService.logSettingsUpdate(userId, 'preferences', ipAddress, userAgent);
 
       return {
         success: true,
@@ -262,7 +304,7 @@ class AuthService {
   /**
    * Change password
    */
-  async changePassword(userId, currentPassword, newPassword) {
+  async changePassword(userId, currentPassword, newPassword, ipAddress = null, userAgent = null) {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId }
@@ -275,6 +317,8 @@ class AuthService {
       // Verify current password
       const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isValidPassword) {
+        // Log failed password change
+        await activityLogService.logPasswordChange(userId, ipAddress, userAgent, false);
         throw new Error('Current password is incorrect');
       }
 
@@ -287,6 +331,9 @@ class AuthService {
         where: { id: userId },
         data: { passwordHash: newPasswordHash }
       });
+
+      // Log successful password change
+      await activityLogService.logPasswordChange(userId, ipAddress, userAgent, true);
 
       return {
         success: true,

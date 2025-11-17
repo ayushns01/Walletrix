@@ -180,12 +180,13 @@ export const transactionAPI = {
     return response.data;
   },
 
-  sendBitcoinTransaction: async (privateKey, to, amount, feeRate) => {
+  sendBitcoinTransaction: async (privateKey, to, amount, feeRate, walletId) => {
     const response = await api.post('/api/v1/transactions/bitcoin/send', {
       privateKey,
       to,
       amount,
       feeRate,
+      walletId,
     });
     return response.data;
   },

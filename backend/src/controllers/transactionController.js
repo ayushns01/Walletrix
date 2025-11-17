@@ -1,4 +1,5 @@
 import transactionService from '../services/transactionService.js';
+import databaseTransactionService from '../services/databaseTransactionService.js';
 
 /**
  * Transaction Controller
@@ -37,14 +38,19 @@ class TransactionController {
         network
       );
 
-      console.log('Transaction result:', {
-        success: result.success,
-        txHash: result.txHash,
-        error: result.error
-      });
-
       if (!result.success) {
         return res.status(400).json(result);
+      }
+
+      // Save the transaction to the database
+      if (result.success && req.body.walletId) {
+        databaseTransactionService.createTransactionFromBroadcast(req.body.walletId, {
+          txHash: result.txHash,
+          fromAddress: result.from,
+          toAddress: result.to,
+          amount: value,
+          network: network,
+        }).catch(err => console.error('Failed to save transaction to DB:', err)); // Log error but don't block response
       }
 
       res.status(200).json(result);
@@ -64,7 +70,7 @@ class TransactionController {
    */
   async sendTokenTransaction(req, res) {
     try {
-      const { privateKey, tokenAddress, to, amount, gasLimit, gasPrice, nonce } = req.body;
+      const { privateKey, tokenAddress, to, amount, decimals, network = 'mainnet', walletId } = req.body;
 
       // Validate required fields
       if (!privateKey || !tokenAddress || !to || !amount) {
@@ -79,13 +85,25 @@ class TransactionController {
         tokenAddress,
         to,
         amount,
-        gasLimit,
-        gasPrice,
-        nonce
+        decimals,
+        network
       );
 
       if (!result.success) {
         return res.status(400).json(result);
+      }
+
+      // Save the transaction to the database
+      if (result.success && walletId) {
+        databaseTransactionService.createTransactionFromBroadcast(walletId, {
+          txHash: result.txHash,
+          fromAddress: result.from,
+          toAddress: result.to,
+          amount: amount,
+          network: network,
+          tokenSymbol: result.tokenSymbol, // Assuming service returns this
+          tokenAddress: tokenAddress,
+        }).catch(err => console.error('Failed to save token transaction to DB:', err));
       }
 
       res.status(200).json(result);
@@ -105,7 +123,7 @@ class TransactionController {
    */
   async sendBitcoinTransaction(req, res) {
     try {
-      const { privateKey, to, amount, feeRate } = req.body;
+      const { privateKey, to, amount, feeRate, network = 'mainnet', walletId } = req.body;
 
       // Validate required fields
       if (!privateKey || !to || !amount) {
@@ -119,11 +137,23 @@ class TransactionController {
         privateKey,
         to,
         amount,
-        feeRate
+        network
       );
 
       if (!result.success) {
         return res.status(400).json(result);
+      }
+
+      // Save the transaction to the database
+      if (result.success && walletId) {
+        databaseTransactionService.createTransactionFromBroadcast(walletId, {
+          txHash: result.txHash,
+          fromAddress: result.from,
+          toAddress: result.to,
+          amount: amount,
+          network: network,
+          tokenSymbol: 'BTC',
+        }).catch(err => console.error('Failed to save BTC transaction to DB:', err));
       }
 
       res.status(200).json(result);
