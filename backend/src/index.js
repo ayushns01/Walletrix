@@ -54,10 +54,11 @@ const corsOptions = {
     }
     
     // In production, check against whitelist
-    const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean);
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}, allowed: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -209,8 +210,8 @@ app.use(notFoundHandler);
 // Global error handler - must be last
 app.use(errorHandler);
 
-// Start server
-if (process.env.NODE_ENV !== 'test') {
+// Start server (only in non-serverless environments)
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, async () => {
     logger.info('Server started', {
       port: PORT,
