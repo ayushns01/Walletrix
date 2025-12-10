@@ -43,6 +43,9 @@ app.use(helmet());
 // CORS configuration - Allow all localhost origins in development
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log(`CORS check - Origin: ${origin}, NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS}`);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
@@ -55,6 +58,8 @@ const corsOptions = {
     
     // In production, check against whitelist
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
+    console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
