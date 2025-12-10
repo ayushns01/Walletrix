@@ -4,19 +4,17 @@
  */
 
 const requiredEnvVars = {
-  // Server
-  API_PORT: 'Server port number',
-  NODE_ENV: 'Node environment (development/production)',
-  
   // Database
   DATABASE_URL: 'PostgreSQL database connection string',
   JWT_SECRET: 'JWT token secret key',
-  
-  // Core RPC endpoints
-  ETHEREUM_MAINNET_RPC: 'Ethereum mainnet RPC endpoint',
 };
 
 const optionalEnvVars = {
+  // Server
+  NODE_ENV: 'Node environment (development/production)',
+  API_PORT: 'Server port number (uses Railway PORT if not set)',
+  PORT: 'Railway assigned port',
+  
   // Additional JWT
   JWT_ACCESS_SECRET: 'JWT access token secret (recommended)',
   JWT_REFRESH_SECRET: 'JWT refresh token secret (recommended)',
@@ -29,16 +27,32 @@ const optionalEnvVars = {
   ETHERSCAN_API_KEY: 'Etherscan API key for transaction history',
   COINGECKO_API_KEY: 'CoinGecko API key for price data',
   BLOCKCYPHER_API_KEY: 'BlockCypher API key for Bitcoin',
+  ALCHEMY_API_KEY: 'Alchemy API key for RPC endpoints',
+  
+  // Core RPC endpoints (recommended for production)
+  ETHEREUM_MAINNET_RPC: 'Ethereum mainnet RPC endpoint',
   
   // Additional networks
   ETHEREUM_SEPOLIA_RPC: 'Ethereum Sepolia testnet RPC',
   ETHEREUM_GOERLI_RPC: 'Ethereum Goerli testnet RPC',
+  ETHEREUM_HOLESKY_RPC: 'Ethereum Holesky testnet RPC',
   POLYGON_MAINNET_RPC: 'Polygon mainnet RPC',
+  POLYGON_MUMBAI_RPC: 'Polygon Mumbai testnet RPC',
   ARBITRUM_ONE_RPC: 'Arbitrum One mainnet RPC',
+  ARBITRUM_GOERLI_RPC: 'Arbitrum Goerli testnet RPC',
   OPTIMISM_MAINNET_RPC: 'Optimism mainnet RPC',
+  OPTIMISM_GOERLI_RPC: 'Optimism Goerli testnet RPC',
   BASE_MAINNET_RPC: 'Base mainnet RPC',
+  BASE_GOERLI_RPC: 'Base Goerli testnet RPC',
   BSC_MAINNET_RPC: 'BSC mainnet RPC',
+  BSC_TESTNET_RPC: 'BSC testnet RPC',
   AVALANCHE_MAINNET_RPC: 'Avalanche mainnet RPC',
+  AVALANCHE_FUJI_RPC: 'Avalanche Fuji testnet RPC',
+  SOLANA_MAINNET_RPC: 'Solana mainnet RPC',
+  SOLANA_DEVNET_RPC: 'Solana devnet RPC',
+  SOLANA_TESTNET_RPC: 'Solana testnet RPC',
+  BITCOIN_NETWORK: 'Bitcoin network (mainnet/testnet)',
+  BITCOIN_TESTNET_NETWORK: 'Bitcoin testnet network',
   
   // Caching
   REDIS_URL: 'Redis connection URL for caching',
@@ -46,6 +60,7 @@ const optionalEnvVars = {
   // Security
   ENCRYPTION_KEY: 'Encryption key for sensitive data',
   ALLOWED_ORIGINS: 'CORS allowed origins',
+  CLERK_SECRET_KEY: 'Clerk authentication secret key',
 };
 
 /**
@@ -104,9 +119,10 @@ export const validateEnvironment = () => {
     formatErrors.push('DATABASE_URL must start with postgresql://');
   }
   
-  // Validate API_PORT is a number
-  if (process.env.API_PORT && isNaN(parseInt(process.env.API_PORT))) {
-    formatErrors.push('API_PORT must be a valid number');
+  // Validate PORT/API_PORT is a number
+  const port = process.env.PORT || process.env.API_PORT;
+  if (port && isNaN(parseInt(port))) {
+    formatErrors.push('PORT/API_PORT must be a valid number');
   }
   
   // Validate NODE_ENV is valid
@@ -156,7 +172,7 @@ export const getEnvConfig = () => {
     isTest: process.env.NODE_ENV === 'test',
     
     server: {
-      port: parseInt(process.env.API_PORT) || 3001,
+      port: parseInt(process.env.PORT || process.env.API_PORT) || 3001,
       frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
     },
     

@@ -34,7 +34,8 @@ import swaggerUi from 'swagger-ui-express';
 import sessionCleanupJob from './jobs/sessionCleanup.js';
 
 const app = express();
-const PORT = process.env.API_PORT || 3001;
+// Railway uses PORT, fallback to API_PORT or 3001
+const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
 // Security middleware
 app.use(helmet());
