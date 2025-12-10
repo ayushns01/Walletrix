@@ -15,23 +15,33 @@ class WalletController {
     try {
       const { passphrase } = req.body;
       
+      console.log('Generating wallet with passphrase:', !!passphrase);
       const result = walletService.generateNewWallet(passphrase);
+      console.log('Wallet generation result:', { success: result.success, hasAddresses: !!result.addresses });
       
       if (!result.success) {
+        console.error('Wallet generation failed:', result.error);
         return res.status(400).json({
           success: false,
           error: result.error,
         });
       }
 
-      // SECURITY: Private keys are NEVER returned to client
-      // They are stored encrypted server-side and only used for signing
+      // Return wallet data for client-side encryption
+      // Private keys will be encrypted by client before storage
       res.status(200).json({
         success: true,
         message: 'Wallet generated successfully',
         data: {
           mnemonic: result.mnemonic,
-          addresses: result.addresses,
+          ethereum: {
+            address: result.addresses.ethereum,
+            privateKey: result._privateKeys.ethereum,
+          },
+          bitcoin: {
+            address: result.addresses.bitcoin,
+            privateKey: result._privateKeys.bitcoin,
+          },
         },
         security: {
           warning: 'Write down your recovery phrase on paper and store it securely',
@@ -77,12 +87,20 @@ class WalletController {
         });
       }
 
-      // SECURITY: Only return addresses, never private keys
+      // Return wallet data for client-side encryption
+      // Private keys will be encrypted by client before storage
       res.status(200).json({
         success: true,
         message: 'Wallet imported successfully',
         data: {
-          addresses: result.addresses,
+          ethereum: {
+            address: result.addresses.ethereum,
+            privateKey: result._privateKeys.ethereum,
+          },
+          bitcoin: {
+            address: result.addresses.bitcoin,
+            privateKey: result._privateKeys.bitcoin,
+          },
         },
       });
     } catch (error) {
