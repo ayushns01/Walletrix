@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react';
-import { Download, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useWallet } from '@/contexts/DatabaseWalletContext';
+import { useUser } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 
 export default function ImportWallet({ onComplete }) {
   const { importWallet } = useWallet();
+  const { user: clerkUser } = useUser();
   const [mnemonic, setMnemonic] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [walletName, setWalletName] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If user is authenticated with Clerk, skip password requirement
+  const requiresPassword = !clerkUser;
 
   const handleImport = async () => {
     console.log('Importing wallet...'); // Debug log
@@ -22,20 +29,25 @@ export default function ImportWallet({ onComplete }) {
       return;
     }
 
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
-      return;
-    }
+    // Only validate password if not using Clerk
+    if (requiresPassword) {
+      if (password.length < 8) {
+        toast.error('Password must be at least 8 characters');
+        return;
+      }
 
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
     }
 
     try {
       setLoading(true);
       console.log('Calling importWallet...'); // Debug log
-      await importWallet(mnemonic.trim(), password);
+      // Use Clerk user ID as password for authenticated users
+      const walletPassword = requiresPassword ? password : clerkUser.id;
+      await importWallet(mnemonic.trim(), walletPassword, walletName || undefined);
       console.log('Wallet imported successfully'); // Debug log
       onComplete();
     } catch (error) {
@@ -60,6 +72,22 @@ export default function ImportWallet({ onComplete }) {
         </p>
 
         <div className="space-y-4">
+          {/* Wallet Name (optional for Clerk users) */}
+          {!requiresPassword && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Wallet Name (Optional)
+              </label>
+              <input
+                type="text"
+                value={walletName}
+                onChange={(e) => setWalletName(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                placeholder="e.g., Main Wallet, Trading Wallet"
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Recovery Phrase
@@ -76,45 +104,62 @@ export default function ImportWallet({ onComplete }) {
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              New Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-              placeholder="Create a password (min 8 characters)"
-            />
-          </div>
+          {/* Password fields - only show if not using Clerk */}
+          {requiresPassword && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    placeholder="Create a password (min 8 characters)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-              placeholder="Confirm password"
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="Confirm password"
+                />
+              </div>
+            </>
+          )}
 
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3">
             <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-300">
               <p className="font-medium mb-1">Security Notice:</p>
               <p className="text-xs">
-                Your recovery phrase will be encrypted with this password. Make sure to use a strong password that you can remember.
+                {requiresPassword 
+                  ? "Your recovery phrase will be encrypted with this password. Make sure to use a strong password that you can remember."
+                  : "Your wallet will be secured with your Clerk account. The recovery phrase will be encrypted automatically."
+                }
               </p>
             </div>
           </div>
 
           <button
             onClick={handleImport}
-            disabled={loading || !mnemonic || !password || !confirmPassword}
+            disabled={loading || !mnemonic || (requiresPassword && (!password || !confirmPassword))}
             className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
           >
             {loading ? 'Importing Wallet...' : 'Import Wallet'}

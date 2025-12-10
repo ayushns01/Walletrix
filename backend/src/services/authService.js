@@ -30,6 +30,8 @@ class AuthService {
           email,
           passwordHash,
           displayName,
+          authProvider: 'local',
+          emailVerified: false,
           preferences: {
             create: {
               defaultNetwork: 'ethereum-mainnet',
@@ -100,6 +102,11 @@ class AuthService {
       };
     }
   }
+
+  /**
+   * Note: OAuth authentication is now handled by Clerk
+   * Legacy OAuth methods have been removed
+   */
 
   /**
    * Login user
@@ -175,7 +182,7 @@ class AuthService {
       await activityLogService.logLogin(user.id, ipAddress, userAgent, true);
 
       logAuth('User Logged In', user.id, {
-        email,
+        email: emailValidation.email,
         sessionInfo,
       });
 

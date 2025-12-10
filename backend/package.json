@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@prisma/client": "^6.19.0",
     "@solana/web3.js": "^1.98.4",
     "archiver": "^7.0.1",

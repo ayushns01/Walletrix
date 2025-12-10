@@ -1,14 +1,14 @@
 import express from 'express';
 import databaseWalletService from '../services/databaseWalletService.js';
 import databaseTransactionService from '../services/databaseTransactionService.js';
-import { authenticate, optionalAuth, verifyWalletAccess } from '../middleware/auth.js';
+import { authenticateClerk, optionalAuthClerk, verifyWalletAccess } from '../middleware/clerkAuth.js';
 
 const router = express.Router();
 
 /**
  * Get user's wallets
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticateClerk, async (req, res) => {
   try {
     const userId = req.userId;
     const result = await databaseWalletService.getUserWallets(userId);
@@ -33,7 +33,7 @@ router.get('/', authenticate, async (req, res) => {
 /**
  * Create new wallet
  */
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticateClerk, async (req, res) => {
   try {
     const { name, encryptedData, addresses, description } = req.body;
     const userId = req.userId;
@@ -74,7 +74,7 @@ router.post('/', authenticate, async (req, res) => {
 /**
  * Get specific wallet
  */
-router.get('/:walletId', authenticate, verifyWalletAccess, async (req, res) => {
+router.get('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const userId = req.userId;
@@ -101,7 +101,7 @@ router.get('/:walletId', authenticate, verifyWalletAccess, async (req, res) => {
 /**
  * Update wallet
  */
-router.put('/:walletId', authenticate, verifyWalletAccess, async (req, res) => {
+router.put('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const userId = req.userId;
@@ -136,7 +136,7 @@ router.put('/:walletId', authenticate, verifyWalletAccess, async (req, res) => {
 /**
  * Delete wallet
  */
-router.delete('/:walletId', authenticate, verifyWalletAccess, async (req, res) => {
+router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const userId = req.userId;
@@ -163,7 +163,7 @@ router.delete('/:walletId', authenticate, verifyWalletAccess, async (req, res) =
 /**
  * Get wallet transactions from database
  */
-router.get('/:walletId/transactions', authenticate, verifyWalletAccess, async (req, res) => {
+router.get('/:walletId/transactions', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const { network, limit = 50, offset = 0, status } = req.query;
@@ -197,7 +197,7 @@ router.get('/:walletId/transactions', authenticate, verifyWalletAccess, async (r
 /**
  * Cache transactions for wallet
  */
-router.post('/:walletId/cache-transactions', authenticate, verifyWalletAccess, async (req, res) => {
+router.post('/:walletId/cache-transactions', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const { transactions } = req.body;

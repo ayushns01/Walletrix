@@ -1,13 +1,18 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { walletAPI, blockchainAPI, tokenAPI, priceAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 const WalletContext = createContext();
 
 export function WalletProvider({ children }) {
-  // Authentication state
+  // Clerk authentication
+  const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
+
+  // Authentication state (legacy, keeping for backward compatibility)
   const [user, setUser] = useState(null);
   const [authToken, setAuthToken] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,29 +31,63 @@ export function WalletProvider({ children }) {
   const [userWallets, setUserWallets] = useState([]);
   const [activeWalletId, setActiveWalletId] = useState(null);
 
-  // Load authentication state from localStorage
+  // Load user wallets when Clerk user signs in
   useEffect(() => {
-    const token = localStorage.getItem('walletrix_auth_token');
-    const userData = localStorage.getItem('walletrix_user');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setAuthToken(token);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        
-        // Load user's wallets
-        loadUserWallets(token);
-      } catch (error) {
-        console.error('Error loading auth state:', error);
+    const loadClerkUserWallets = async () => {
+      if (isSignedIn && clerkUser && isUserLoaded) {
+        try {
+          const token = await getToken();
+          if (token) {
+            setAuthToken(token);
+            setIsAuthenticated(true);
+            setUser({
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress,
+              name: clerkUser.fullName
+            });
+            
+            // Load user's wallets from database
+            await loadUserWallets(token);
+          }
+        } catch (error) {
+          console.error('Error loading Clerk user wallets:', error);
+        }
+      } else if (!isSignedIn && isUserLoaded) {
+        // User signed out, clear state
         clearAuthState();
+        // Load legacy localStorage wallet if exists
+        loadLegacyWallet();
       }
-    } else {
-      // Load legacy localStorage wallet if no auth
-      loadLegacyWallet();
-    }
-  }, []);
+    };
+
+    loadClerkUserWallets();
+  }, [isSignedIn, clerkUser, isUserLoaded]);
+
+  // Load wallet data when activeWalletId changes
+  useEffect(() => {
+    const loadActiveWallet = async () => {
+      if (activeWalletId && userWallets.length > 0) {
+        const selectedWallet = userWallets.find(w => w.id === activeWalletId);
+        if (selectedWallet) {
+          await loadWalletData(selectedWallet);
+        }
+      }
+    };
+
+    loadActiveWallet();
+  }, [activeWalletId, userWallets]);
+
+  // Refetch transactions when network changes
+  useEffect(() => {
+    const refetchTransactions = async () => {
+      if (wallet && !isLocked && activeWalletId) {
+        console.log('Network changed to:', selectedNetwork);
+        await fetchBlockchainTransactions();
+      }
+    };
+
+    refetchTransactions();
+  }, [selectedNetwork]);
 
   // Load legacy localStorage wallet (backward compatibility)
   const loadLegacyWallet = () => {
@@ -73,18 +112,28 @@ export function WalletProvider({ children }) {
     setIsAuthenticated(false);
     setUserWallets([]);
     setActiveWalletId(null);
+    setWallet(null);
+    setIsLocked(true);
+    setBalances({});
+    setTokens([]);
+    setTransactions([]);
   };
 
   // API call helper with authentication
   const authenticatedFetch = async (url, options = {}) => {
+    // Get fresh Clerk token
+    const token = await getToken();
+    
+    if (!token) {
+      toast.error('Please sign in to continue');
+      throw new Error('Authentication required');
+    }
+
     const headers = {
       'Content-Type': 'application/json',
-      ...options.headers
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
     };
-
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
-    }
 
     const response = await fetch(url, {
       ...options,
@@ -92,9 +141,7 @@ export function WalletProvider({ children }) {
     });
 
     if (response.status === 401) {
-      // Token expired or invalid
-      clearAuthState();
-      toast.error('Session expired. Please login again.');
+      toast.error('Session expired. Please sign in again.');
       throw new Error('Authentication failed');
     }
 
@@ -102,16 +149,22 @@ export function WalletProvider({ children }) {
   };
 
   // Load user's wallets from database
-  const loadUserWallets = async (token = authToken) => {
-    if (!token) return;
-
+  const loadUserWallets = async (token) => {
     try {
+      // Get fresh token if not provided
+      const authToken = token || await getToken();
+      
+      if (!authToken) {
+        console.log('No auth token available, skipping wallet load');
+        return;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets`,
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`
           }
         }
       );
@@ -121,11 +174,8 @@ export function WalletProvider({ children }) {
       if (data.success) {
         setUserWallets(data.wallets);
         
-        // Set first wallet as active if none selected
-        if (data.wallets.length > 0 && !activeWalletId) {
-          setActiveWalletId(data.wallets[0].id);
-          loadWalletData(data.wallets[0]);
-        }
+        // Don't auto-load any wallet - let user choose
+        // This ensures the wallet list is always shown after login
       }
     } catch (error) {
       console.error('Error loading user wallets:', error);
@@ -156,37 +206,48 @@ export function WalletProvider({ children }) {
 
   // Fetch transactions from database
   const fetchDatabaseTransactions = async (walletId) => {
-    if (!authToken || !walletId) return;
+    if (!walletId) return;
 
     try {
       const { chain, network } = getNetworkInfo();
+      console.log('Fetching database transactions:', { walletId, chain, network, selectedNetwork });
+      
       const response = await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets/${walletId}/transactions?network=${network}&limit=50`
       );
       
       const data = await response.json();
+      console.log('Database transactions response:', data);
       
-      if (data.success) {
+      if (data.success && data.transactions && data.transactions.length > 0) {
+        console.log('Setting transactions from database:', data.transactions.length);
         setTransactions(data.transactions);
       } else {
         // Fallback to blockchain API if database is empty
+        console.log('No database transactions, falling back to blockchain API');
         await fetchBlockchainTransactions();
       }
     } catch (error) {
       console.error('Error fetching database transactions:', error);
       // Fallback to blockchain API
+      console.log('Database fetch failed, falling back to blockchain API');
       await fetchBlockchainTransactions();
     }
   };
 
   // Fetch transactions from blockchain (fallback)
   const fetchBlockchainTransactions = async () => {
-    if (!wallet) return;
+    if (!wallet) {
+      console.log('No wallet loaded, cannot fetch blockchain transactions');
+      return;
+    }
     
     try {
       const { chain, network } = getNetworkInfo();
+      console.log('Fetching blockchain transactions:', { chain, network, selectedNetwork, wallet });
       
       if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        // Ethereum and EVM-compatible chains
         let networkParam;
         
         if (chain === 'ethereum') {
@@ -196,23 +257,58 @@ export function WalletProvider({ children }) {
         }
         
         const address = wallet.ethereum?.address;
+        console.log('Fetching ETH transactions for:', { address, networkParam });
         
         if (address) {
-          const ethTxs = await blockchainAPI.getEthereumTransactions(address, 1, 10, networkParam);
+          const ethTxs = await blockchainAPI.getEthereumTransactions(address, 1, 50, networkParam);
+          console.log('Blockchain API response:', ethTxs);
           
           if (ethTxs.success && ethTxs.transactions) {
             const allTxs = ethTxs.transactions.map(tx => ({ 
               ...tx, 
               network: selectedNetwork 
             }));
+            console.log('Setting transactions from blockchain:', allTxs.length);
             setTransactions(allTxs);
             
             // Cache transactions in database if authenticated
-            if (authToken && activeWalletId) {
+            if (isAuthenticated && activeWalletId) {
               await cacheTransactionsInDatabase(allTxs);
             }
+          } else {
+            console.log('No transactions in blockchain response');
+            setTransactions([]);
           }
         }
+      } else if (chain === 'bitcoin') {
+        // Bitcoin transactions
+        const address = wallet.bitcoin?.address;
+        console.log('Fetching Bitcoin transactions for:', { address, network });
+        
+        if (address) {
+          const btcTxs = await blockchainAPI.getBitcoinTransactions(address, network);
+          console.log('Bitcoin API response:', btcTxs);
+          
+          if (btcTxs.success && btcTxs.transactions) {
+            const allTxs = btcTxs.transactions.map(tx => ({ 
+              ...tx, 
+              network: selectedNetwork 
+            }));
+            console.log('Setting Bitcoin transactions from blockchain:', allTxs.length);
+            setTransactions(allTxs);
+            
+            // Cache transactions in database if authenticated
+            if (isAuthenticated && activeWalletId) {
+              await cacheTransactionsInDatabase(allTxs);
+            }
+          } else {
+            console.log('No Bitcoin transactions in response');
+            setTransactions([]);
+          }
+        }
+      } else {
+        console.log('Unsupported chain:', chain);
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Error fetching blockchain transactions:', error);
@@ -222,25 +318,33 @@ export function WalletProvider({ children }) {
 
   // Cache transactions in database
   const cacheTransactionsInDatabase = async (transactions) => {
-    if (!authToken || !activeWalletId) return;
+    if (!isAuthenticated || !activeWalletId) {
+      console.log('Skipping cache - not authenticated or no active wallet');
+      return;
+    }
 
     try {
+      const { chain } = getNetworkInfo();
+      const isBitcoin = chain === 'bitcoin';
+      const currentAddress = isBitcoin ? wallet.bitcoin?.address : wallet.ethereum?.address;
+      
       const formattedTxs = transactions.map(tx => ({
-        txHash: tx.hash,
+        txHash: tx.hash || tx.txid,
         network: tx.network,
-        fromAddress: tx.from,
-        toAddress: tx.to,
-        amount: tx.value,
-        tokenSymbol: 'ETH',
-        status: tx.status,
-        blockNumber: tx.blockNumber,
+        fromAddress: tx.from || tx.inputs?.[0]?.address,
+        toAddress: tx.to || tx.outputs?.[0]?.address,
+        amount: tx.value || tx.amount,
+        tokenSymbol: isBitcoin ? 'BTC' : 'ETH',
+        status: tx.status || (tx.confirmations > 0 ? 'confirmed' : 'pending'),
+        blockNumber: tx.blockNumber || tx.block_height,
         gasUsed: tx.gasUsed,
         gasPrice: tx.gasPrice,
-        timestamp: tx.timestamp,
-        isIncoming: tx.to?.toLowerCase() === wallet.ethereum?.address?.toLowerCase(),
+        timestamp: tx.timestamp || tx.time,
+        isIncoming: (tx.to || tx.outputs?.[0]?.address)?.toLowerCase() === currentAddress?.toLowerCase(),
         category: 'transfer'
       }));
 
+      console.log('Caching transactions in database:', formattedTxs.length);
       await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets/${activeWalletId}/cache-transactions`,
         {
@@ -248,6 +352,7 @@ export function WalletProvider({ children }) {
           body: JSON.stringify({ transactions: formattedTxs })
         }
       );
+      console.log('Transactions cached successfully');
     } catch (error) {
       console.error('Error caching transactions:', error);
     }
@@ -279,28 +384,23 @@ export function WalletProvider({ children }) {
 
   // Create new wallet in database
   const createDatabaseWallet = async (name, encryptedData, addresses, description) => {
-    console.log('createDatabaseWallet called, authToken:', authToken ? 'present' : 'missing');
-    console.log('isAuthenticated:', isAuthenticated);
+    console.log('createDatabaseWallet called');
     
-    if (!authToken) {
-      const storedToken = localStorage.getItem('walletrix_auth_token');
-      console.log('No authToken in state, checking localStorage:', storedToken ? 'present' : 'missing');
-      if (!storedToken) {
-        throw new Error('Authentication required');
-      }
-      // Use stored token if state hasn't updated yet
-      setAuthToken(storedToken);
-    }
-
     try {
-      const tokenToUse = authToken || localStorage.getItem('walletrix_auth_token');
+      // Get fresh Clerk token
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required - please sign in');
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokenToUse}`
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             name,
@@ -314,7 +414,7 @@ export function WalletProvider({ children }) {
       const data = await response.json();
       
       if (data.success) {
-        await loadUserWallets();
+        await loadUserWallets(token);
         return data.wallet;
       } else {
         throw new Error(data.error);
@@ -380,7 +480,7 @@ export function WalletProvider({ children }) {
   };
 
   // Legacy functions (for backward compatibility)
-  const generateWallet = async (password) => {
+  const generateWallet = async (password, walletName = 'My Wallet') => {
     try {
       setLoading(true);
       const response = await walletAPI.generateWallet();
@@ -400,7 +500,7 @@ export function WalletProvider({ children }) {
         if (isAuthenticated) {
           // Save to database
           await createDatabaseWallet(
-            'My Wallet',
+            walletName,
             encryptedResponse.encrypted,
             {
               ethereum: response.data.ethereum.address,
@@ -427,7 +527,7 @@ export function WalletProvider({ children }) {
     }
   };
 
-  const importWallet = async (mnemonic, password) => {
+  const importWallet = async (mnemonic, password, walletName = 'Imported Wallet') => {
     try {
       setLoading(true);
       const response = await walletAPI.importFromMnemonic(mnemonic);
@@ -447,7 +547,7 @@ export function WalletProvider({ children }) {
         if (isAuthenticated) {
           // Save to database
           await createDatabaseWallet(
-            'Imported Wallet',
+            walletName,
             encryptedResponse.encrypted,
             {
               ethereum: response.data.ethereum.address,
@@ -654,6 +754,7 @@ export function WalletProvider({ children }) {
     // Database wallets
     userWallets,
     activeWalletId,
+    setActiveWalletId,
     switchWallet,
     createDatabaseWallet,
     importLocalStorageWallet,

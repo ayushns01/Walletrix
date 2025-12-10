@@ -12,15 +12,18 @@ datasource db {
 
 // Core Authentication & User Management
 model User {
-  id                String    @id @default(cuid())
+  id                String    @id // Use Clerk user ID directly, no auto-generation
   email             String    @unique
-  passwordHash      String    @map("password_hash")
+  passwordHash      String?   @map("password_hash") // Optional for OAuth users
   username          String?   @unique
   displayName       String?   @map("display_name")
   emailVerified     Boolean   @default(false) @map("email_verified")
   isActive          Boolean   @default(true) @map("is_active")
   twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
   twoFactorSecret   String?   @map("two_factor_secret") // Encrypted TOTP secret
+  googleId          String?   @unique @map("google_id") // Google OAuth ID
+  profilePicture    String?   @map("profile_picture") // Profile picture URL
+  authProvider      String    @default("local") @map("auth_provider") // 'local' or 'google'
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   lastLoginAt       DateTime? @map("last_login_at")

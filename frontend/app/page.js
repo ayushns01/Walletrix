@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
+import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import CreateWallet from '@/components/CreateWallet'
 import ImportWallet from '@/components/ImportWallet'
 import UnlockWallet from '@/components/UnlockWallet'
@@ -11,10 +12,12 @@ import SendModal from '@/components/SendModal'
 import ReceiveModal from '@/components/ReceiveModal'
 import AccountDetails from '@/components/AccountDetails'
 import NetworkSelector from '@/components/NetworkSelector'
-import AuthModal from '@/components/AuthModal'
 import WalletSelector from '@/components/WalletSelector'
 
 export default function Home() {
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser()
+  const { signOut } = useClerk()
+  
   const { 
     wallet, 
     isLocked, 
@@ -27,8 +30,10 @@ export default function Home() {
     logout,
     userWallets,
     activeWalletId,
+    setActiveWalletId,
     importLocalStorageWallet,
-    deleteWallet
+    deleteWallet,
+    unlockWallet
   } = useWallet()
   
   const [view, setView] = useState('welcome') // welcome, create, import
@@ -37,10 +42,25 @@ export default function Home() {
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAccountDetails, setShowAccountDetails] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [showWalletSelector, setShowWalletSelector] = useState(false)
+  const [showWalletSelector, setShowWalletSelector] = useState(false);
 
-  console.log('Page render - showAuthModal:', showAuthModal);
+  // Auto-unlock wallet for Clerk users
+  useEffect(() => {
+    if (clerkUser && wallet && isLocked) {
+      // Use Clerk user ID as password for auto-unlock
+      unlockWallet(clerkUser.id).catch(console.error);
+    }
+  }, [clerkUser, wallet, isLocked]);
+
+  // Handle wallet creation/import completion
+  const handleWalletCreated = async () => {
+    setView('welcome');
+    // Reload user wallets from database
+    if (isAuthenticated) {
+      // Trigger a refresh by clearing and reloading
+      window.location.reload();
+    }
+  };
 
   // Handle quick send/receive
   const handleQuickAction = (action, asset) => {
@@ -61,7 +81,7 @@ export default function Home() {
     )
   }
 
-  // Show wallet setup screens
+  // Show wallet setup screens or wallet list for authenticated users
   if (!wallet) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black">
@@ -75,42 +95,81 @@ export default function Home() {
                   Your secure, independent cryptocurrency wallet. Manage Bitcoin, Ethereum, and more with ultimate security.
                 </p>
                 
-                {/* Authentication Banner */}
-                {!isAuthenticated && (
+                {/* Authentication Banner - Only shown when signed out */}
+                <SignedOut>
                   <div className="mb-8 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
-                    <h3 className="text-lg font-semibold text-blue-100 mb-2">Sign in for Multi-Device Sync</h3>
+                    <h3 className="text-lg font-semibold text-blue-100 mb-2">Sign in to Get Started</h3>
                     <p className="text-blue-200/70 text-sm mb-4">
-                      Save your wallets securely and access them from any device
+                      Create and manage your crypto wallets securely. Supports Google, GitHub, and email authentication.
                     </p>
-                    <button
-                      onClick={() => {
-                        console.log('Sign In button clicked');
-                        setShowAuthModal(true);
-                      }}
-                      className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                    >
-                      <User className="w-5 h-5" />
-                      Sign In / Register
-                    </button>
+                    <SignInButton mode="modal">
+                      <button
+                        className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        <User className="w-5 h-5" />
+                        Sign In / Register
+                      </button>
+                    </SignInButton>
                   </div>
-                )}
+                </SignedOut>
                 
-                <div className="space-y-6">
-                  <button
-                    onClick={() => setView('create')}
-                    className="w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 btn-glow shadow-lg shadow-blue-500/30"
-                  >
-                    <Plus className="w-6 h-6" />
-                    Create New Wallet
-                  </button>
-                  <button
-                    onClick={() => setView('import')}
-                    className="w-full py-4 px-8 bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-900 text-blue-100 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 border border-blue-500/30 hover:border-blue-400/50"
-                  >
-                    <FileDown className="w-6 h-6" />
-                    Import Existing Wallet
-                  </button>
-                </div>
+                {/* Wallet Management - Only shown when signed in */}
+                <SignedIn>
+                  {isUserLoaded && clerkUser && (
+                    <>
+                      <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl border border-purple-500/30">
+                        <p className="text-blue-100 mb-1">Welcome back!</p>
+                        <p className="text-sm text-blue-300">{clerkUser.primaryEmailAddress?.emailAddress}</p>
+                      </div>
+                      
+                      {/* Show existing wallets if any */}
+                      {userWallets && userWallets.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-lg font-semibold text-blue-100 mb-3">Your Wallets</h3>
+                          <div className="space-y-2">
+                            {userWallets.map((w) => (
+                              <button
+                                key={w.id}
+                                onClick={() => {
+                                  setActiveWalletId(w.id);
+                                  // Wallet will load automatically
+                                }}
+                                className="w-full p-4 bg-gradient-to-r from-blue-900/40 to-blue-800/30 hover:from-blue-800/50 hover:to-blue-700/40 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all text-left"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-blue-100 font-medium">{w.name || 'Unnamed Wallet'}</p>
+                                    <p className="text-xs text-blue-300 mt-1">
+                                      Created {new Date(w.createdAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <Wallet className="w-5 h-5 text-blue-400" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => setView('create')}
+                          className="w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 btn-glow shadow-lg shadow-blue-500/30"
+                        >
+                          <Plus className="w-6 h-6" />
+                          Create New Wallet
+                        </button>
+                        <button
+                          onClick={() => setView('import')}
+                          className="w-full py-3 px-6 bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-900 text-blue-100 font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-blue-500/30 hover:border-blue-400/50"
+                        >
+                          <FileDown className="w-5 h-5" />
+                          Import Existing Wallet
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </SignedIn>
               </div>
             </div>
           )}
@@ -123,7 +182,7 @@ export default function Home() {
               >
                 ← Back to Welcome
               </button>
-              <CreateWallet onComplete={() => {}} />
+              <CreateWallet onComplete={handleWalletCreated} />
             </div>
           )}
 
@@ -135,20 +194,12 @@ export default function Home() {
               >
                 ← Back to Welcome
               </button>
-              <ImportWallet onComplete={() => {}} />
+              <ImportWallet onComplete={handleWalletCreated} />
             </div>
           )}
         </div>
         
-        {/* Modals - Available on welcome screen */}
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onAuthenticated={(userData, token) => {
-            login(userData, token);
-            setShowAuthModal(false);
-          }}
-        />
+        {/* Auth handled by Clerk modals */}
       </main>
     )
   }
@@ -191,32 +242,32 @@ export default function Home() {
             )}
             
             <div className="flex items-center gap-3">
-              {!isAuthenticated && (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-300 flex items-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  Sign In
-                </button>
-              )}
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-300 flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-10 h-10",
+                      userButtonPopoverCard: "bg-gray-800 border-gray-700",
+                      userButtonPopoverActionButton: "text-white hover:bg-gray-700"
+                    }
+                  }}
+                />
+              </SignedIn>
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
               >
                 <Settings className="w-6 h-6" />
-              </button>
-              <button
-                onClick={isAuthenticated ? logout : () => {
-                  // Legacy lock for non-authenticated users
-                  if (typeof lockWallet === 'function') {
-                    lockWallet();
-                  }
-                }}
-                className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
-                title={isAuthenticated ? "Logout" : "Lock Wallet"}
-              >
-                <LogOut className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -228,12 +279,15 @@ export default function Home() {
             <div className="glass-effect rounded-2xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
               <h3 className="text-xl font-bold text-blue-100 mb-6">Settings</h3>
               <div className="space-y-4">
-                {isAuthenticated ? (
+                {isAuthenticated && clerkUser ? (
                   <>
                     <div className="p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl border border-blue-500/20">
-                      <h4 className="font-semibold text-blue-100 mb-2">Account: {user?.email}</h4>
+                      <h4 className="font-semibold text-blue-100 mb-2">Account: {clerkUser.primaryEmailAddress?.emailAddress}</h4>
                       <p className="text-sm text-blue-300">
                         {userWallets.length} wallet{userWallets.length !== 1 ? 's' : ''} • Database sync enabled
+                      </p>
+                      <p className="text-xs text-blue-400 mt-2">
+                        Authenticated via Clerk • {clerkUser.fullName || 'User'}
                       </p>
                     </div>
                     
@@ -265,13 +319,14 @@ export default function Home() {
                     )}
                     
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        await signOut();
                         logout();
                         setShowSettings(false);
                       }}
                       className="w-full py-4 px-6 bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 text-orange-300 font-semibold rounded-xl transition-all duration-300 text-left border border-orange-500/20 hover:border-orange-400/40"
                     >
-                      Logout
+                      Sign Out
                     </button>
                   </>
                 ) : (
@@ -283,15 +338,14 @@ export default function Home() {
                       </p>
                     </div>
                     
-                    <button
-                      onClick={() => {
-                        setShowAuthModal(true);
-                        setShowSettings(false);
-                      }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-purple-900/30 to-blue-800/20 hover:from-purple-800/40 hover:to-blue-700/30 text-purple-300 font-semibold rounded-xl transition-all duration-300 text-left border border-purple-500/20 hover:border-purple-400/40"
-                    >
-                      Sign In / Register
-                    </button>
+                    <SignInButton mode="modal">
+                      <button
+                        onClick={() => setShowSettings(false)}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-purple-900/30 to-blue-800/20 hover:from-purple-800/40 hover:to-blue-700/30 text-purple-300 font-semibold rounded-xl transition-all duration-300 text-left border border-purple-500/20 hover:border-purple-400/40"
+                      >
+                        Sign In / Register
+                      </button>
+                    </SignInButton>
                     
                     <button
                       onClick={() => {
@@ -368,15 +422,6 @@ export default function Home() {
         <AccountDetails
           isOpen={showAccountDetails}
           onClose={() => setShowAccountDetails(false)}
-        />
-
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onAuthenticated={(userData, token) => {
-            login(userData, token);
-            setShowAuthModal(false);
-          }}
         />
 
         <WalletSelector
