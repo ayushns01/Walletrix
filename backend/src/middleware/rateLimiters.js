@@ -25,7 +25,7 @@ export const authLimiter = rateLimit({
  */
 export const walletGenerationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: process.env.NODE_ENV === 'development' ? 100 : 10, // 100 in dev, 10 in production
+  max: process.env.NODE_ENV === 'development' ? 1000 : 50, // 1000 in dev, 50 in production
   message: {
     success: false,
     error: 'Too many wallet generation requests. Please try again later.',
@@ -99,7 +99,7 @@ export const tokenQueryLimiter = rateLimit({
  */
 export const databaseWalletLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 operations per minute
+  max: process.env.NODE_ENV === 'development' ? 200 : 30, // 200 in dev, 30 in production
   message: {
     success: false,
     error: 'Too many wallet operations. Please try again shortly.',
@@ -117,7 +117,7 @@ export const databaseWalletLimiter = rateLimit({
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // 1000 in dev, 100 in production
   message: {
     success: false,
     error: 'Too many requests from this IP. Please try again later.',
