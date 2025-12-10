@@ -157,3 +157,6 @@ docker-compose.override.yml
 
 # Prisma
 migrations/
+
+# Vercel
+.vercel
