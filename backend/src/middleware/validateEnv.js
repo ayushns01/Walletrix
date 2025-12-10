@@ -114,13 +114,6 @@ export const validateEnvironment = () => {
   // Validate specific formats
   const formatErrors = [];
   
-  // Validate DATABASE_URL format (accept both postgres:// and postgresql://)
-  if (process.env.DATABASE_URL && 
-      !process.env.DATABASE_URL.startsWith('postgresql://') && 
-      !process.env.DATABASE_URL.startsWith('postgres://')) {
-    formatErrors.push('DATABASE_URL must start with postgresql:// or postgres://');
-  }
-  
   // Validate PORT/API_PORT is a number
   const port = process.env.PORT || process.env.API_PORT;
   if (port && isNaN(parseInt(port))) {
