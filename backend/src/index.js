@@ -37,6 +37,9 @@ const app = express();
 // Railway uses PORT, fallback to API_PORT or 3001
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
+// Trust proxy (required for rate limiting on Render)
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet());
 

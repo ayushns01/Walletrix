@@ -8,9 +8,8 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "cd backend && npx prisma generate",
-  "cd backend && npx prisma db push --force-reset"
+  "cd backend && npx prisma generate"
 ]
 
 [start]
-cmd = "cd backend && npm start"
+cmd = "cd backend && npm run start:production"

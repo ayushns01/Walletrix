@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "start:production": "node scripts/setup-database.js && node src/index.js",
     "test": "NODE_ENV=test jest",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage",
@@ -22,6 +23,7 @@
     "db:seed": "node prisma/seed.js",
     "db:push": "prisma db push",
     "db:pull": "prisma db pull",
+    "db:setup": "node scripts/setup-database.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
