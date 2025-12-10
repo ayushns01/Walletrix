@@ -191,6 +191,51 @@ model AddressBookEntry {
   @@index([network])
 }
 
+// Enhanced address book with security features
+model AddressBook {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  label     String
+  address   String
+  network   String
+  trusted   Boolean  @default(false)
+  notes     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("address_books")
+  @@unique([userId, address], name: "unique_user_address")
+  @@index([userId, isActive])
+}
+
+// Known scam addresses database
+model ScamAddress {
+  address   String   @id
+  reason    String?
+  source    String? // 'reported', 'verified', 'automated'
+  severity  String   @default("high") // 'low', 'medium', 'high', 'critical'
+  reportedAt DateTime @default(now()) @map("reported_at")
+  verifiedAt DateTime? @map("verified_at")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  @@map("scam_addresses")
+  @@index([isActive])
+}
+
+// Suspicious addresses that need review
+model SuspiciousAddress {
+  address   String   @id
+  reason    String?
+  flaggedBy String?  @map("flagged_by")
+  flaggedAt DateTime @default(now()) @map("flagged_at")
+  reviewed  Boolean  @default(false)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  @@map("suspicious_addresses")
+  @@index([reviewed, isActive])
+}
+
 // Price Caching for Performance
 model PriceCache {
   symbol      String   @id

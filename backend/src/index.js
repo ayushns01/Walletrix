@@ -28,6 +28,7 @@ import priceRoutes from './routes/priceRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
+import addressBookRoutes from './routes/addressBookRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
 import sessionCleanupJob from './jobs/sessionCleanup.js';
@@ -195,6 +196,7 @@ app.use('/api/v1/blockchain', rateLimiters.blockchainQuery, blockchainRoutes);
 app.use('/api/v1/tokens', rateLimiters.tokenQuery, tokenRoutes);
 app.use('/api/v1/prices', rateLimiters.priceData, priceRoutes);
 app.use('/api/v1/transactions', rateLimiters.transaction, transactionRoutes);
+app.use('/api/v1/address-book', rateLimiters.global, addressBookRoutes);
 
 // Import wallet backup routes
 const walletBackupRoutes = await import('./routes/walletBackupRoutes.js');

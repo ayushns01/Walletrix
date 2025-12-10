@@ -185,6 +185,49 @@ class DatabaseWalletService {
   }
 
   /**
+   * Delete wallet
+   */
+  async deleteWallet(walletId, userId, ipAddress = null, userAgent = null) {
+    try {
+      // Verify wallet exists and belongs to user
+      const wallet = await prisma.wallet.findFirst({
+        where: {
+          id: walletId,
+          userId
+        }
+      });
+
+      if (!wallet) {
+        return {
+          success: false,
+          error: 'Wallet not found or access denied'
+        };
+      }
+
+      // Delete wallet
+      await prisma.wallet.delete({
+        where: {
+          id: walletId
+        }
+      });
+
+      // Log wallet deletion
+      await activityLogService.logWalletDelete(userId, walletId, ipAddress, userAgent);
+
+      return {
+        success: true,
+        message: 'Wallet deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting wallet:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Import wallet from localStorage data
    */
   async importFromLocalStorage(userId, localStorageData, walletName = 'Imported Wallet') {

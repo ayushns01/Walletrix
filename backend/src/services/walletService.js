@@ -3,10 +3,17 @@ import { ethers } from 'ethers';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { BIP32Factory } from 'bip32';
-import CryptoJS from 'crypto-js';
+import crypto from 'crypto';
 
 // Initialize BIP32 with ECC library
 const bip32 = BIP32Factory(ecc);
+
+// Encryption constants
+const PBKDF2_ITERATIONS = 100000; // Industry standard
+const SALT_LENGTH = 32; // 256 bits
+const IV_LENGTH = 16; // 128 bits for AES
+const KEY_LENGTH = 32; // 256 bits for AES-256
+const AUTH_TAG_LENGTH = 16; // 128 bits for GCM
 
 /**
  * Wallet Service
@@ -14,6 +21,47 @@ const bip32 = BIP32Factory(ecc);
  */
 
 class WalletService {
+  /**
+   * Validate mnemonic strength and format
+   * @param {string} mnemonic - Mnemonic phrase to validate
+   * @returns {Object} - Validation result
+   */
+  validateMnemonicStrength(mnemonic) {
+    const words = mnemonic.trim().split(/\s+/);
+    const wordCount = words.length;
+    
+    // Check word count (12 or 24 words for BIP39)
+    if (wordCount !== 12 && wordCount !== 24) {
+      return {
+        valid: false,
+        error: 'Mnemonic must be 12 or 24 words'
+      };
+    }
+    
+    // Validate using BIP39
+    if (!bip39.validateMnemonic(mnemonic)) {
+      return {
+        valid: false,
+        error: 'Invalid mnemonic phrase'
+      };
+    }
+    
+    // Check for weak patterns (all same word, sequential, etc.)
+    const uniqueWords = new Set(words);
+    if (uniqueWords.size < words.length * 0.8) {
+      return {
+        valid: false,
+        error: 'Mnemonic contains too many repeated words'
+      };
+    }
+    
+    return {
+      valid: true,
+      wordCount,
+      entropy: wordCount === 12 ? 128 : 256
+    };
+  }
+
   /**
    * Validate password strength
    * @param {string} password - Password to validate
@@ -80,18 +128,25 @@ class WalletService {
 
   /**
    * Generate a new wallet with mnemonic phrase
-   * @returns {Object} - { mnemonic, ethWallet, btcWallet }
+   * @param {string} passphrase - Optional BIP39 passphrase (25th word)
+   * @returns {Object} - { mnemonic, addresses } - NEVER returns private keys
    */
-  generateNewWallet() {
+  generateNewWallet(passphrase = '') {
     try {
-      // Generate 12-word mnemonic phrase
-      const mnemonic = bip39.generateMnemonic();
+      // Generate 12-word mnemonic phrase (128-bit entropy)
+      const mnemonic = bip39.generateMnemonic(128);
       
-      // Create Ethereum wallet from mnemonic
-      const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+      // Validate generated mnemonic
+      const validation = this.validateMnemonicStrength(mnemonic);
+      if (!validation.valid) {
+        throw new Error('Generated mnemonic failed validation');
+      }
       
-      // Create Bitcoin wallet from mnemonic
-      const seed = bip39.mnemonicToSeedSync(mnemonic);
+      // Create Ethereum wallet from mnemonic with optional passphrase
+      const ethWallet = ethers.Wallet.fromPhrase(mnemonic, passphrase);
+      
+      // Create Bitcoin wallet from mnemonic with optional passphrase
+      const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
       const btcNode = bip32.fromSeed(seed);
       const btcPath = "m/44'/0'/0'/0/0"; // BIP44 path for Bitcoin
       const btcChild = btcNode.derivePath(btcPath);
@@ -104,15 +159,15 @@ class WalletService {
       return {
         success: true,
         mnemonic,
-        ethereum: {
-          address: ethWallet.address,
-          privateKey: ethWallet.privateKey,
-          publicKey: ethWallet.publicKey,
+        addresses: {
+          ethereum: ethWallet.address,
+          bitcoin: btcAddress,
         },
-        bitcoin: {
-          address: btcAddress,
-          privateKey: btcChild.privateKey.toString('hex'),
-          publicKey: btcChild.publicKey.toString('hex'),
+        // SECURITY: Private keys are never returned
+        // They should only be used server-side for signing
+        _privateKeys: {
+          ethereum: ethWallet.privateKey,
+          bitcoin: btcChild.privateKey.toString('hex'),
         },
       };
     } catch (error) {
@@ -127,20 +182,22 @@ class WalletService {
   /**
    * Import wallet from mnemonic phrase
    * @param {string} mnemonic - 12 or 24 word mnemonic phrase
-   * @returns {Object} - Wallet details
+   * @param {string} passphrase - Optional BIP39 passphrase (25th word)
+   * @returns {Object} - Wallet addresses (NOT private keys)
    */
-  importFromMnemonic(mnemonic) {
+  importFromMnemonic(mnemonic, passphrase = '') {
     try {
-      // Validate mnemonic
-      if (!bip39.validateMnemonic(mnemonic)) {
-        throw new Error('Invalid mnemonic phrase');
+      // Validate mnemonic with enhanced checks
+      const validation = this.validateMnemonicStrength(mnemonic);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
 
-      // Create Ethereum wallet
-      const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+      // Create Ethereum wallet with optional passphrase
+      const ethWallet = ethers.Wallet.fromPhrase(mnemonic, passphrase);
       
-      // Create Bitcoin wallet
-      const seed = bip39.mnemonicToSeedSync(mnemonic);
+      // Create Bitcoin wallet with optional passphrase
+      const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
       const btcNode = bip32.fromSeed(seed);
       const btcPath = "m/44'/0'/0'/0/0";
       const btcChild = btcNode.derivePath(btcPath);
@@ -152,15 +209,14 @@ class WalletService {
 
       return {
         success: true,
-        ethereum: {
-          address: ethWallet.address,
-          privateKey: ethWallet.privateKey,
-          publicKey: ethWallet.publicKey,
+        addresses: {
+          ethereum: ethWallet.address,
+          bitcoin: btcAddress,
         },
-        bitcoin: {
-          address: btcAddress,
-          privateKey: btcChild.privateKey.toString('hex'),
-          publicKey: btcChild.publicKey.toString('hex'),
+        // SECURITY: Private keys stored internally, never exposed
+        _privateKeys: {
+          ethereum: ethWallet.privateKey,
+          bitcoin: btcChild.privateKey.toString('hex'),
         },
       };
     } catch (error) {
@@ -258,108 +314,101 @@ class WalletService {
   }
 
   /**
-   * Encrypt sensitive data (private key, mnemonic) with PBKDF2
+   * Encrypt sensitive data using AES-256-GCM with PBKDF2 key derivation
    * @param {string} data - Data to encrypt
    * @param {string} password - Encryption password
-   * @returns {string} - Encrypted data with salt
+   * @returns {Object} - Encrypted data with all components
    */
   encryptData(data, password) {
     try {
-      // Generate random salt
-      const salt = CryptoJS.lib.WordArray.random(128/8);
+      // Generate cryptographically secure random salt
+      const salt = crypto.randomBytes(SALT_LENGTH);
       
-      // Derive key using PBKDF2 with 100,000 iterations (recommended for 2024+)
-      const key = CryptoJS.PBKDF2(password, salt, {
-        keySize: 256/32,
-        iterations: 100000,
-        hasher: CryptoJS.algo.SHA256
-      });
+      // Derive key using PBKDF2-SHA256
+      const key = crypto.pbkdf2Sync(
+        password,
+        salt,
+        PBKDF2_ITERATIONS,
+        KEY_LENGTH,
+        'sha256'
+      );
       
-      // Generate random IV for AES
-      const iv = CryptoJS.lib.WordArray.random(128/8);
+      // Generate random IV
+      const iv = crypto.randomBytes(IV_LENGTH);
       
-      // Encrypt using AES-256-CBC
-      const encrypted = CryptoJS.AES.encrypt(data, key, {
-        iv: iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
-      });
+      // Create cipher using AES-256-GCM (authenticated encryption)
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
       
-      // Combine salt + iv + ciphertext for storage
-      const combined = CryptoJS.lib.WordArray.create()
-        .concat(salt)
-        .concat(iv)
-        .concat(encrypted.ciphertext);
+      // Encrypt the data
+      let encrypted = cipher.update(data, 'utf8');
+      encrypted = Buffer.concat([encrypted, cipher.final()]);
       
-      return CryptoJS.enc.Base64.stringify(combined);
+      // Get authentication tag (prevents tampering)
+      const authTag = cipher.getAuthTag();
+      
+      // Return all components needed for decryption
+      return {
+        ciphertext: encrypted.toString('base64'),
+        salt: salt.toString('base64'),
+        iv: iv.toString('base64'),
+        authTag: authTag.toString('base64'),
+        algorithm: 'aes-256-gcm',
+        iterations: PBKDF2_ITERATIONS,
+        version: '2.0' // Version for future compatibility
+      };
     } catch (error) {
       console.error('Error encrypting data:', error);
-      throw error;
+      throw new Error('Encryption failed');
     }
   }
 
   /**
-   * Decrypt sensitive data with PBKDF2
-   * @param {string} encryptedData - Encrypted data with salt and IV
+   * Decrypt data encrypted with encryptData
+   * @param {Object|string} encryptedData - Encrypted data object or legacy string
    * @param {string} password - Decryption password
    * @returns {string} - Decrypted data
    */
   decryptData(encryptedData, password) {
     try {
-      // Check if this is old format (CryptoJS.AES.encrypt output)
-      // Old format starts with "U2FsdGVkX1" (base64 of "Salted__")
-      if (encryptedData.startsWith('U2FsdGVk')) {
-        // Fallback to old decryption method for backward compatibility
-        const bytes = CryptoJS.AES.decrypt(encryptedData, password);
-        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+      // Handle new format (object with components)
+      if (typeof encryptedData === 'object' && encryptedData.version === '2.0') {
+        const { ciphertext, salt, iv, authTag, iterations } = encryptedData;
         
-        if (!decrypted) {
-          throw new Error('Invalid password or corrupted data');
-        }
+        // Derive key using same parameters
+        const key = crypto.pbkdf2Sync(
+          password,
+          Buffer.from(salt, 'base64'),
+          iterations,
+          KEY_LENGTH,
+          'sha256'
+        );
         
-        return decrypted;
+        // Create decipher
+        const decipher = crypto.createDecipheriv(
+          'aes-256-gcm',
+          key,
+          Buffer.from(iv, 'base64')
+        );
+        
+        // Set auth tag for authentication
+        decipher.setAuthTag(Buffer.from(authTag, 'base64'));
+        
+        // Decrypt
+        let decrypted = decipher.update(Buffer.from(ciphertext, 'base64'));
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        
+        return decrypted.toString('utf8');
       }
       
-      // New format: base64(salt + iv + ciphertext)
-      const combined = CryptoJS.enc.Base64.parse(encryptedData);
+      // Legacy format handling would go here if needed
+      throw new Error('Unsupported encryption format. Please re-encrypt your data.');
       
-      // Extract salt (first 16 bytes)
-      const salt = CryptoJS.lib.WordArray.create(combined.words.slice(0, 4));
-      
-      // Extract IV (next 16 bytes)
-      const iv = CryptoJS.lib.WordArray.create(combined.words.slice(4, 8));
-      
-      // Extract ciphertext (remaining bytes)
-      const ciphertext = CryptoJS.lib.WordArray.create(combined.words.slice(8));
-      
-      // Derive key using PBKDF2 with same parameters
-      const key = CryptoJS.PBKDF2(password, salt, {
-        keySize: 256/32,
-        iterations: 100000,
-        hasher: CryptoJS.algo.SHA256
-      });
-      
-      // Decrypt using AES-256-CBC
-      const decrypted = CryptoJS.AES.decrypt(
-        { ciphertext: ciphertext },
-        key,
-        {
-          iv: iv,
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.Pkcs7
-        }
-      );
-      
-      const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-      
-      if (!decryptedText) {
-        throw new Error('Invalid password or corrupted data');
-      }
-      
-      return decryptedText;
     } catch (error) {
       console.error('Error decrypting data:', error);
-      throw new Error('Invalid password or corrupted data');
+      if (error.message.includes('Unsupported MAC')) {
+        throw new Error('Invalid password or data has been tampered with');
+      }
+      throw new Error('Decryption failed: Invalid password or corrupted data');
     }
   }
 

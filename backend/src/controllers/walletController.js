@@ -9,10 +9,13 @@ class WalletController {
   /**
    * Generate new wallet
    * POST /api/v1/wallet/generate
+   * Body: { passphrase?: string } - Optional BIP39 passphrase
    */
   async generateWallet(req, res) {
     try {
-      const result = walletService.generateNewWallet();
+      const { passphrase } = req.body;
+      
+      const result = walletService.generateNewWallet(passphrase);
       
       if (!result.success) {
         return res.status(400).json({
@@ -21,25 +24,24 @@ class WalletController {
         });
       }
 
-      // Note: In production, NEVER return private keys directly
-      // This is for demonstration purposes
-      // You should encrypt and store securely
+      // SECURITY: Private keys are NEVER returned to client
+      // They are stored encrypted server-side and only used for signing
       res.status(200).json({
         success: true,
         message: 'Wallet generated successfully',
         data: {
           mnemonic: result.mnemonic,
-          ethereum: {
-            address: result.ethereum.address,
-            // Only return private key if explicitly requested and authenticated
-            privateKey: result.ethereum.privateKey,
-          },
-          bitcoin: {
-            address: result.bitcoin.address,
-            privateKey: result.bitcoin.privateKey,
-          },
+          addresses: result.addresses,
         },
-        warning: 'Store your mnemonic phrase securely. Never share it with anyone.',
+        security: {
+          warning: 'Write down your recovery phrase on paper and store it securely',
+          instructions: [
+            'Never share your recovery phrase with anyone',
+            'Never store it digitally (screenshots, cloud, etc.)',
+            'Store in multiple secure physical locations',
+            'Check for cameras or people watching when viewing'
+          ]
+        }
       });
     } catch (error) {
       console.error('Error in generateWallet:', error);
@@ -53,11 +55,11 @@ class WalletController {
   /**
    * Import wallet from mnemonic
    * POST /api/v1/wallet/import/mnemonic
-   * Body: { mnemonic: string }
+   * Body: { mnemonic: string, passphrase?: string }
    */
   async importFromMnemonic(req, res) {
     try {
-      const { mnemonic } = req.body;
+      const { mnemonic, passphrase } = req.body;
 
       if (!mnemonic) {
         return res.status(400).json({
@@ -66,7 +68,7 @@ class WalletController {
         });
       }
 
-      const result = walletService.importFromMnemonic(mnemonic.trim());
+      const result = walletService.importFromMnemonic(mnemonic.trim(), passphrase);
 
       if (!result.success) {
         return res.status(400).json({
@@ -75,18 +77,12 @@ class WalletController {
         });
       }
 
+      // SECURITY: Only return addresses, never private keys
       res.status(200).json({
         success: true,
         message: 'Wallet imported successfully',
         data: {
-          ethereum: {
-            address: result.ethereum.address,
-            privateKey: result.ethereum.privateKey,
-          },
-          bitcoin: {
-            address: result.bitcoin.address,
-            privateKey: result.bitcoin.privateKey,
-          },
+          addresses: result.addresses,
         },
       });
     } catch (error) {

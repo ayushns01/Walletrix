@@ -1,5 +1,6 @@
 import transactionService from '../services/transactionService.js';
 import databaseTransactionService from '../services/databaseTransactionService.js';
+import transactionSecurityService from '../services/transactionSecurityService.js';
 
 /**
  * Transaction Controller
@@ -8,13 +9,51 @@ import databaseTransactionService from '../services/databaseTransactionService.j
 
 class TransactionController {
   /**
+   * Validate transaction before sending
+   * POST /api/v1/transactions/validate
+   * Body: { from, to, amount, asset, network, userId }
+   */
+  async validateTransaction(req, res) {
+    try {
+      const { from, to, amount, asset, network, userId } = req.body;
+
+      if (!from || !to || !amount || !asset) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: from, to, amount, asset'
+        });
+      }
+
+      const validation = await transactionSecurityService.validateTransaction({
+        from,
+        to,
+        amount,
+        asset,
+        network: network || 'mainnet',
+        userId: userId || req.userId
+      });
+
+      res.status(200).json({
+        success: true,
+        validation
+      });
+    } catch (error) {
+      console.error('Error validating transaction:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to validate transaction'
+      });
+    }
+  }
+
+  /**
    * Send Ethereum transaction
    * POST /api/v1/transactions/ethereum/send
    * Body: { privateKey, to, value, gasLimit?, gasPrice?, nonce?, data? }
    */
   async sendEthereumTransaction(req, res) {
     try {
-      const { privateKey, to, value, gasLimit, gasPrice, nonce, data, network = 'mainnet' } = req.body;
+      const { privateKey, to, value, gasLimit, gasPrice, nonce, data, network = 'mainnet', from, userId } = req.body;
 
       // Validate required fields
       if (!privateKey || !to || value === undefined) {
@@ -24,11 +63,43 @@ class TransactionController {
         });
       }
 
+      // Run security validation
+      const validation = await transactionSecurityService.validateTransaction({
+        from: from || req.body.walletAddress,
+        to,
+        amount: value,
+        asset: 'ETH',
+        network,
+        userId: userId || req.userId
+      });
+
+      // Block if validation failed
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Transaction validation failed',
+          validation
+        });
+      }
+
+      // Return warnings for user confirmation if high risk
+      if (validation.riskLevel === 'high' || validation.riskLevel === 'critical') {
+        if (!req.body.confirmedRisks) {
+          return res.status(200).json({
+            success: false,
+            requiresConfirmation: true,
+            validation,
+            message: 'Transaction has security warnings. Please review and confirm.'
+          });
+        }
+      }
+
       console.log('Sending ETH transaction:', {
         to,
         value,
         network,
-        from: 'wallet-address-hidden'
+        from: 'wallet-address-hidden',
+        riskLevel: validation.riskLevel
       });
 
       const result = await transactionService.sendEthereumTransaction(
@@ -70,7 +141,7 @@ class TransactionController {
    */
   async sendTokenTransaction(req, res) {
     try {
-      const { privateKey, tokenAddress, to, amount, decimals, network = 'mainnet', walletId } = req.body;
+      const { privateKey, tokenAddress, to, amount, decimals, network = 'mainnet', walletId, from, userId } = req.body;
 
       // Validate required fields
       if (!privateKey || !tokenAddress || !to || !amount) {
@@ -78,6 +149,37 @@ class TransactionController {
           success: false,
           error: 'privateKey, tokenAddress, to, and amount are required',
         });
+      }
+
+      // Run security validation
+      const validation = await transactionSecurityService.validateTransaction({
+        from: from || req.body.walletAddress,
+        to,
+        amount,
+        asset: 'TOKEN',
+        network,
+        userId: userId || req.userId
+      });
+
+      // Block if validation failed
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Transaction validation failed',
+          validation
+        });
+      }
+
+      // Return warnings for high-risk transactions
+      if (validation.riskLevel === 'high' || validation.riskLevel === 'critical') {
+        if (!req.body.confirmedRisks) {
+          return res.status(200).json({
+            success: false,
+            requiresConfirmation: true,
+            validation,
+            message: 'Transaction has security warnings. Please review and confirm.'
+          });
+        }
       }
 
       const result = await transactionService.sendTokenTransaction(
@@ -123,13 +225,41 @@ class TransactionController {
    */
   async sendBitcoinTransaction(req, res) {
     try {
-      const { privateKey, to, amount, feeRate, network = 'mainnet', walletId } = req.body;
+      const { privateKey, to, amount, feeRate, network = 'mainnet', walletId, confirmed = false } = req.body;
 
       // Validate required fields
       if (!privateKey || !to || !amount) {
         return res.status(400).json({
           success: false,
           error: 'privateKey, to, and amount are required',
+        });
+      }
+
+      // Security validation
+      const validation = await transactionSecurityService.validateTransaction({
+        network: 'bitcoin',
+        from: null, // Will be derived from private key
+        to,
+        amount,
+        walletId
+      });
+
+      // Block transaction if validation failed
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Transaction validation failed',
+          validation
+        });
+      }
+
+      // Require confirmation for high-risk transactions
+      if ((validation.riskLevel === 'high' || validation.riskLevel === 'critical') && !confirmed) {
+        return res.status(200).json({
+          success: false,
+          requiresConfirmation: true,
+          validation,
+          message: 'This transaction requires confirmation due to security concerns'
         });
       }
 

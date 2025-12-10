@@ -18,31 +18,27 @@ export default function CreateWallet({ onComplete }) {
   const [loading, setLoading] = useState(false);
   const [walletName, setWalletName] = useState('');
 
-  // If user is authenticated with Clerk, skip password requirement
-  const requiresPassword = !clerkUser;
+  // Always require password for wallet encryption
+  const requiresPassword = true;
 
   const handleCreateWallet = async () => {
     console.log('Creating wallet...'); // Debug log
     
-    // Only validate password if not using Clerk
-    if (requiresPassword) {
-      if (password.length < 8) {
-        toast.error('Password must be at least 8 characters');
-        return;
-      }
+    // Always validate password
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
 
-      if (password !== confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
     }
 
     try {
       setLoading(true);
       console.log('Calling generateWallet...'); // Debug log
-      // Use Clerk user ID as password for authenticated users
-      const walletPassword = requiresPassword ? password : clerkUser.id;
-      const walletData = await generateWallet(walletPassword, walletName || undefined);
+      const walletData = await generateWallet(password, walletName || undefined);
       console.log('Wallet generated:', walletData); // Debug log
       setMnemonic(walletData.mnemonic);
       setStep(2);
@@ -75,67 +71,59 @@ export default function CreateWallet({ onComplete }) {
               Create New Wallet
             </h2>
             <p className="text-gray-400 text-center mb-6">
-              {requiresPassword 
-                ? "Set a strong password to secure your wallet"
-                : "Your wallet will be secured with your Clerk account"}
+              Set a strong password to secure your wallet
             </p>
 
             <div className="space-y-4">
               {/* Wallet Name (optional) */}
-              {!requiresPassword && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Wallet Name (Optional)
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Wallet Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={walletName}
+                  onChange={(e) => setWalletName(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="e.g., Main Wallet, Trading Wallet"
+                />
+              </div>
+
+              {/* Password fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <div className="relative">
                   <input
-                    type="text"
-                    value={walletName}
-                    onChange={(e) => setWalletName(e.target.value)}
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    placeholder="e.g., Main Wallet, Trading Wallet"
+                    placeholder="Enter password (min 8 characters)"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
-              )}
+              </div>
 
-              {/* Password fields - only show if not using Clerk */}
-              {requiresPassword && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                        placeholder="Enter password (min 8 characters)"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Confirm Password
-                    </label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                      placeholder="Confirm password"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="Confirm password"
+                />
+              </div>
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3">
                 <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -151,7 +139,7 @@ export default function CreateWallet({ onComplete }) {
 
               <button
                 onClick={handleCreateWallet}
-                disabled={loading || (requiresPassword && (!password || !confirmPassword))}
+                disabled={loading || !password || !confirmPassword}
                 className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
               >
                 {loading ? 'Creating Wallet...' : 'Continue'}
@@ -164,11 +152,28 @@ export default function CreateWallet({ onComplete }) {
         {step === 2 && (
           <div>
             <h2 className="text-2xl font-bold text-white text-center mb-2">
-              Recovery Phrase
+              🔒 Recovery Phrase
             </h2>
             <p className="text-gray-400 text-center mb-6">
-              Write down these 12 words in order and keep them safe
+              Write down these 12 words on paper. Never screenshot or copy digitally.
             </p>
+
+            {/* Critical Security Warnings */}
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-red-300">
+                  <p className="font-bold mb-2">⚠️ CRITICAL SECURITY WARNINGS:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Anyone with this phrase can steal your funds</li>
+                    <li>Never share it with anyone, even support staff</li>
+                    <li>Never store it digitally (no screenshots, cloud, etc.)</li>
+                    <li>Check for cameras or people watching</li>
+                    <li>Write it on paper and store in multiple secure locations</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6 flex gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -180,8 +185,17 @@ export default function CreateWallet({ onComplete }) {
               </div>
             </div>
 
-            <div className="bg-gray-900 rounded-lg p-6 mb-6">
-              <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gray-900 rounded-lg p-6 mb-6 relative">
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors font-medium"
+                >
+                  {showPassword ? '👁️ Hide' : '👁️‍🗨️ Show'}
+                </button>
+              </div>
+              <div className={`grid grid-cols-3 gap-3 transition-all duration-200 ${!showPassword ? 'blur-xl select-none pointer-events-none' : ''}`}>
                 {mnemonic.split(' ').map((word, index) => (
                   <div
                     key={index}
@@ -192,6 +206,13 @@ export default function CreateWallet({ onComplete }) {
                   </div>
                 ))}
               </div>
+              {!showPassword && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <p className="text-gray-300 text-sm font-medium bg-gray-800 px-4 py-2 rounded-lg">
+                    🔒 Click "Show" to reveal your recovery phrase
+                  </p>
+                </div>
+              )}
             </div>
 
             <label className="flex items-start gap-3 mb-6 cursor-pointer">

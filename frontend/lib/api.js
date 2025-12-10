@@ -159,6 +159,17 @@ export const priceAPI = {
 
 // Transaction API
 export const transactionAPI = {
+  validateTransaction: async (network, from, to, amount, walletId) => {
+    const response = await api.post('/api/v1/transactions/validate', {
+      network,
+      from,
+      to,
+      amount,
+      walletId,
+    });
+    return response.data;
+  },
+
   sendEthereumTransaction: async (privateKey, to, value, options = {}) => {
     const response = await api.post('/api/v1/transactions/ethereum/send', {
       privateKey,
@@ -218,6 +229,68 @@ export const transactionAPI = {
       to,
       amount,
       feeRate,
+    });
+    return response.data;
+  },
+};
+
+// Address Book API
+export const addressBookAPI = {
+  getAddressBook: async (walletId) => {
+    const response = await api.get(`/api/v1/address-book/${walletId}`);
+    return response.data;
+  },
+
+  checkAddress: async (walletId, address) => {
+    const response = await api.get(`/api/v1/address-book/check/${walletId}/${address}`);
+    return response.data;
+  },
+
+  addAddress: async (walletId, address, label, trusted = true) => {
+    const response = await api.post('/api/v1/address-book', {
+      walletId,
+      address,
+      label,
+      trusted,
+    });
+    return response.data;
+  },
+
+  updateAddress: async (id, label, trusted) => {
+    const response = await api.put(`/api/v1/address-book/${id}`, {
+      label,
+      trusted,
+    });
+    return response.data;
+  },
+
+  deleteAddress: async (id) => {
+    const response = await api.delete(`/api/v1/address-book/${id}`);
+    return response.data;
+  },
+
+  reportScam: async (address, severity, description) => {
+    const response = await api.post('/api/v1/address-book/report-scam', {
+      address,
+      severity,
+      description,
+    });
+    return response.data;
+  },
+
+  getScamAddresses: async () => {
+    const response = await api.get('/api/v1/address-book/scam-list/all');
+    return response.data;
+  },
+};
+
+// Database Wallet API
+export const databaseWalletAPI = {
+  deleteDatabaseWallet: async (walletId, token) => {
+    const response = await api.delete(`/api/v1/database-wallets/${walletId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   },

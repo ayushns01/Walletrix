@@ -140,10 +140,17 @@ router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, r
   try {
     const { walletId } = req.params;
     const userId = req.userId;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('user-agent');
 
-    const result = await databaseWalletService.deleteWallet(walletId, userId);
+    console.log('Delete wallet request:', { walletId, userId, ipAddress });
+
+    const result = await databaseWalletService.deleteWallet(walletId, userId, ipAddress, userAgent);
+
+    console.log('Delete wallet result:', result);
 
     if (!result.success) {
+      console.error('Delete wallet failed:', result.error);
       return res.status(400).json(result);
     }
 

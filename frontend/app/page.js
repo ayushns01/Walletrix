@@ -284,7 +284,7 @@ export default function Home() {
                     <div className="p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-2">Account: {clerkUser.primaryEmailAddress?.emailAddress}</h4>
                       <p className="text-sm text-blue-300">
-                        {userWallets.length} wallet{userWallets.length !== 1 ? 's' : ''} • Database sync enabled
+                        {userWallets.length} wallet{userWallets.length !== 1 ? 's' : ''}
                       </p>
                       <p className="text-xs text-blue-400 mt-2">
                         Authenticated via Clerk • {clerkUser.fullName || 'User'}
@@ -427,6 +427,7 @@ export default function Home() {
         <WalletSelector
           isOpen={showWalletSelector}
           onClose={() => setShowWalletSelector(false)}
+          onCreateWallet={() => setView('create')}
         />
       </div>
     </main>

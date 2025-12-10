@@ -612,6 +612,72 @@ export function WalletProvider({ children }) {
     toast.success('Wallet deleted successfully');
   };
 
+  const deleteDatabaseWallet = async (walletId) => {
+    if (!isSignedIn) {
+      toast.error('Please sign in to delete wallet');
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        toast.error('Authentication failed');
+        return { success: false, error: 'No token' };
+      }
+
+      const response = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets/${walletId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.success) {
+        // Remove from local state
+        setUserWallets(prev => prev.filter(w => w.id !== walletId));
+        
+        // If deleted wallet was active, switch to first available wallet
+        if (activeWalletId === walletId) {
+          const remainingWallets = userWallets.filter(w => w.id !== walletId);
+          if (remainingWallets.length > 0) {
+            await switchWallet(remainingWallets[0].id);
+          } else {
+            // No wallets left, clear active wallet
+            setActiveWalletId(null);
+            localStorage.removeItem('walletrix_active_wallet_id');
+            setWallet(null);
+            setIsLocked(true);
+          }
+        }
+        
+        toast.success('Wallet deleted successfully');
+        return { success: true };
+      } else {
+        // If wallet not found, remove it from local state anyway (sync issue)
+        if (response.error && response.error.includes('not found')) {
+          setUserWallets(prev => prev.filter(w => w.id !== walletId));
+          if (activeWalletId === walletId) {
+            const remainingWallets = userWallets.filter(w => w.id !== walletId);
+            if (remainingWallets.length > 0) {
+              await switchWallet(remainingWallets[0].id);
+            } else {
+              setActiveWalletId(null);
+              localStorage.removeItem('walletrix_active_wallet_id');
+              setWallet(null);
+              setIsLocked(true);
+            }
+          }
+          toast.success('Wallet removed from list');
+          return { success: true };
+        }
+        
+        toast.error(response.error || 'Failed to delete wallet');
+        return { success: false, error: response.error };
+      }
+    } catch (error) {
+      console.error('Error deleting wallet:', error);
+      toast.error('Failed to delete wallet');
+      return { success: false, error: error.message };
+    }
+  };
+
   // Fetch balances (unchanged)
   const fetchBalances = async () => {
     if (!wallet) return;
@@ -758,6 +824,7 @@ export function WalletProvider({ children }) {
     switchWallet,
     createDatabaseWallet,
     importLocalStorageWallet,
+    deleteDatabaseWallet,
     
     // Legacy wallet state
     wallet,

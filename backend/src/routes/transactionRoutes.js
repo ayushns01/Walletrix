@@ -8,6 +8,9 @@ const router = express.Router();
  * Handles transaction creation and broadcasting
  */
 
+// Validate transaction before sending
+router.post('/validate', transactionController.validateTransaction);
+
 // Send Ethereum transaction
 router.post('/ethereum/send', transactionController.sendEthereumTransaction);
 
