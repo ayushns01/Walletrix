@@ -9,7 +9,7 @@ class PriceService {
   constructor() {
     this.baseUrl = 'https://api.coingecko.com/api/v3';
     
-    // Popular crypto IDs on CoinGecko
+    // Verified CoinGecko coin IDs (removed invalid IDs)
     this.cryptoIds = {
       BTC: 'bitcoin',
       ETH: 'ethereum',
@@ -23,9 +23,6 @@ class PriceService {
       MATIC: 'matic-network',
       AVAX: 'avalanche-2',
       SOL: 'solana',
-      ARB: 'arbitrum',
-      OP: 'optimism',
-      BASE: 'base',
     };
   }
 

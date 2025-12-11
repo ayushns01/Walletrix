@@ -729,7 +729,7 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Fetch prices with improved loading states
+  // Fetch prices with improved loading states - only for selected network
   const fetchPrices = async () => {
     if (dataLoading.prices) {
       return;
@@ -738,7 +738,22 @@ export function WalletProvider({ children }) {
     setDataLoading(prev => ({ ...prev, prices: true }));
     
     try {
-      const response = await priceAPI.getPopularPrices('usd');
+      // Determine which coins to fetch based on selected network
+      const { chain } = getNetworkInfo();
+      let coinIds;
+      
+      if (chain === 'bitcoin') {
+        // Bitcoin network: only need BTC price
+        coinIds = ['bitcoin'];
+      } else if (chain === 'ethereum') {
+        // Ethereum network: need ETH + popular token prices
+        coinIds = ['ethereum', 'tether', 'usd-coin', 'dai', 'chainlink'];
+      } else {
+        // Other EVM chains (Polygon, Arbitrum, etc): only need ETH price
+        coinIds = ['ethereum'];
+      }
+      
+      const response = await priceAPI.getMultiplePrices(coinIds, 'usd');
       
       if (response.success && response.prices) {
         const priceMap = {};
