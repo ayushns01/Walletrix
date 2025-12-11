@@ -43,6 +43,10 @@ export function WalletProvider({ children }) {
   const [userWallets, setUserWallets] = useState([]);
   const [activeWalletId, setActiveWalletId] = useState(null);
   const [walletChangeTimestamp, setWalletChangeTimestamp] = useState(null);
+  
+  // Price caching to prevent rate limit errors (429)
+  const [priceCache, setPriceCache] = useState({ data: {}, lastFetch: null });
+  const PRICE_CACHE_DURATION = 60000; // 60 seconds
 
   // Load user wallets when Clerk user signs in
   useEffect(() => {
@@ -735,6 +739,16 @@ export function WalletProvider({ children }) {
       return;
     }
     
+    // Check cache first - only fetch if cache is stale (older than 60 seconds)
+    const now = Date.now();
+    if (priceCache.lastFetch && (now - priceCache.lastFetch < PRICE_CACHE_DURATION)) {
+      // Use cached prices if available and fresh
+      if (Object.keys(priceCache.data).length > 0) {
+        setPrices(priceCache.data);
+        return;
+      }
+    }
+    
     setDataLoading(prev => ({ ...prev, prices: true }));
     
     try {
@@ -753,7 +767,16 @@ export function WalletProvider({ children }) {
         coinIds = ['ethereum'];
       }
       
-      const response = await priceAPI.getMultiplePrices(coinIds, 'usd');
+      let response;
+      
+      try {
+        // Try network-specific price fetching first
+        response = await priceAPI.getMultiplePrices(coinIds, 'usd');
+      } catch (error) {
+        console.warn('getMultiplePrices failed, falling back to getPopularPrices:', error.message);
+        // Fallback to fetching all popular prices if specific request fails
+        response = await priceAPI.getPopularPrices('usd');
+      }
       
       if (response.success && response.prices) {
         const priceMap = {};
@@ -774,6 +797,8 @@ export function WalletProvider({ children }) {
           }
         });
         setPrices(priceMap);
+        // Cache the prices with current timestamp
+        setPriceCache({ data: priceMap, lastFetch: Date.now() });
       } else if (Object.keys(prices).length === 0) {
         // Only clear prices if we don't have any existing data
         setPrices({});
@@ -814,6 +839,8 @@ export function WalletProvider({ children }) {
         return;
       }
       
+      // Prices are fetched with built-in caching (60s), so this is efficient
+      // Cache will prevent unnecessary API calls when switching wallets/networks
       await fetchPrices();
       
       if (lastDataFetch !== null && refreshId < lastDataFetch) {

@@ -82,9 +82,11 @@ class PriceService {
       // If request is small enough, make single request
       if (coinsArray.length <= chunkSize) {
         const url = `${this.baseUrl}/simple/price`;
+        const coinIdsString = coinsArray.join(',');
+        
         const response = await axios.get(url, {
           params: {
-            ids: coinsArray.join(','),
+            ids: coinIdsString,
             vs_currencies: vsCurrency,
             include_24hr_change: true,
             include_24hr_vol: true,
@@ -145,10 +147,10 @@ class PriceService {
         prices: allPrices,
       };
     } catch (error) {
-      console.error('Error getting multiple prices:', error.response?.data || error.message);
+      console.error('Error getting multiple prices:', error.message);
       return {
         success: false,
-        error: error.response?.data?.error || error.message,
+        error: error.response?.data?.error || error.response?.data?.status?.error_message || error.message,
       };
     }
   }
