@@ -159,13 +159,14 @@ export const priceAPI = {
 
 // Transaction API
 export const transactionAPI = {
-  validateTransaction: async (network, from, to, amount, walletId) => {
+  validateTransaction: async (network, from, to, amount, walletId, selectedNetwork) => {
     const response = await api.post('/api/v1/transactions/validate', {
       network,
       from,
       to,
       amount,
       walletId,
+      selectedNetwork,
     });
     return response.data;
   },

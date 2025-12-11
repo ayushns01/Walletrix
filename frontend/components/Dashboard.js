@@ -29,27 +29,18 @@ export default function Dashboard() {
   // Calculate total portfolio value
   const calculateTotalValue = () => {
     let total = 0;
+    const [chain] = selectedNetwork.split('-');
 
     console.log('Portfolio Debug:', {
       balances,
       prices,
       tokens,
-      selectedNetwork
+      selectedNetwork,
+      chain
     });
 
-    // Add Ethereum value
-    if (balances.ethereum && prices.ethereum) {
-      const ethValue = parseFloat(balances.ethereum) * prices.ethereum.current_price;
-      console.log('ETH contribution:', {
-        balance: balances.ethereum,
-        price: prices.ethereum.current_price,
-        value: ethValue
-      });
-      total += ethValue;
-    }
-
-    // Add Bitcoin value
-    if (balances.bitcoin && prices.bitcoin) {
+    // Add native coin value based on selected chain
+    if (chain === 'bitcoin' && balances.bitcoin && prices.bitcoin) {
       const btcValue = parseFloat(balances.bitcoin) * prices.bitcoin.current_price;
       console.log('BTC contribution:', {
         balance: balances.bitcoin,
@@ -57,21 +48,43 @@ export default function Dashboard() {
         value: btcValue
       });
       total += btcValue;
+    } else if (chain === 'ethereum' && balances.ethereum && prices.ethereum) {
+      const ethValue = parseFloat(balances.ethereum) * prices.ethereum.current_price;
+      console.log('ETH contribution:', {
+        balance: balances.ethereum,
+        price: prices.ethereum.current_price,
+        value: ethValue
+      });
+      total += ethValue;
+    } else if (['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+      // For other EVM chains, balance is stored under chain name but price is under ethereum
+      const chainBalance = balances[chain];
+      if (chainBalance && prices.ethereum) {
+        const chainValue = parseFloat(chainBalance) * prices.ethereum.current_price;
+        console.log(`${chain.toUpperCase()} contribution:`, {
+          balance: chainBalance,
+          price: prices.ethereum.current_price,
+          value: chainValue
+        });
+        total += chainValue;
+      }
     }
 
-    // Add token values
-    tokens.forEach(token => {
-      if (token.balance && token.priceUsd) {
-        const tokenValue = parseFloat(token.balance) * parseFloat(token.priceUsd);
-        console.log('Token contribution:', {
-          symbol: token.symbol,
-          balance: token.balance,
-          price: token.priceUsd,
-          value: tokenValue
-        });
-        total += tokenValue;
-      }
-    });
+    // Add token values (only for Ethereum-based chains)
+    if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+      tokens.forEach(token => {
+        if (token.balance && token.priceUsd) {
+          const tokenValue = parseFloat(token.balance) * parseFloat(token.priceUsd);
+          console.log('Token contribution:', {
+            symbol: token.symbol,
+            balance: token.balance,
+            price: token.priceUsd,
+            value: tokenValue
+          });
+          total += tokenValue;
+        }
+      });
+    }
 
     console.log('Total portfolio value:', total);
     return total;

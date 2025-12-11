@@ -41,6 +41,11 @@ export default function SendModal({ isOpen, onClose, asset }) {
   // Early return AFTER all hooks are declared
   if (!isOpen) return null;
 
+  // Check if we have the wallet address for current asset
+  const hasWalletAddress = asset?.symbol === 'BTC' 
+    ? !!wallet?.bitcoin?.address 
+    : !!wallet?.ethereum?.address;
+
   // Validate transaction before sending
   const handleValidate = async () => {
     if (!recipient || !amount) {
@@ -54,12 +59,20 @@ export default function SendModal({ isOpen, onClose, asset }) {
       const network = asset.symbol === 'BTC' ? 'bitcoin' : 'ethereum';
       const fromAddress = asset.symbol === 'BTC' ? wallet?.bitcoin?.address : wallet?.ethereum?.address;
       
+      // Check if we have the from address
+      if (!fromAddress) {
+        toast.error('Wallet address not available. Please unlock your wallet first.');
+        setValidating(false);
+        return;
+      }
+      
       const result = await transactionAPI.validateTransaction(
         network,
         fromAddress,
         recipient,
         amount,
-        activeWalletId
+        activeWalletId,
+        selectedNetwork
       );
 
       setValidation(result);
@@ -428,7 +441,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
             {!validation && (
               <button
                 onClick={handleValidate}
-                disabled={validating || !recipient || !amount}
+                disabled={validating || !recipient || !amount || !hasWalletAddress}
                 className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <Shield className="w-4 h-4" />

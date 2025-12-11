@@ -1,6 +1,12 @@
 import transactionService from '../services/transactionService.js';
 import databaseTransactionService from '../services/databaseTransactionService.js';
 import transactionSecurityService from '../services/transactionSecurityService.js';
+import { ethers } from 'ethers';
+import * as bitcoin from 'bitcoinjs-lib';
+import ECPairFactory from 'ecpair';
+import * as ecc from 'tiny-secp256k1';
+
+const ECPair = ECPairFactory(ecc);
 
 /**
  * Transaction Controller
@@ -15,27 +21,32 @@ class TransactionController {
    */
   async validateTransaction(req, res) {
     try {
-      const { from, to, amount, asset, network, userId } = req.body;
+      const { from, to, amount, network, walletId, selectedNetwork } = req.body;
 
-      if (!from || !to || !amount || !asset) {
+      if (!from || !to || !amount || !network) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required fields: from, to, amount, asset'
+          error: 'Missing required fields: from, to, amount, network'
         });
       }
+
+      // Determine asset and actual network
+      const asset = network === 'bitcoin' ? 'BTC' : 'ETH';
+      // For ethereum, extract the actual network (mainnet, sepolia, etc.)
+      const actualNetwork = selectedNetwork ? selectedNetwork.split('-')[1] || 'mainnet' : 'mainnet';
 
       const validation = await transactionSecurityService.validateTransaction({
         from,
         to,
         amount,
         asset,
-        network: network || 'mainnet',
-        userId: userId || req.userId
+        network: actualNetwork,
+        walletId
       });
 
       res.status(200).json({
         success: true,
-        validation
+        ...validation
       });
     } catch (error) {
       console.error('Error validating transaction:', error);
@@ -53,7 +64,7 @@ class TransactionController {
    */
   async sendEthereumTransaction(req, res) {
     try {
-      const { privateKey, to, value, gasLimit, gasPrice, nonce, data, network = 'mainnet', from, userId } = req.body;
+      const { privateKey, to, value, gasLimit, gasPrice, nonce, data, network = 'mainnet', walletId, confirmed } = req.body;
 
       // Validate required fields
       if (!privateKey || !to || value === undefined) {
@@ -63,14 +74,26 @@ class TransactionController {
         });
       }
 
+      // Derive from address from private key
+      let fromAddress;
+      try {
+        const wallet = new ethers.Wallet(privateKey);
+        fromAddress = wallet.address;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid private key',
+        });
+      }
+
       // Run security validation
       const validation = await transactionSecurityService.validateTransaction({
-        from: from || req.body.walletAddress,
+        from: fromAddress,
         to,
         amount: value,
         asset: 'ETH',
         network,
-        userId: userId || req.userId
+        walletId
       });
 
       // Block if validation failed
@@ -83,15 +106,13 @@ class TransactionController {
       }
 
       // Return warnings for user confirmation if high risk
-      if (validation.riskLevel === 'high' || validation.riskLevel === 'critical') {
-        if (!req.body.confirmedRisks) {
-          return res.status(200).json({
-            success: false,
-            requiresConfirmation: true,
-            validation,
-            message: 'Transaction has security warnings. Please review and confirm.'
-          });
-        }
+      if ((validation.riskLevel === 'high' || validation.riskLevel === 'critical') && !confirmed) {
+        return res.status(200).json({
+          success: false,
+          requiresConfirmation: true,
+          validation,
+          message: 'Transaction has security warnings. Please review and confirm.'
+        });
       }
 
       console.log('Sending ETH transaction:', {
@@ -141,7 +162,7 @@ class TransactionController {
    */
   async sendTokenTransaction(req, res) {
     try {
-      const { privateKey, tokenAddress, to, amount, decimals, network = 'mainnet', walletId, from, userId } = req.body;
+      const { privateKey, tokenAddress, to, amount, decimals, network = 'mainnet', walletId, confirmed } = req.body;
 
       // Validate required fields
       if (!privateKey || !tokenAddress || !to || !amount) {
@@ -151,14 +172,26 @@ class TransactionController {
         });
       }
 
+      // Derive from address from private key
+      let fromAddress;
+      try {
+        const wallet = new ethers.Wallet(privateKey);
+        fromAddress = wallet.address;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid private key',
+        });
+      }
+
       // Run security validation
       const validation = await transactionSecurityService.validateTransaction({
-        from: from || req.body.walletAddress,
+        from: fromAddress,
         to,
         amount,
         asset: 'TOKEN',
         network,
-        userId: userId || req.userId
+        walletId
       });
 
       // Block if validation failed
@@ -171,15 +204,13 @@ class TransactionController {
       }
 
       // Return warnings for high-risk transactions
-      if (validation.riskLevel === 'high' || validation.riskLevel === 'critical') {
-        if (!req.body.confirmedRisks) {
-          return res.status(200).json({
-            success: false,
-            requiresConfirmation: true,
-            validation,
-            message: 'Transaction has security warnings. Please review and confirm.'
-          });
-        }
+      if ((validation.riskLevel === 'high' || validation.riskLevel === 'critical') && !confirmed) {
+        return res.status(200).json({
+          success: false,
+          requiresConfirmation: true,
+          validation,
+          message: 'Transaction has security warnings. Please review and confirm.'
+        });
       }
 
       const result = await transactionService.sendTokenTransaction(
@@ -235,12 +266,29 @@ class TransactionController {
         });
       }
 
+      // Derive from address from private key
+      let fromAddress;
+      try {
+        const keyPair = ECPair.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+        const { address } = bitcoin.payments.p2pkh({
+          pubkey: keyPair.publicKey,
+          network: network === 'testnet' ? bitcoin.networks.testnet : bitcoin.networks.bitcoin,
+        });
+        fromAddress = address;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid private key',
+        });
+      }
+
       // Security validation
       const validation = await transactionSecurityService.validateTransaction({
         network: 'bitcoin',
-        from: null, // Will be derived from private key
+        from: fromAddress,
         to,
         amount,
+        asset: 'BTC',
         walletId
       });
 

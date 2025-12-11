@@ -700,7 +700,7 @@ export function WalletProvider({ children }) {
       if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
         const address = wallet.ethereum?.address;
         if (address) {
-          const ethBalance = await blockchainAPI.getEthereumBalance(address, selectedNetwork);
+          const ethBalance = await blockchainAPI.getEthereumBalance(address, network);
           
           if (ethBalance.success) {
             const balance = ethBalance.balance?.eth || ethBalance.data?.balance || '0';

@@ -100,7 +100,7 @@ class PriceService {
         prices,
       };
     } catch (error) {
-      console.error('Error getting multiple prices:', error);
+      console.error('Error getting multiple prices:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.error || error.message,

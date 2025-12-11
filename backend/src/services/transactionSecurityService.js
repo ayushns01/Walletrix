@@ -16,7 +16,7 @@ class TransactionSecurityService {
    * @returns {Object} - Validation result with risk assessment
    */
   async validateTransaction(params) {
-    const { from, to, amount, asset, network, userId } = params;
+    const { from, to, amount, asset, network, walletId } = params;
     
     const validations = {
       valid: true,
@@ -62,16 +62,16 @@ class TransactionSecurityService {
       
       if (!balanceCheck.sufficient) {
         validations.valid = false;
-        validations.errors.push(`Insufficient balance. Available: ${balanceCheck.available}, Required: ${balanceCheck.required}`);
+        validations.errors.push(balanceCheck.error || `Insufficient balance. Available: ${balanceCheck.available}, Required: ${balanceCheck.required}`);
         return validations;
       }
 
-      if (balanceCheck.warningNeeded) {
+      if (balanceCheck.warningNeeded || balanceCheck.warning) {
         validations.warnings.push(balanceCheck.warning);
       }
 
       // 3. Amount validation
-      const amountValidation = await this.validateAmount(amount, asset, userId);
+      const amountValidation = await this.validateAmount(amount, asset, walletId);
       validations.checks.amountReasonable = amountValidation.reasonable;
       
       if (amountValidation.isUnusual) {
@@ -82,7 +82,7 @@ class TransactionSecurityService {
       }
 
       // 4. Recipient verification
-      const recipientCheck = await this.checkRecipient(to, userId, network);
+      const recipientCheck = await this.checkRecipient(to, walletId, network);
       validations.checks.recipientVerified = recipientCheck.known;
       
       if (!recipientCheck.known) {
@@ -243,7 +243,10 @@ class TransactionSecurityService {
       } else {
         // ERC-20 token - check both token balance and ETH for gas
         // (Implementation would go here)
-        return { sufficient: true }; // Simplified for now
+        return { 
+          sufficient: true,
+          warning: '⚠️ Token balance verification not yet implemented. Please verify manually.'
+        };
       }
 
       const sufficient = available >= required;
@@ -263,7 +266,9 @@ class TransactionSecurityService {
       console.error('Error verifying balance:', error);
       return {
         sufficient: false,
-        error: 'Failed to verify balance'
+        available: 0,
+        required: parseFloat(amount),
+        error: `Failed to verify balance: ${error.message}`
       };
     }
   }
@@ -271,7 +276,7 @@ class TransactionSecurityService {
   /**
    * Validate amount and check if it's unusual
    */
-  async validateAmount(amount, asset, userId) {
+  async validateAmount(amount, asset, walletId) {
     try {
       const numAmount = parseFloat(amount);
 
@@ -294,7 +299,7 @@ class TransactionSecurityService {
       }
 
       // Get user's transaction history
-      const avgAmount = await this.getAverageTransactionAmount(userId, asset);
+      const avgAmount = await this.getAverageTransactionAmount(walletId, asset);
       
       if (avgAmount && numAmount > avgAmount * 10) {
         return {
@@ -331,31 +336,41 @@ class TransactionSecurityService {
   /**
    * Check recipient address against user's history
    */
-  async checkRecipient(address, userId, network) {
+  async checkRecipient(address, walletId, network) {
     try {
-      // Check if address is in user's address book
-      const addressBook = await prisma.addressBook.findFirst({
-        where: {
-          userId,
-          address: address.toLowerCase(),
-          isActive: true
-        }
-      });
+      // Get the wallet to find userId
+      let userId = null;
+      if (walletId) {
+        const wallet = await prisma.wallet.findUnique({
+          where: { id: walletId },
+          select: { userId: true }
+        });
+        userId = wallet?.userId;
+      }
 
-      if (addressBook) {
-        return {
-          known: true,
-          label: addressBook.label,
-          trusted: addressBook.trusted || false
-        };
+      // Check if address is in user's address book
+      if (userId) {
+        const inAddressBook = await prisma.addressBook.findFirst({
+          where: {
+            userId,
+            address: address.toLowerCase(),
+            isActive: true
+          }
+        });
+
+        if (inAddressBook) {
+          return {
+            known: true,
+            label: inAddressBook.label,
+            trusted: inAddressBook.trusted || false
+          };
+        }
       }
 
       // Check recent transactions for this address
       const recentTx = await prisma.transaction.findFirst({
         where: {
-          wallet: {
-            userId
-          },
+          walletId,
           OR: [
             { toAddress: address.toLowerCase() },
             { fromAddress: address.toLowerCase() }
@@ -375,9 +390,7 @@ class TransactionSecurityService {
       // Check for similar addresses (address poisoning attack)
       const recentAddresses = await prisma.transaction.findMany({
         where: {
-          wallet: {
-            userId
-          },
+          walletId,
           timestamp: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
           }
@@ -555,11 +568,11 @@ class TransactionSecurityService {
   /**
    * Get average transaction amount for user
    */
-  async getAverageTransactionAmount(userId, asset) {
+  async getAverageTransactionAmount(walletId, asset) {
     try {
       const transactions = await prisma.transaction.findMany({
         where: {
-          wallet: { userId },
+          walletId,
           type: 'sent',
           status: 'confirmed'
         },

@@ -59,11 +59,17 @@ const corsOptions = {
       }
     }
     
-    // In production, check against whitelist
+    // In production, check against whitelist and allow Vercel preview deployments
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
     console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Allow main production URL and Vercel preview deployments
+    const isAllowedOrigin = allowedOrigins.indexOf(origin) !== -1 || 
+                           origin.includes('walletrix.vercel.app') ||
+                           origin.includes('walletrix-git-') ||
+                           origin.includes('ayushns01s-projects.vercel.app');
+    
+    if (isAllowedOrigin) {
       callback(null, true);
     } else {
       console.log(`CORS blocked origin: ${origin}, allowed: ${allowedOrigins.join(', ')}`);
