@@ -57,7 +57,7 @@ export const transactionLimiter = rateLimit({
  */
 export const blockchainQueryLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute
+  max: process.env.NODE_ENV === 'development' ? 500 : 120, // 500 in dev, 120 in production
   message: {
     success: false,
     error: 'Too many requests. Please slow down.',

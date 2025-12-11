@@ -1,6 +1,5 @@
 import express from 'express';
 import databaseWalletService from '../services/databaseWalletService.js';
-import databaseTransactionService from '../services/databaseTransactionService.js';
 import { authenticateClerk, optionalAuthClerk, verifyWalletAccess } from '../middleware/clerkAuth.js';
 
 const router = express.Router();
@@ -163,79 +162,6 @@ router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, r
     res.status(500).json({
       success: false,
       error: 'Failed to delete wallet'
-    });
-  }
-});
-
-/**
- * Get wallet transactions from database
- */
-router.get('/:walletId/transactions', authenticateClerk, verifyWalletAccess, async (req, res) => {
-  try {
-    const { walletId } = req.params;
-    const { network, limit = 50, offset = 0, status } = req.query;
-
-    const result = await databaseTransactionService.getWalletTransactions(walletId, {
-      network,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      status
-    });
-
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    res.json({
-      success: true,
-      transactions: result.transactions,
-      total: result.total,
-      hasMore: result.hasMore
-    });
-  } catch (error) {
-    console.error('Get wallet transactions error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get transactions'
-    });
-  }
-});
-
-/**
- * Cache transactions for wallet
- */
-router.post('/:walletId/cache-transactions', authenticateClerk, verifyWalletAccess, async (req, res) => {
-  try {
-    const { walletId } = req.params;
-    const { transactions } = req.body;
-
-    if (!Array.isArray(transactions)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Transactions must be an array'
-      });
-    }
-
-    const result = await databaseTransactionService.bulkCacheTransactions(walletId, transactions);
-
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    res.json({
-      success: true,
-      message: 'Transactions cached successfully',
-      stats: {
-        total: result.total,
-        cached: result.cached,
-        skipped: result.skipped
-      }
-    });
-  } catch (error) {
-    console.error('Cache transactions error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to cache transactions'
     });
   }
 });

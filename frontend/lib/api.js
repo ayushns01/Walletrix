@@ -60,16 +60,6 @@ export const blockchainAPI = {
     return response.data;
   },
 
-  getEthereumTransactions: async (address, page = 1, limit = 10, network = 'mainnet') => {
-    const response = await api.get(`/api/v1/blockchain/ethereum/transactions/${address}?page=${page}&limit=${limit}&network=${network}`);
-    return response.data;
-  },
-
-  getBitcoinTransactions: async (address, network = 'mainnet') => {
-    const response = await api.get(`/api/v1/blockchain/bitcoin/transactions/${address}?network=${network}`);
-    return response.data;
-  },
-
   getGasPrice: async (network = 'mainnet') => {
     const response = await api.get(`/api/v1/blockchain/ethereum/gas-price?network=${network}`);
     return response.data;
@@ -77,11 +67,6 @@ export const blockchainAPI = {
 
   getBitcoinFeeEstimate: async (network = 'mainnet') => {
     const response = await api.get(`/api/v1/blockchain/bitcoin/fee-estimate?network=${network}`);
-    return response.data;
-  },
-
-  getTransaction: async (network, txHash) => {
-    const response = await api.get(`/api/v1/blockchain/transaction/${network}/${txHash}`);
     return response.data;
   },
 };
@@ -157,83 +142,7 @@ export const priceAPI = {
   },
 };
 
-// Transaction API
-export const transactionAPI = {
-  validateTransaction: async (network, from, to, amount, walletId, selectedNetwork) => {
-    const response = await api.post('/api/v1/transactions/validate', {
-      network,
-      from,
-      to,
-      amount,
-      walletId,
-      selectedNetwork,
-    });
-    return response.data;
-  },
 
-  sendEthereumTransaction: async (privateKey, to, value, options = {}) => {
-    const response = await api.post('/api/v1/transactions/ethereum/send', {
-      privateKey,
-      to,
-      value,
-      ...options,
-    });
-    return response.data;
-  },
-
-  sendTokenTransaction: async (privateKey, tokenAddress, to, amount, options = {}) => {
-    const response = await api.post('/api/v1/transactions/token/send', {
-      privateKey,
-      tokenAddress,
-      to,
-      amount,
-      ...options,
-    });
-    return response.data;
-  },
-
-  sendBitcoinTransaction: async (privateKey, to, amount, feeRate, walletId) => {
-    const response = await api.post('/api/v1/transactions/bitcoin/send', {
-      privateKey,
-      to,
-      amount,
-      feeRate,
-      walletId,
-    });
-    return response.data;
-  },
-
-  createEthereumTransaction: async (privateKey, to, value, options = {}) => {
-    const response = await api.post('/api/v1/transactions/ethereum/create', {
-      privateKey,
-      to,
-      value,
-      ...options,
-    });
-    return response.data;
-  },
-
-  createTokenTransaction: async (privateKey, tokenAddress, to, amount, options = {}) => {
-    const response = await api.post('/api/v1/transactions/token/create', {
-      privateKey,
-      tokenAddress,
-      to,
-      amount,
-      ...options,
-    });
-    return response.data;
-  },
-
-  createBitcoinTransaction: async (privateKey, to, amount, feeRate) => {
-    const response = await api.post('/api/v1/transactions/bitcoin/create', {
-      privateKey,
-      to,
-      amount,
-      feeRate,
-    });
-    return response.data;
-  },
-};
 
 // Address Book API
 export const addressBookAPI = {
@@ -294,6 +203,105 @@ export const databaseWalletAPI = {
       },
     });
     return response.data;
+  },
+};
+
+// Transaction API - Sends transactions directly using Web3/ethers
+export const transactionAPI = {
+  sendEthereumTransaction: async (privateKey, to, amount, options = {}) => {
+    // Import ethers directly for transaction signing
+    const { ethers } = await import('ethers');
+    
+    try {
+      const network = options.network || 'mainnet';
+      const rpcUrl = network === 'mainnet' 
+        ? 'https://eth.llamarpc.com'
+        : 'https://ethereum-sepolia-rpc.publicnode.com';
+      
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const wallet = new ethers.Wallet(privateKey, provider);
+      
+      // Get current gas price
+      const feeData = await provider.getFeeData();
+      
+      const tx = {
+        to,
+        value: ethers.parseEther(amount.toString()),
+        gasLimit: 21000,
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+      };
+      
+      const transaction = await wallet.sendTransaction(tx);
+      await transaction.wait();
+      
+      return {
+        success: true,
+        transactionHash: transaction.hash,
+        data: {
+          hash: transaction.hash,
+          from: transaction.from,
+          to: transaction.to,
+          value: ethers.formatEther(transaction.value),
+        },
+      };
+    } catch (error) {
+      console.error('Ethereum transaction error:', error);
+      return {
+        success: false,
+        error: error.message || 'Transaction failed',
+      };
+    }
+  },
+
+  sendTokenTransaction: async (privateKey, tokenAddress, to, amount, options = {}) => {
+    const { ethers } = await import('ethers');
+    
+    try {
+      const network = options.network || 'mainnet';
+      const decimals = options.decimals || 18;
+      const rpcUrl = network === 'mainnet' 
+        ? 'https://eth.llamarpc.com'
+        : 'https://ethereum-sepolia-rpc.publicnode.com';
+      
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const wallet = new ethers.Wallet(privateKey, provider);
+      
+      // ERC20 ABI for transfer
+      const abi = ['function transfer(address to, uint256 amount) returns (bool)'];
+      const contract = new ethers.Contract(tokenAddress, abi, wallet);
+      
+      const amountWei = ethers.parseUnits(amount.toString(), decimals);
+      const transaction = await contract.transfer(to, amountWei);
+      await transaction.wait();
+      
+      return {
+        success: true,
+        transactionHash: transaction.hash,
+        data: {
+          hash: transaction.hash,
+          from: transaction.from,
+          to,
+          tokenAddress,
+          amount,
+        },
+      };
+    } catch (error) {
+      console.error('Token transaction error:', error);
+      return {
+        success: false,
+        error: error.message || 'Token transaction failed',
+      };
+    }
+  },
+
+  sendBitcoinTransaction: async (privateKey, to, amount, fee = null, walletId = null) => {
+    // Bitcoin transactions need to be handled by backend
+    // For now, return an error - this would need proper UTXO handling
+    return {
+      success: false,
+      error: 'Bitcoin transactions not yet implemented in frontend. Please use backend API.',
+    };
   },
 };
 

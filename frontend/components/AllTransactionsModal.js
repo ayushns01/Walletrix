@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Search, Filter, Download, Calendar, TrendingUp, SortAsc, SortDesc } from 'lucide-react';
-import api from '../lib/api';
+import api, { blockchainAPI } from '../lib/api';
+import toast from 'react-hot-toast';
 
 export default function AllTransactionsModal({ isOpen, onClose, transactions: initialTransactions, wallet, selectedNetwork, onTransactionClick }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,13 +25,99 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   const itemsPerPage = 10;
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [fetchingFromBlockchain, setFetchingFromBlockchain] = useState(false);
 
-  // Reset filters when modal opens/closes
+  // Fetch fresh transactions from Etherscan when modal opens
+  const fetchFreshTransactions = useCallback(async () => {
+    if (!wallet) return;
+    
+    setFetchingFromBlockchain(true);
+    try {
+      const [chain, network] = selectedNetwork.split('-');
+      
+      if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        const address = wallet.ethereum?.address;
+        if (!address) {
+          toast.error('No Ethereum address found');
+          return;
+        }
+        
+        // Fetch up to 100 transactions from Etherscan
+        const response = await blockchainAPI.getEthereumTransactions(address, 1, 100, selectedNetwork);
+        
+        if (response.success && response.transactions) {
+          // Normalize and filter valid transactions
+          const validTxs = response.transactions
+            .filter(tx => tx.hash && (tx.value_eth || tx.value))
+            .map(tx => ({
+              ...tx,
+              network: selectedNetwork,
+              txHash: tx.hash,
+              amount: tx.value_eth || tx.value || '0',
+              tokenSymbol: tx.tokenSymbol || 'ETH',
+              status: tx.status || 'confirmed'
+            }));
+          setAllTransactions(validTxs);
+          toast.success(`Loaded ${validTxs.length} transactions from blockchain`);
+        } else {
+          setAllTransactions([]);
+          toast.info('No transactions found on blockchain');
+        }
+      } else if (chain === 'bitcoin') {
+        const address = wallet.bitcoin?.address;
+        if (!address) {
+          toast.error('No Bitcoin address found');
+          return;
+        }
+        
+        const response = await blockchainAPI.getBitcoinTransactions(address, network);
+        
+        if (response.success && response.transactions) {
+          // Normalize and filter valid Bitcoin transactions
+          const validTxs = response.transactions
+            .filter(tx => tx.hash && (tx.value_btc || tx.value))
+            .map(tx => ({
+              ...tx,
+              network: selectedNetwork,
+              txHash: tx.hash,
+              amount: tx.value_btc || tx.value || '0',
+              tokenSymbol: 'BTC',
+              status: tx.status || 'confirmed'
+            }));
+          setAllTransactions(validTxs);
+          toast.success(`Loaded ${validTxs.length} transactions from blockchain`);
+        } else {
+          setAllTransactions([]);
+          toast.info('No transactions found on blockchain');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching transactions from blockchain:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 429) {
+        toast.error('Rate limit exceeded. Showing cached transactions.');
+      } else {
+        toast.error('Failed to fetch fresh transactions. Showing cached data.');
+      }
+      
+      // Always fallback to initial transactions if fetch fails
+      setAllTransactions(initialTransactions || []);
+    } finally {
+      setFetchingFromBlockchain(false);
+    }
+  }, [wallet, selectedNetwork, initialTransactions]);
+
+  // Reset filters and fetch fresh transactions when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(1);
+      // Show cached transactions immediately
+      setAllTransactions(initialTransactions || []);
+      // Then fetch fresh transactions from Etherscan in background
+      fetchFreshTransactions();
       if (wallet?.id) {
-        loadTransactions();
         loadAnalytics();
       }
     } else {
@@ -44,47 +131,102 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
       setAmountMin('');
       setAmountMax('');
       setIsAdvancedSearch(false);
+      setAllTransactions([]);
     }
-  }, [isOpen, wallet?.id]);
+  }, [isOpen, wallet?.id, fetchFreshTransactions]);
 
   const loadTransactions = useCallback(async () => {
-    if (!wallet?.id) return;
-
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
-        sortBy,
-        sortOrder
+      // Filter transactions locally from blockchain data
+      let filtered = [...(allTransactions || [])];
+
+      // Apply search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        filtered = filtered.filter(tx => 
+          tx.hash?.toLowerCase().includes(search) ||
+          tx.from?.toLowerCase().includes(search) ||
+          tx.to?.toLowerCase().includes(search)
+        );
+      }
+
+      // Apply type filter
+      if (filterType !== 'all') {
+        const isOutgoing = (tx) => 
+          tx.from?.toLowerCase() === wallet?.ethereum?.address?.toLowerCase() ||
+          tx.from?.toLowerCase() === wallet?.bitcoin?.address?.toLowerCase();
+        
+        if (filterType === 'outgoing') {
+          filtered = filtered.filter(tx => isOutgoing(tx));
+        } else if (filterType === 'incoming') {
+          filtered = filtered.filter(tx => !isOutgoing(tx));
+        }
+      }
+
+      // Apply network filter
+      if (networkFilter) {
+        filtered = filtered.filter(tx => tx.network === networkFilter);
+      }
+
+      // Apply status filter
+      if (statusFilter) {
+        filtered = filtered.filter(tx => tx.status?.toLowerCase() === statusFilter.toLowerCase());
+      }
+
+      // Apply date filters
+      if (dateFrom || dateTo) {
+        filtered = filtered.filter(tx => {
+          const txDate = new Date(tx.timestamp?.includes('T') ? tx.timestamp : parseInt(tx.timestamp) * 1000);
+          if (dateFrom && txDate < new Date(dateFrom)) return false;
+          if (dateTo && txDate > new Date(dateTo)) return false;
+          return true;
+        });
+      }
+
+      // Apply amount filters
+      if (amountMin || amountMax) {
+        filtered = filtered.filter(tx => {
+          const amount = parseFloat(tx.value_eth || tx.value_btc || 0);
+          if (amountMin && amount < parseFloat(amountMin)) return false;
+          if (amountMax && amount > parseFloat(amountMax)) return false;
+          return true;
+        });
+      }
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+        
+        if (sortBy === 'timestamp') {
+          aVal = new Date(a.timestamp?.includes('T') ? a.timestamp : parseInt(a.timestamp) * 1000).getTime();
+          bVal = new Date(b.timestamp?.includes('T') ? b.timestamp : parseInt(b.timestamp) * 1000).getTime();
+        } else if (sortBy === 'amount') {
+          aVal = parseFloat(a.value_eth || a.value_btc || 0);
+          bVal = parseFloat(b.value_eth || b.value_btc || 0);
+        }
+        
+        return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
       });
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (filterType !== 'all') params.append('type', filterType);
-      if (networkFilter) params.append('network', networkFilter);
-      if (statusFilter) params.append('status', statusFilter);
-      if (dateFrom) params.append('dateFrom', dateFrom);
-      if (dateTo) params.append('dateTo', dateTo);
-      if (amountMin) params.append('amountMin', amountMin);
-      if (amountMax) params.append('amountMax', amountMax);
-
-      const response = await api.get(`/api/v1/transactions/wallet/${wallet.id}?${params}`);
+      // Apply pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedTxs = filtered.slice(startIndex, startIndex + itemsPerPage);
       
-      if (response.success) {
-        setTransactions(response.data.transactions);
-        setPagination(response.data.pagination);
-      } else {
-        console.error('Failed to load transactions:', response.error);
-        // Fallback to initial transactions
-        setTransactions(initialTransactions || []);
-      }
+      setTransactions(paginatedTxs);
+      setPagination({
+        currentPage,
+        totalPages: Math.ceil(filtered.length / itemsPerPage),
+        totalItems: filtered.length,
+        itemsPerPage
+      });
     } catch (error) {
       console.error('Error loading transactions:', error);
-      setTransactions(initialTransactions || []);
+      setTransactions(allTransactions || []);
     } finally {
       setLoading(false);
     }
-  }, [wallet?.id, currentPage, searchTerm, filterType, networkFilter, statusFilter, sortBy, sortOrder, dateFrom, dateTo, amountMin, amountMax, initialTransactions]);
+  }, [wallet?.id, currentPage, searchTerm, filterType, networkFilter, statusFilter, sortBy, sortOrder, dateFrom, dateTo, amountMin, amountMax, allTransactions]);
 
   const loadAnalytics = useCallback(async () => {
     if (!wallet?.id) return;
@@ -132,7 +274,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
 
   // Trigger search when filters change
   useEffect(() => {
-    if (isOpen && wallet?.id) {
+    if (isOpen && allTransactions && allTransactions.length > 0) {
       const timeoutId = setTimeout(() => {
         setCurrentPage(1);
         loadTransactions();
@@ -140,14 +282,14 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
 
       return () => clearTimeout(timeoutId);
     }
-  }, [searchTerm, filterType, networkFilter, statusFilter, sortBy, sortOrder, dateFrom, dateTo, amountMin, amountMax, isOpen, wallet?.id, loadTransactions]);
+  }, [searchTerm, filterType, networkFilter, statusFilter, sortBy, sortOrder, dateFrom, dateTo, amountMin, amountMax, isOpen, loadTransactions, allTransactions]);
 
   // Load transactions when page changes
   useEffect(() => {
-    if (isOpen && wallet?.id && currentPage > 1) {
+    if (isOpen && currentPage > 1) {
       loadTransactions();
     }
-  }, [currentPage, isOpen, wallet?.id, loadTransactions]);
+  }, [currentPage, isOpen, loadTransactions]);
 
   if (!isOpen) return null;
 
@@ -211,7 +353,13 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
             <div>
               <h2 className="text-2xl font-bold text-blue-100">Transaction History</h2>
               <p className="text-blue-300/70">
-                {pagination ? `${pagination.totalItems} transactions found` : `${transactions.length} transactions`}
+                {fetchingFromBlockchain ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⏳</span> Fetching from Etherscan...
+                  </span>
+                ) : (
+                  pagination ? `${pagination.totalItems} transactions found` : `${transactions.length} transactions`
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2">

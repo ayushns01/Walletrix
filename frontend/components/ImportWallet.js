@@ -42,9 +42,7 @@ export default function ImportWallet({ onComplete }) {
 
     try {
       setLoading(true);
-      console.log('Calling importWallet...'); // Debug log
       await importWallet(mnemonic.trim(), password, walletName || undefined);
-      console.log('Wallet imported successfully'); // Debug log
       onComplete();
     } catch (error) {
       console.error('Error in handleImport:', error);

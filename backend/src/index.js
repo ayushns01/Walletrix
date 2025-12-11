@@ -25,7 +25,6 @@ import walletRoutes from './routes/walletRoutes.js';
 import blockchainRoutes from './routes/blockchainRoutes.js';
 import tokenRoutes from './routes/tokenRoutes.js';
 import priceRoutes from './routes/priceRoutes.js';
-import transactionRoutes from './routes/transactionRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
 import addressBookRoutes from './routes/addressBookRoutes.js';
@@ -158,11 +157,8 @@ app.get('/api/v1', (req, res) => {
       blockchain: {
         ethereumBalance: 'GET /api/v1/blockchain/ethereum/balance/:address',
         bitcoinBalance: 'GET /api/v1/blockchain/bitcoin/balance/:address',
-        ethereumTransactions: 'GET /api/v1/blockchain/ethereum/transactions/:address',
-        bitcoinTransactions: 'GET /api/v1/blockchain/bitcoin/transactions/:address',
         gasPrice: 'GET /api/v1/blockchain/ethereum/gas-price',
         bitcoinFeeEstimate: 'GET /api/v1/blockchain/bitcoin/fee-estimate',
-        getTransaction: 'GET /api/v1/blockchain/transaction/:network/:txHash',
       },
       tokens: {
         info: 'GET /api/v1/tokens/info/:tokenAddress',
@@ -181,17 +177,7 @@ app.get('/api/v1', (req, res) => {
         trending: 'GET /api/v1/prices/list/trending',
         topCoins: 'GET /api/v1/prices/list/top',
       },
-      transactions: {
-        sendEthereum: 'POST /api/v1/transactions/ethereum/send',
-        sendToken: 'POST /api/v1/transactions/token/send',
-        sendBitcoin: 'POST /api/v1/transactions/bitcoin/send',
-        createEthereum: 'POST /api/v1/transactions/ethereum/create',
-        createToken: 'POST /api/v1/transactions/token/create',
-        createBitcoin: 'POST /api/v1/transactions/bitcoin/create',
-        getWalletTransactions: 'GET /api/v1/transactions/wallet/:walletId',
-        getAnalytics: 'GET /api/v1/transactions/wallet/:walletId/analytics',
-        exportTransactions: 'GET /api/v1/transactions/wallet/:walletId/export',
-      },
+
       backup: {
         createBackup: 'POST /api/v1/wallet-backup/:walletId/backup',
         importBackup: 'POST /api/v1/wallet-backup/import',
@@ -211,7 +197,6 @@ app.use('/api/v1/wallets', rateLimiters.databaseWallet, databaseWalletRoutes);
 app.use('/api/v1/blockchain', rateLimiters.blockchainQuery, blockchainRoutes);
 app.use('/api/v1/tokens', rateLimiters.tokenQuery, tokenRoutes);
 app.use('/api/v1/prices', rateLimiters.priceData, priceRoutes);
-app.use('/api/v1/transactions', rateLimiters.transaction, transactionRoutes);
 app.use('/api/v1/address-book', rateLimiters.global, addressBookRoutes);
 
 // Import wallet backup routes

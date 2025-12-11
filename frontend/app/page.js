@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2 } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import CreateWallet from '@/components/CreateWallet'
@@ -296,8 +296,9 @@ export default function Home() {
                         setShowAccountDetails(true);
                         setShowSettings(false);
                       }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40"
+                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40 flex items-center gap-3"
                     >
+                      <User className="w-5 h-5" />
                       Account Details & Private Keys
                     </button>
                     
@@ -312,9 +313,33 @@ export default function Home() {
                             console.error('Import failed:', error);
                           }
                         }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-green-900/30 to-green-800/20 hover:from-green-800/40 hover:to-green-700/30 text-green-300 font-semibold rounded-xl transition-all duration-300 text-left border border-green-500/20 hover:border-green-400/40"
+                        className="w-full py-4 px-6 bg-gradient-to-r from-green-900/30 to-green-800/20 hover:from-green-800/40 hover:to-green-700/30 text-green-300 font-semibold rounded-xl transition-all duration-300 text-left border border-green-500/20 hover:border-green-400/40 flex items-center gap-3"
                       >
+                        <Download className="w-5 h-5" />
                         Import Browser Wallet to Account
+                      </button>
+                    )}
+                    
+                    {/* Delete Active Wallet */}
+                    {activeWalletId && (
+                      <button
+                        onClick={async () => {
+                          const activeWallet = userWallets.find(w => w.id === activeWalletId);
+                          if (!activeWallet) return;
+                          
+                          if (confirm(`Are you sure you want to delete "${activeWallet.name}"? This action cannot be undone. Make sure you have backed up your recovery phrase.`)) {
+                            try {
+                              await deleteWallet(activeWalletId);
+                              setShowSettings(false);
+                            } catch (error) {
+                              console.error('Delete failed:', error);
+                            }
+                          }
+                        }}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-red-900/30 to-red-800/20 hover:from-red-800/40 hover:to-red-700/30 text-red-300 font-semibold rounded-xl transition-all duration-300 text-left border border-red-500/20 hover:border-red-400/40 flex items-center gap-3"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        Delete Current Wallet
                       </button>
                     )}
                     
@@ -324,8 +349,9 @@ export default function Home() {
                         logout();
                         setShowSettings(false);
                       }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 text-orange-300 font-semibold rounded-xl transition-all duration-300 text-left border border-orange-500/20 hover:border-orange-400/40"
+                      className="w-full py-4 px-6 bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 text-orange-300 font-semibold rounded-xl transition-all duration-300 text-left border border-orange-500/20 hover:border-orange-400/40 flex items-center gap-3"
                     >
+                      <LogOut className="w-5 h-5" />
                       Sign Out
                     </button>
                   </>
@@ -341,8 +367,9 @@ export default function Home() {
                     <SignInButton mode="modal">
                       <button
                         onClick={() => setShowSettings(false)}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-purple-900/30 to-blue-800/20 hover:from-purple-800/40 hover:to-blue-700/30 text-purple-300 font-semibold rounded-xl transition-all duration-300 text-left border border-purple-500/20 hover:border-purple-400/40"
+                        className="w-full py-4 px-6 bg-gradient-to-r from-purple-900/30 to-blue-800/20 hover:from-purple-800/40 hover:to-blue-700/30 text-purple-300 font-semibold rounded-xl transition-all duration-300 text-left border border-purple-500/20 hover:border-purple-400/40 flex items-center gap-3"
                       >
+                        <Users className="w-5 h-5" />
                         Sign In / Register
                       </button>
                     </SignInButton>
@@ -352,10 +379,28 @@ export default function Home() {
                         setShowAccountDetails(true);
                         setShowSettings(false);
                       }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40"
+                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40 flex items-center gap-3"
                     >
+                      <User className="w-5 h-5" />
                       Account Details & Private Keys
                     </button>
+                    
+                    {/* Delete Local Wallet */}
+                    {wallet && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete your local wallet? This action cannot be undone. Make sure you have backed up your recovery phrase.')) {
+                            deleteWallet();
+                            setShowSettings(false);
+                            setView('welcome');
+                          }
+                        }}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-red-900/30 to-red-800/20 hover:from-red-800/40 hover:to-red-700/30 text-red-300 font-semibold rounded-xl transition-all duration-300 text-left border border-red-500/20 hover:border-red-400/40 flex items-center gap-3"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        Delete Local Wallet
+                      </button>
+                    )}
                   </>
                 )}
               </div>

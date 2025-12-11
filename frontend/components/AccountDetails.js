@@ -36,6 +36,11 @@ export default function AccountDetails({ isOpen, onClose }) {
       return;
     }
 
+    if (!wallet || (!wallet.encryptedData && !wallet.encrypted)) {
+      toast.error('No wallet data available');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -103,7 +108,7 @@ export default function AccountDetails({ isOpen, onClose }) {
     toast.success('Wallet backup downloaded!');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !wallet) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -213,14 +218,14 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
-                {walletData.mnemonic.split(' ').map((word, index) => (
+                {walletData.mnemonic ? walletData.mnemonic.split(' ').map((word, index) => (
                   <div key={index} className="bg-gray-800 p-3 rounded-lg">
                     <span className="text-xs text-gray-400">{index + 1}.</span>
                     <span className="text-white ml-2 font-mono">
                       {showMnemonic ? word : '●●●●●'}
                     </span>
                   </div>
-                ))}
+                )) : <p className="text-gray-400">No mnemonic available</p>}
               </div>
               
               <p className="text-yellow-300 text-sm">
@@ -243,10 +248,11 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
                     <span className="text-white font-mono text-sm flex-1 break-all">
-                      {walletData.ethereum.address}
+                      {walletData?.ethereum?.address || 'N/A'}
                     </span>
                     <button
-                      onClick={() => handleCopy(walletData.ethereum.address, 'Ethereum Address')}
+                      onClick={() => handleCopy(walletData?.ethereum?.address || '', 'Ethereum Address')}
+                      disabled={!walletData?.ethereum?.address}
                       className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
                     >
                       {copiedField === 'Ethereum Address' ? 
@@ -264,17 +270,19 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
                     <span className="text-white font-mono text-sm flex-1 break-all">
-                      {showEthPrivateKey ? walletData.ethereum.privateKey : '●'.repeat(66)}
+                      {showEthPrivateKey ? (walletData?.ethereum?.privateKey || 'N/A') : '●'.repeat(66)}
                     </span>
                     <button
                       onClick={() => setShowEthPrivateKey(!showEthPrivateKey)}
+                      disabled={!walletData?.ethereum?.privateKey}
                       className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
                     >
                       {showEthPrivateKey ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
                     </button>
                     <button
-                      onClick={() => handleCopy(walletData.ethereum.privateKey, 'Ethereum Private Key')}
-                      className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
+                      onClick={() => handleCopy(walletData?.ethereum?.privateKey || '', 'Ethereum Private Key')}
+                      disabled={!walletData?.ethereum?.privateKey}
+                      className="p-2 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {copiedField === 'Ethereum Private Key' ? 
                         <Check className="w-4 h-4 text-green-400" /> : 
@@ -301,10 +309,11 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
                     <span className="text-white font-mono text-sm flex-1 break-all">
-                      {walletData.bitcoin.address}
+                      {walletData?.bitcoin?.address || 'N/A'}
                     </span>
                     <button
-                      onClick={() => handleCopy(walletData.bitcoin.address, 'Bitcoin Address')}
+                      onClick={() => handleCopy(walletData?.bitcoin?.address || '', 'Bitcoin Address')}
+                      disabled={!walletData?.bitcoin?.address}
                       className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
                     >
                       {copiedField === 'Bitcoin Address' ? 
@@ -322,17 +331,19 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
                     <span className="text-white font-mono text-sm flex-1 break-all">
-                      {showBtcPrivateKey ? walletData.bitcoin.privateKey : '●'.repeat(52)}
+                      {showBtcPrivateKey ? (walletData?.bitcoin?.privateKey || 'N/A') : '●'.repeat(52)}
                     </span>
                     <button
                       onClick={() => setShowBtcPrivateKey(!showBtcPrivateKey)}
+                      disabled={!walletData?.bitcoin?.privateKey}
                       className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
                     >
                       {showBtcPrivateKey ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
                     </button>
                     <button
-                      onClick={() => handleCopy(walletData.bitcoin.privateKey, 'Bitcoin Private Key')}
-                      className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
+                      onClick={() => handleCopy(walletData?.bitcoin?.privateKey || '', 'Bitcoin Private Key')}
+                      disabled={!walletData?.bitcoin?.privateKey}
+                      className="p-2 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {copiedField === 'Bitcoin Private Key' ? 
                         <Check className="w-4 h-4 text-green-400" /> : 

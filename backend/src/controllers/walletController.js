@@ -93,6 +93,7 @@ class WalletController {
         success: true,
         message: 'Wallet imported successfully',
         data: {
+          mnemonic: mnemonic.trim(),
           ethereum: {
             address: result.addresses.ethereum,
             privateKey: result._privateKeys.ethereum,

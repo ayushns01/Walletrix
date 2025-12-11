@@ -23,6 +23,9 @@ class PriceService {
       MATIC: 'matic-network',
       AVAX: 'avalanche-2',
       SOL: 'solana',
+      ARB: 'arbitrum',
+      OP: 'optimism',
+      BASE: 'base',
     };
   }
 
@@ -72,32 +75,77 @@ class PriceService {
 
   /**
    * Get prices for multiple cryptocurrencies
+   * Handles large requests by chunking if needed
    */
   async getMultiplePrices(coinIds, vsCurrency = 'usd') {
     try {
-      const url = `${this.baseUrl}/simple/price`;
-      const response = await axios.get(url, {
-        params: {
-          ids: Array.isArray(coinIds) ? coinIds.join(',') : coinIds,
-          vs_currencies: vsCurrency,
-          include_24hr_change: true,
-          include_24hr_vol: true,
-          include_market_cap: true,
-        },
-      });
+      const coinsArray = Array.isArray(coinIds) ? coinIds : [coinIds];
+      const chunkSize = 50; // CoinGecko allows up to 50-100 coins per request
+      
+      // If request is small enough, make single request
+      if (coinsArray.length <= chunkSize) {
+        const url = `${this.baseUrl}/simple/price`;
+        const response = await axios.get(url, {
+          params: {
+            ids: coinsArray.join(','),
+            vs_currencies: vsCurrency,
+            include_24hr_change: true,
+            include_24hr_vol: true,
+            include_market_cap: true,
+          },
+        });
 
-      const prices = Object.entries(response.data).map(([coin, data]) => ({
-        coin,
-        price: data[vsCurrency],
-        currency: vsCurrency.toUpperCase(),
-        marketCap: data[`${vsCurrency}_market_cap`],
-        volume24h: data[`${vsCurrency}_24h_vol`],
-        change24h: data[`${vsCurrency}_24h_change`],
-      }));
+        const prices = Object.entries(response.data).map(([coin, data]) => ({
+          coin,
+          price: data[vsCurrency],
+          currency: vsCurrency.toUpperCase(),
+          marketCap: data[`${vsCurrency}_market_cap`],
+          volume24h: data[`${vsCurrency}_24h_vol`],
+          change24h: data[`${vsCurrency}_24h_change`],
+        }));
+
+        return {
+          success: true,
+          prices,
+        };
+      }
+      
+      // For larger requests, chunk them
+      const allPrices = [];
+      for (let i = 0; i < coinsArray.length; i += chunkSize) {
+        const chunk = coinsArray.slice(i, i + chunkSize);
+        const url = `${this.baseUrl}/simple/price`;
+        
+        const response = await axios.get(url, {
+          params: {
+            ids: chunk.join(','),
+            vs_currencies: vsCurrency,
+            include_24hr_change: true,
+            include_24hr_vol: true,
+            include_market_cap: true,
+          },
+        });
+
+        const prices = Object.entries(response.data).map(([coin, data]) => ({
+          coin,
+          price: data[vsCurrency],
+          currency: vsCurrency.toUpperCase(),
+          marketCap: data[`${vsCurrency}_market_cap`],
+          volume24h: data[`${vsCurrency}_24h_vol`],
+          change24h: data[`${vsCurrency}_24h_change`],
+        }));
+
+        allPrices.push(...prices);
+        
+        // Add small delay between chunks to avoid rate limiting
+        if (i + chunkSize < coinsArray.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
 
       return {
         success: true,
-        prices,
+        prices: allPrices,
       };
     } catch (error) {
       console.error('Error getting multiple prices:', error.response?.data || error.message);

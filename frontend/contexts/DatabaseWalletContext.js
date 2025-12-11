@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
 import { walletAPI, blockchainAPI, tokenAPI, priceAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -11,6 +12,9 @@ export function WalletProvider({ children }) {
   // Clerk authentication
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
+  
+  // Next.js navigation hook for page change detection
+  const pathname = usePathname();
 
   // Authentication state (legacy, keeping for backward compatibility)
   const [user, setUser] = useState(null);
@@ -23,13 +27,22 @@ export function WalletProvider({ children }) {
   const [balances, setBalances] = useState({});
   const [tokens, setTokens] = useState([]);
   const [prices, setPrices] = useState({});
-  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('ethereum-mainnet');
+  
+  // Data loading states to prevent race conditions
+  const [dataLoading, setDataLoading] = useState({
+    balances: false,
+    tokens: false,
+    prices: false
+  });
+  const [lastDataFetch, setLastDataFetch] = useState(null);
+  const [refreshInProgress, setRefreshInProgress] = useState(false);
 
   // Database-specific state
   const [userWallets, setUserWallets] = useState([]);
   const [activeWalletId, setActiveWalletId] = useState(null);
+  const [walletChangeTimestamp, setWalletChangeTimestamp] = useState(null);
 
   // Load user wallets when Clerk user signs in
   useEffect(() => {
@@ -77,17 +90,58 @@ export function WalletProvider({ children }) {
     loadActiveWallet();
   }, [activeWalletId, userWallets]);
 
-  // Refetch transactions when network changes
+  // Automatically refetch data when network changes (with debouncing)
   useEffect(() => {
-    const refetchTransactions = async () => {
-      if (wallet && !isLocked && activeWalletId) {
-        console.log('Network changed to:', selectedNetwork);
-        await fetchBlockchainTransactions();
+    let timeoutId;
+    const refetchData = async () => {
+      // Auto-refresh for both authenticated and non-authenticated users
+      if (wallet && !isLocked && !refreshInProgress) {
+        setRefreshInProgress(true);
+        
+        // Clear existing data to prevent stale display
+        setTokens([]);
+        setBalances({
+          ethereum: '0', bitcoin: '0', solana: '0', polygon: '0',
+          arbitrum: '0', optimism: '0', bsc: '0', avalanche: '0', base: '0'
+        });
+        
+        // Fetch fresh data
+        await refreshAllData();
+        setRefreshInProgress(false);
       }
     };
 
-    refetchTransactions();
+    // Debounce network changes to prevent excessive API calls
+    if (selectedNetwork && wallet) {
+      timeoutId = setTimeout(refetchData, 300);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [selectedNetwork]);
+
+  // Automatically refresh data when wallet changes or navigating to a new page
+  useEffect(() => {
+    const refreshOnChange = async () => {
+      if (wallet && !isLocked && !refreshInProgress) {
+        // Refresh on wallet change or page navigation
+        if (walletChangeTimestamp || pathname) {
+          // Prevent duplicate refreshes within 1 second
+          const now = Date.now();
+          if (lastDataFetch && (now - lastDataFetch < 1000)) {
+            return;
+          }
+          
+          setRefreshInProgress(true);
+          await refreshAllData();
+          setRefreshInProgress(false);
+        }
+      }
+    };
+
+    refreshOnChange();
+  }, [pathname, walletChangeTimestamp]);
 
   // Load legacy localStorage wallet (backward compatibility)
   const loadLegacyWallet = () => {
@@ -116,7 +170,6 @@ export function WalletProvider({ children }) {
     setIsLocked(true);
     setBalances({});
     setTokens([]);
-    setTransactions([]);
   };
 
   // API call helper with authentication
@@ -182,6 +235,47 @@ export function WalletProvider({ children }) {
     }
   };
 
+  // Fresh balance validation for transactions
+  const getFreshBalance = async (network = null) => {
+    if (!wallet) {
+      throw new Error('No wallet connected');
+    }
+    
+    const targetNetwork = network || selectedNetwork;
+    const { chain, network: networkName } = getNetworkInfo();
+    
+    try {
+      if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        const address = wallet.ethereum?.address;
+        if (!address) {
+          throw new Error('No Ethereum address found');
+        }
+        
+        const balanceResponse = await blockchainAPI.getEthereumBalance(address, targetNetwork);
+        if (balanceResponse.success) {
+          const balance = balanceResponse.balance?.eth || balanceResponse.data?.balance || '0';
+          return parseFloat(balance);
+        }
+      } else if (chain === 'bitcoin') {
+        const address = wallet.bitcoin?.address;
+        if (!address) {
+          throw new Error('No Bitcoin address found');
+        }
+        
+        const balanceResponse = await blockchainAPI.getBitcoinBalance(address, networkName);
+        if (balanceResponse.success) {
+          const balance = balanceResponse.balance?.btc || balanceResponse.data?.balance || '0';
+          return parseFloat(balance);
+        }
+      }
+      
+      throw new Error('Unable to fetch balance for this network');
+    } catch (error) {
+      console.error('Error getting fresh balance:', error);
+      throw error;
+    }
+  };
+
   // Load specific wallet data
   const loadWalletData = async (walletData) => {
     try {
@@ -192,171 +286,18 @@ export function WalletProvider({ children }) {
       });
       setIsLocked(false);
       
-      // Load wallet transactions and balances
-      await Promise.all([
-        fetchBalances(),
-        fetchTokenBalances(),
-        fetchPrices(),
-        fetchDatabaseTransactions(walletData.id)
-      ]);
+      // Load wallet data using the centralized refresh function
+      await refreshAllData();
     } catch (error) {
       console.error('Error loading wallet data:', error);
     }
   };
 
-  // Fetch transactions from database
-  const fetchDatabaseTransactions = async (walletId) => {
-    if (!walletId) return;
 
-    try {
-      const { chain, network } = getNetworkInfo();
-      console.log('Fetching database transactions:', { walletId, chain, network, selectedNetwork });
-      
-      const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets/${walletId}/transactions?network=${network}&limit=50`
-      );
-      
-      const data = await response.json();
-      console.log('Database transactions response:', data);
-      
-      if (data.success && data.transactions && data.transactions.length > 0) {
-        console.log('Setting transactions from database:', data.transactions.length);
-        setTransactions(data.transactions);
-      } else {
-        // Fallback to blockchain API if database is empty
-        console.log('No database transactions, falling back to blockchain API');
-        await fetchBlockchainTransactions();
-      }
-    } catch (error) {
-      console.error('Error fetching database transactions:', error);
-      // Fallback to blockchain API
-      console.log('Database fetch failed, falling back to blockchain API');
-      await fetchBlockchainTransactions();
-    }
-  };
 
-  // Fetch transactions from blockchain (fallback)
-  const fetchBlockchainTransactions = async () => {
-    if (!wallet) {
-      console.log('No wallet loaded, cannot fetch blockchain transactions');
-      return;
-    }
-    
-    try {
-      const { chain, network } = getNetworkInfo();
-      console.log('Fetching blockchain transactions:', { chain, network, selectedNetwork, wallet });
-      
-      if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
-        // Ethereum and EVM-compatible chains
-        let networkParam;
-        
-        if (chain === 'ethereum') {
-          networkParam = network;
-        } else {
-          networkParam = selectedNetwork;
-        }
-        
-        const address = wallet.ethereum?.address;
-        console.log('Fetching ETH transactions for:', { address, networkParam });
-        
-        if (address) {
-          const ethTxs = await blockchainAPI.getEthereumTransactions(address, 1, 50, networkParam);
-          console.log('Blockchain API response:', ethTxs);
-          
-          if (ethTxs.success && ethTxs.transactions) {
-            const allTxs = ethTxs.transactions.map(tx => ({ 
-              ...tx, 
-              network: selectedNetwork 
-            }));
-            console.log('Setting transactions from blockchain:', allTxs.length);
-            setTransactions(allTxs);
-            
-            // Cache transactions in database if authenticated
-            if (isAuthenticated && activeWalletId) {
-              await cacheTransactionsInDatabase(allTxs);
-            }
-          } else {
-            console.log('No transactions in blockchain response');
-            setTransactions([]);
-          }
-        }
-      } else if (chain === 'bitcoin') {
-        // Bitcoin transactions
-        const address = wallet.bitcoin?.address;
-        console.log('Fetching Bitcoin transactions for:', { address, network });
-        
-        if (address) {
-          const btcTxs = await blockchainAPI.getBitcoinTransactions(address, network);
-          console.log('Bitcoin API response:', btcTxs);
-          
-          if (btcTxs.success && btcTxs.transactions) {
-            const allTxs = btcTxs.transactions.map(tx => ({ 
-              ...tx, 
-              network: selectedNetwork 
-            }));
-            console.log('Setting Bitcoin transactions from blockchain:', allTxs.length);
-            setTransactions(allTxs);
-            
-            // Cache transactions in database if authenticated
-            if (isAuthenticated && activeWalletId) {
-              await cacheTransactionsInDatabase(allTxs);
-            }
-          } else {
-            console.log('No Bitcoin transactions in response');
-            setTransactions([]);
-          }
-        }
-      } else {
-        console.log('Unsupported chain:', chain);
-        setTransactions([]);
-      }
-    } catch (error) {
-      console.error('Error fetching blockchain transactions:', error);
-      setTransactions([]);
-    }
-  };
 
-  // Cache transactions in database
-  const cacheTransactionsInDatabase = async (transactions) => {
-    if (!isAuthenticated || !activeWalletId) {
-      console.log('Skipping cache - not authenticated or no active wallet');
-      return;
-    }
 
-    try {
-      const { chain } = getNetworkInfo();
-      const isBitcoin = chain === 'bitcoin';
-      const currentAddress = isBitcoin ? wallet.bitcoin?.address : wallet.ethereum?.address;
-      
-      const formattedTxs = transactions.map(tx => ({
-        txHash: tx.hash || tx.txid,
-        network: tx.network,
-        fromAddress: tx.from || tx.inputs?.[0]?.address,
-        toAddress: tx.to || tx.outputs?.[0]?.address,
-        amount: tx.value || tx.amount,
-        tokenSymbol: isBitcoin ? 'BTC' : 'ETH',
-        status: tx.status || (tx.confirmations > 0 ? 'confirmed' : 'pending'),
-        blockNumber: tx.blockNumber || tx.block_height,
-        gasUsed: tx.gasUsed,
-        gasPrice: tx.gasPrice,
-        timestamp: tx.timestamp || tx.time,
-        isIncoming: (tx.to || tx.outputs?.[0]?.address)?.toLowerCase() === currentAddress?.toLowerCase(),
-        category: 'transfer'
-      }));
 
-      console.log('Caching transactions in database:', formattedTxs.length);
-      await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/wallets/${activeWalletId}/cache-transactions`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ transactions: formattedTxs })
-        }
-      );
-      console.log('Transactions cached successfully');
-    } catch (error) {
-      console.error('Error caching transactions:', error);
-    }
-  };
 
   // Authentication functions
   const login = (userData, token) => {
@@ -378,7 +319,6 @@ export function WalletProvider({ children }) {
     setIsLocked(true);
     setBalances({});
     setTokens([]);
-    setTransactions([]);
     toast.success('Logged out successfully');
   };
 
@@ -461,8 +401,22 @@ export function WalletProvider({ children }) {
   const switchWallet = async (walletId) => {
     const walletData = userWallets.find(w => w.id === walletId);
     if (walletData) {
+      // Clear existing data immediately for clean state
+      setBalances({});
+      setTokens([]);
+      setPrices({});
+      
+      // Update wallet
       setActiveWalletId(walletId);
-      await loadWalletData(walletData);
+      setWallet({
+        ethereum: { address: walletData.addresses.ethereum },
+        bitcoin: { address: walletData.addresses.bitcoin },
+        encrypted: walletData.encryptedData
+      });
+      setIsLocked(false);
+      
+      // Trigger refresh via timestamp change
+      setWalletChangeTimestamp(Date.now());
     }
   };
 
@@ -607,7 +561,6 @@ export function WalletProvider({ children }) {
     setIsLocked(true);
     setBalances({});
     setTokens([]);
-    setTransactions([]);
     
     toast.success('Wallet deleted successfully');
   };
@@ -678,9 +631,13 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Fetch balances (unchanged)
+  // Fetch balances with improved error handling and loading states
   const fetchBalances = async () => {
-    if (!wallet) return;
+    if (!wallet || dataLoading.balances) {
+      return;
+    }
+    
+    setDataLoading(prev => ({ ...prev, balances: true }));
     
     try {
       const { chain, network } = getNetworkInfo();
@@ -719,23 +676,33 @@ export function WalletProvider({ children }) {
       setBalances(newBalances);
     } catch (error) {
       console.error('Error fetching balances:', error);
-      setBalances({
-        ethereum: '0',
-        bitcoin: '0',
-        solana: '0',
-        polygon: '0',
-        arbitrum: '0',
-        optimism: '0',
-        bsc: '0',
-        avalanche: '0',
-        base: '0',
-      });
+      // Don't reset balances to zero on error - keep existing values
+      // Only reset if this is the first load
+      if (Object.values(balances).every(b => b === '0')) {
+        setBalances({
+          ethereum: '0',
+          bitcoin: '0',
+          solana: '0',
+          polygon: '0',
+          arbitrum: '0',
+          optimism: '0',
+          bsc: '0',
+          avalanche: '0',
+          base: '0',
+        });
+      }
+    } finally {
+      setDataLoading(prev => ({ ...prev, balances: false }));
     }
   };
 
-  // Fetch token balances (unchanged)
+  // Fetch token balances with improved loading states
   const fetchTokenBalances = async () => {
-    if (!wallet) return;
+    if (!wallet || dataLoading.tokens) {
+      return;
+    }
+    
+    setDataLoading(prev => ({ ...prev, tokens: true }));
     
     try {
       const { chain, network } = getNetworkInfo();
@@ -753,12 +720,23 @@ export function WalletProvider({ children }) {
       }
     } catch (error) {
       console.error('Error fetching token balances:', error);
-      setTokens([]);
+      // Keep existing tokens on error instead of clearing them
+      if (tokens.length === 0) {
+        setTokens([]);
+      }
+    } finally {
+      setDataLoading(prev => ({ ...prev, tokens: false }));
     }
   };
 
-  // Fetch prices (unchanged)
+  // Fetch prices with improved loading states
   const fetchPrices = async () => {
+    if (dataLoading.prices) {
+      return;
+    }
+    
+    setDataLoading(prev => ({ ...prev, prices: true }));
+    
     try {
       const response = await priceAPI.getPopularPrices('usd');
       
@@ -781,30 +759,62 @@ export function WalletProvider({ children }) {
           }
         });
         setPrices(priceMap);
-      } else {
+      } else if (Object.keys(prices).length === 0) {
+        // Only clear prices if we don't have any existing data
         setPrices({});
       }
     } catch (error) {
       console.error('Error fetching prices:', error);
-      setPrices({});
+      // Keep existing prices on error
+      if (Object.keys(prices).length === 0) {
+        setPrices({});
+      }
+    } finally {
+      setDataLoading(prev => ({ ...prev, prices: false }));
     }
   };
 
-  // Refresh all data
-  const refreshData = async () => {
-    if (!isLocked && wallet) {
-      if (isAuthenticated && activeWalletId) {
-        await fetchDatabaseTransactions(activeWalletId);
-      } else {
-        await fetchBlockchainTransactions();
+  // Centralized data refresh function with race condition prevention
+  const refreshAllData = async () => {
+    if (!wallet || isLocked || refreshInProgress) {
+      return;
+    }
+
+    const refreshId = Date.now();
+    setLastDataFetch(refreshId);
+    setRefreshInProgress(true);
+
+    try {
+      // Fetch data sequentially to avoid race conditions
+      await fetchBalances();
+      
+      // Check if this is still the latest refresh request
+      if (lastDataFetch !== null && refreshId < lastDataFetch) {
+        return;
       }
       
-      await Promise.all([
-        fetchBalances(),
-        fetchTokenBalances(),
-        fetchPrices(),
-      ]);
+      await fetchTokenBalances();
       
+      if (lastDataFetch !== null && refreshId < lastDataFetch) {
+        return;
+      }
+      
+      await fetchPrices();
+      
+      if (lastDataFetch !== null && refreshId < lastDataFetch) {
+        return;
+      }
+    } catch (error) {
+      console.error('Error during data refresh:', error);
+    } finally {
+      setRefreshInProgress(false);
+    }
+  };
+  
+  // Public refresh function with success message
+  const refreshData = async () => {
+    await refreshAllData();
+    if (!refreshInProgress) {
       toast.success('Data refreshed');
     }
   };
@@ -832,12 +842,16 @@ export function WalletProvider({ children }) {
     balances,
     tokens,
     prices,
-    transactions,
     loading,
-    selectedNetwork,
+    selectedNetwork: selectedNetwork || 'ethereum-mainnet',
     setSelectedNetwork,
     
-    // Wallet operations
+    // New data loading states
+    dataLoading,
+    refreshInProgress,
+    refreshAllData,
+    
+    // Fresh balance validation\n    getFreshBalance,\n    \n    // Wallet operations
     generateWallet,
     importWallet,
     unlockWallet,

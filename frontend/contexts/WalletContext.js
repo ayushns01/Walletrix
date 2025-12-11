@@ -208,11 +208,9 @@ export function WalletProvider({ children }) {
         }
       } else if (chain === 'bitcoin') {
         const btcBalance = await blockchainAPI.getBitcoinBalance(wallet.bitcoin?.address, network);
-        console.log('BTC Balance API response:', btcBalance);
         
         if (btcBalance.success) {
           const balance = btcBalance.balance?.btc || btcBalance.data?.balance || '0';
-          console.log('Setting BTC balance to:', balance);
           newBalances.bitcoin = balance;
         }
       } else if (chain === 'solana') {
@@ -299,7 +297,6 @@ export function WalletProvider({ children }) {
         console.log('Mapped prices:', priceMap);
         setPrices(priceMap);
       } else {
-        console.log('Price fetch failed or no data');
         setPrices({});
       }
     } catch (error) {
@@ -344,13 +341,12 @@ export function WalletProvider({ children }) {
             console.log('Setting transactions:', allTxs);
             setTransactions(allTxs);
           } else {
-            console.log('Transaction fetch failed or no data, setting empty array');
             setTransactions([]);
           }
         }
       } else if (chain === 'bitcoin') {
         const btcTxs = await blockchainAPI.getBitcoinTransactions(wallet.bitcoin.address, network);
-        console.log('Bitcoin transactions API response:', btcTxs);
+
         
         if (btcTxs.success && btcTxs.transactions) {
           const allTxs = btcTxs.transactions.map(tx => ({ 
