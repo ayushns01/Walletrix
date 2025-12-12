@@ -59,6 +59,9 @@ export default function Dashboard() {
         const chainValue = parseFloat(chainBalance) * prices.ethereum.current_price;
         total += chainValue;
       }
+    } else if (chain === 'solana' && balances.solana && prices.solana) {
+      const solValue = parseFloat(balances.solana) * prices.solana.current_price;
+      total += solValue;
     }
 
     // Add token values (only for Ethereum-based chains)
@@ -80,6 +83,7 @@ export default function Dashboard() {
   const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
   const isEthereum = chain === 'ethereum';
   const isBitcoin = chain === 'bitcoin';
+  const isSolana = chain === 'solana';
 
   // Get all assets including native coins and tokens based on selected network
   const allAssets = [
@@ -96,6 +100,13 @@ export default function Dashboard() {
       balance: balances.ethereum || '0',
       priceData: prices.ethereum,
       icon: 'Ξ',
+    }] : []),
+    ...(isSolana ? [{
+      name: 'Solana',
+      symbol: 'SOL',
+      balance: balances.solana || '0',
+      priceData: prices.solana,
+      icon: '◎',
     }] : []),
     ...(isEthereum ? tokens.filter(t => parseFloat(t.balance) > 0).map(token => ({
       name: token.name,
@@ -192,6 +203,26 @@ export default function Dashboard() {
               </div>
               <p className="text-blue-50 font-mono text-sm break-all">
                 {wallet?.bitcoin?.address}
+              </p>
+            </div>
+          )}
+
+          {isSolana && (
+            <div className="bg-gradient-to-r from-purple-900/30 to-black/50 rounded-xl p-5 border border-purple-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-purple-300 font-medium">Solana Address</span>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(wallet?.solana?.address);
+                    toast.success('Address copied!');
+                  }}
+                  className="text-xs text-purple-400 hover:text-purple-300 font-semibold px-3 py-1 bg-purple-500/20 rounded-lg hover:bg-purple-500/30 transition-all"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-purple-50 font-mono text-sm break-all">
+                {wallet?.solana?.address}
               </p>
             </div>
           )}

@@ -42,6 +42,10 @@ class WalletController {
             address: result.addresses.bitcoin,
             privateKey: result._privateKeys.bitcoin,
           },
+          solana: {
+            address: result.addresses.solana,
+            privateKey: result._privateKeys.solana,
+          },
         },
         security: {
           warning: 'Write down your recovery phrase on paper and store it securely',
@@ -101,6 +105,10 @@ class WalletController {
           bitcoin: {
             address: result.addresses.bitcoin,
             privateKey: result._privateKeys.bitcoin,
+          },
+          solana: {
+            address: result.addresses.solana,
+            privateKey: result._privateKeys.solana,
           },
         },
       });
@@ -323,6 +331,52 @@ class WalletController {
       res.status(401).json({
         success: false,
         error: 'Failed to decrypt data. Invalid password or corrupted data.',
+      });
+    }
+  }
+
+  /**
+   * Add Solana address to existing wallet
+   * POST /api/v1/wallet/migrate/add-solana
+   * Body: { mnemonic: string, passphrase?: string }
+   */
+  async addSolanaToWallet(req, res) {
+    try {
+      const { mnemonic, passphrase } = req.body;
+
+      if (!mnemonic) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mnemonic phrase is required',
+        });
+      }
+
+      // Re-import the wallet to get Solana address
+      const result = walletService.importFromMnemonic(mnemonic.trim(), passphrase);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: result.error,
+        });
+      }
+
+      // Return only the Solana address data
+      res.status(200).json({
+        success: true,
+        message: 'Solana address generated successfully',
+        data: {
+          solana: {
+            address: result.addresses.solana,
+            privateKey: result._privateKeys.solana,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error in addSolanaToWallet:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate Solana address',
       });
     }
   }

@@ -15,6 +15,7 @@ export default function AccountDetails({ isOpen, onClose }) {
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [showEthPrivateKey, setShowEthPrivateKey] = useState(false);
   const [showBtcPrivateKey, setShowBtcPrivateKey] = useState(false);
+  const [showSolPrivateKey, setShowSolPrivateKey] = useState(false);
   const [copiedField, setCopiedField] = useState('');
 
   // Reset state when modal closes
@@ -26,6 +27,7 @@ export default function AccountDetails({ isOpen, onClose }) {
       setShowMnemonic(false);
       setShowEthPrivateKey(false);
       setShowBtcPrivateKey(false);
+      setShowSolPrivateKey(false);
       setCopiedField('');
     }
   }, [isOpen]);
@@ -86,11 +88,16 @@ export default function AccountDetails({ isOpen, onClose }) {
       ethereum: {
         address: walletData.ethereum.address,
         privateKey: walletData.ethereum.privateKey,
+        note: 'This address and private key work on all EVM chains: Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Base, BSC'
       },
       bitcoin: {
         address: walletData.bitcoin.address,
         privateKey: walletData.bitcoin.privateKey,
       },
+      solana: walletData.solana ? {
+        address: walletData.solana.address,
+        privateKey: walletData.solana.privateKey,
+      } : undefined,
       createdAt: new Date().toISOString(),
       version: '1.0.0'
     };
@@ -249,7 +256,10 @@ export default function AccountDetails({ isOpen, onClose }) {
             <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
               <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4 flex items-center gap-2">
                 <span className="text-blue-400 text-xl">Ξ</span>
-                Ethereum Account
+                <div>
+                  <div>Ethereum & EVM Chains</div>
+                  <p className="text-xs text-blue-400 font-normal mt-0.5">Works on Polygon, Arbitrum, Avalanche, Optimism, Base, BSC</p>
+                </div>
               </h4>
               
               <div className="space-y-3 sm:space-y-4">
@@ -366,6 +376,69 @@ export default function AccountDetails({ isOpen, onClose }) {
                 </div>
               </div>
             </div>
+
+            {/* Solana Account */}
+            {walletData?.solana && (
+              <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="text-purple-400 text-xl">◎</span>
+                  Solana Account
+                </h4>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Solana Address */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
+                      Public Address
+                    </label>
+                    <div className="flex items-center gap-2 p-2 sm:p-3 bg-blue-900/20 rounded-lg border border-blue-500/10">
+                      <span className="text-blue-100 font-mono text-xs sm:text-sm flex-1 break-all">
+                        {walletData?.solana?.address || 'N/A'}
+                      </span>
+                      <button
+                        onClick={() => handleCopy(walletData?.solana?.address || '', 'Solana Address')}
+                        disabled={!walletData?.solana?.address}
+                        className="p-1.5 sm:p-2 hover:bg-blue-600/20 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        {copiedField === 'Solana Address' ? 
+                          <Check className="w-4 h-4 text-green-400" /> : 
+                          <Copy className="w-4 h-4 text-blue-400" />
+                        }
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Solana Private Key */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
+                      Private Key
+                    </label>
+                    <div className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-blue-900/20 rounded-lg border border-blue-500/10">
+                      <span className="text-blue-100 font-mono text-xs sm:text-sm flex-1 break-all">
+                        {showSolPrivateKey ? (walletData?.solana?.privateKey || 'N/A') : '●'.repeat(88)}
+                      </span>
+                      <button
+                        onClick={() => setShowSolPrivateKey(!showSolPrivateKey)}
+                        disabled={!walletData?.solana?.privateKey}
+                        className="p-1.5 sm:p-2 hover:bg-blue-600/20 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        {showSolPrivateKey ? <EyeOff className="w-4 h-4 text-blue-400" /> : <Eye className="w-4 h-4 text-blue-400" />}
+                      </button>
+                      <button
+                        onClick={() => handleCopy(walletData?.solana?.privateKey || '', 'Solana Private Key')}
+                        disabled={!walletData?.solana?.privateKey}
+                        className="p-1.5 sm:p-2 hover:bg-blue-600/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                      >
+                        {copiedField === 'Solana Private Key' ? 
+                          <Check className="w-4 h-4 text-green-400" /> : 
+                          <Copy className="w-4 h-4 text-blue-400" />
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Wallet Information */}
             <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">

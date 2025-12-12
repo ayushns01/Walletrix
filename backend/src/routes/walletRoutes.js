@@ -28,4 +28,7 @@ router.post('/encrypt', validationRules.encryptData, handleValidationErrors, wal
 // Decrypt data
 router.post('/decrypt', validationRules.decryptData, handleValidationErrors, walletController.decryptData);
 
+// Migration: Add Solana to existing wallet
+router.post('/migrate/add-solana', validationRules.importMnemonic, handleValidationErrors, walletController.addSolanaToWallet);
+
 export default router;

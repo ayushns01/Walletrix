@@ -58,6 +58,8 @@ export default function SendModal({ isOpen, onClose, asset }) {
   // Check if we have the wallet address for current asset
   const hasWalletAddress = asset?.symbol === 'BTC' 
     ? !!wallet?.bitcoin?.address 
+    : asset?.symbol === 'SOL'
+    ? !!wallet?.solana?.address
     : !!wallet?.ethereum?.address;
 
   // Check if address was used before (simple check - could be enhanced with actual history from database)
@@ -78,7 +80,11 @@ export default function SendModal({ isOpen, onClose, asset }) {
       return;
     }
 
-    const fromAddress = asset.symbol === 'BTC' ? wallet?.bitcoin?.address : wallet?.ethereum?.address;
+    const fromAddress = asset.symbol === 'BTC' 
+      ? wallet?.bitcoin?.address 
+      : asset.symbol === 'SOL'
+      ? wallet?.solana?.address
+      : wallet?.ethereum?.address;
     
     if (!fromAddress) {
       toast.error('Wallet address not available');
@@ -142,6 +148,13 @@ export default function SendModal({ isOpen, onClose, asset }) {
           parseFloat(amount),
           null,
           activeWalletId
+        );
+      } else if (asset.symbol === 'SOL') {
+        result = await transactionAPI.sendSolanaTransaction(
+          walletData.solana.privateKey,
+          recipient,
+          amount,
+          { network: networkName, walletId: activeWalletId, confirmed: true }
         );
       } else if (asset.symbol === 'ETH') {
         result = await transactionAPI.sendEthereumTransaction(

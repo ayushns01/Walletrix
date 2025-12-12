@@ -35,7 +35,8 @@ export default function Home() {
     setActiveWalletId,
     importLocalStorageWallet,
     deleteWallet,
-    unlockWallet
+    unlockWallet,
+    selectedNetwork
   } = useWallet()
   
   const [view, setView] = useState('landing') // landing, welcome, create, import
@@ -506,24 +507,36 @@ export default function Home() {
           <div className="glass-effect rounded-2xl p-4 lg:p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
             <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-6 lg:justify-center">
               <button
-                onClick={() => handleQuickAction('send', {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  balance: balances.ethereum || '0',
-                  priceData: prices.ethereum,
-                  icon: 'Ξ',
-                })}
+                onClick={() => {
+                  const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
+                  let asset;
+                  if (chain === 'bitcoin') {
+                    asset = { name: 'Bitcoin', symbol: 'BTC', balance: balances.bitcoin || '0', priceData: prices.bitcoin, icon: '₿' };
+                  } else if (chain === 'solana') {
+                    asset = { name: 'Solana', symbol: 'SOL', balance: balances.solana || '0', priceData: prices.solana, icon: '◎' };
+                  } else {
+                    asset = { name: 'Ethereum', symbol: 'ETH', balance: balances.ethereum || '0', priceData: prices.ethereum, icon: 'Ξ' };
+                  }
+                  handleQuickAction('send', asset);
+                }}
                 className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-blue-500/30"
               >
                 <Send className="w-5 h-5" />
                 <span className="hidden sm:inline">Send</span>
               </button>
               <button
-                onClick={() => handleQuickAction('receive', {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  icon: 'Ξ',
-                })}
+                onClick={() => {
+                  const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
+                  let asset;
+                  if (chain === 'bitcoin') {
+                    asset = { name: 'Bitcoin', symbol: 'BTC', icon: '₿' };
+                  } else if (chain === 'solana') {
+                    asset = { name: 'Solana', symbol: 'SOL', icon: '◎' };
+                  } else {
+                    asset = { name: 'Ethereum', symbol: 'ETH', icon: 'Ξ' };
+                  }
+                  handleQuickAction('receive', asset);
+                }}
                 className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/30"
               >
                 <Download className="w-5 h-5" />

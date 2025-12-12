@@ -286,6 +286,7 @@ export function WalletProvider({ children }) {
       setWallet({
         ethereum: { address: walletData.addresses.ethereum },
         bitcoin: { address: walletData.addresses.bitcoin },
+        solana: { address: walletData.addresses.solana },
         encrypted: walletData.encryptedData
       });
       setIsLocked(false);
@@ -359,6 +360,7 @@ export function WalletProvider({ children }) {
       
       if (data.success) {
         await loadUserWallets(token);
+        // Return the wallet with its ID so we can switch to it
         return data.wallet;
       } else {
         throw new Error(data.error);
@@ -415,6 +417,7 @@ export function WalletProvider({ children }) {
       setWallet({
         ethereum: { address: walletData.addresses.ethereum },
         bitcoin: { address: walletData.addresses.bitcoin },
+        solana: { address: walletData.addresses.solana },
         encrypted: walletData.encryptedData
       });
       setIsLocked(false);
@@ -452,20 +455,27 @@ export function WalletProvider({ children }) {
         const walletData = {
           ethereum: { address: response.data.ethereum.address },
           bitcoin: { address: response.data.bitcoin.address },
+          solana: { address: response.data.solana.address },
           encrypted: encryptedResponse.encrypted,
         };
         
         if (isAuthenticated) {
           // Save to database
-          await createDatabaseWallet(
+          const createdWallet = await createDatabaseWallet(
             walletName,
             encryptedResponse.encrypted,
             {
               ethereum: response.data.ethereum.address,
-              bitcoin: response.data.bitcoin.address
+              bitcoin: response.data.bitcoin.address,
+              solana: response.data.solana.address
             },
             'Generated wallet'
           );
+          
+          // Automatically switch to the newly created wallet
+          if (createdWallet && createdWallet.id) {
+            await switchWallet(createdWallet.id);
+          }
         } else {
           // Save to localStorage (legacy)
           localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
@@ -499,20 +509,27 @@ export function WalletProvider({ children }) {
         const walletData = {
           ethereum: { address: response.data.ethereum.address },
           bitcoin: { address: response.data.bitcoin.address },
+          solana: { address: response.data.solana.address },
           encrypted: encryptedResponse.encrypted,
         };
         
         if (isAuthenticated) {
           // Save to database
-          await createDatabaseWallet(
+          const createdWallet = await createDatabaseWallet(
             walletName,
             encryptedResponse.encrypted,
             {
               ethereum: response.data.ethereum.address,
-              bitcoin: response.data.bitcoin.address
+              bitcoin: response.data.bitcoin.address,
+              solana: response.data.solana.address
             },
             'Imported from recovery phrase'
           );
+          
+          // Automatically switch to the newly imported wallet
+          if (createdWallet && createdWallet.id) {
+            await switchWallet(createdWallet.id);
+          }
         } else {
           // Save to localStorage (legacy)
           localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
@@ -586,7 +603,9 @@ export function WalletProvider({ children }) {
         method: 'DELETE',
       });
 
-      if (response.success) {
+      const data = await response.json();
+
+      if (data.success) {
         // Remove from local state
         setUserWallets(prev => prev.filter(w => w.id !== walletId));
         
@@ -608,7 +627,7 @@ export function WalletProvider({ children }) {
         return { success: true };
       } else {
         // If wallet not found, remove it from local state anyway (sync issue)
-        if (response.error && response.error.includes('not found')) {
+        if (data.error && data.error.includes('not found')) {
           setUserWallets(prev => prev.filter(w => w.id !== walletId));
           if (activeWalletId === walletId) {
             const remainingWallets = userWallets.filter(w => w.id !== walletId);
@@ -625,8 +644,8 @@ export function WalletProvider({ children }) {
           return { success: true };
         }
         
-        toast.error(response.error || 'Failed to delete wallet');
-        return { success: false, error: response.error };
+        toast.error(data.error || 'Failed to delete wallet');
+        return { success: false, error: data.error };
       }
     } catch (error) {
       console.error('Error deleting wallet:', error);
@@ -674,6 +693,16 @@ export function WalletProvider({ children }) {
         if (btcBalance.success) {
           const balance = btcBalance.balance?.btc || btcBalance.data?.balance || '0';
           newBalances.bitcoin = balance;
+        }
+      } else if (chain === 'solana') {
+        const address = wallet.solana?.address;
+        if (address) {
+          const solBalance = await blockchainAPI.getSolanaBalance(address, network);
+          
+          if (solBalance.success) {
+            const balance = solBalance.balance || '0';
+            newBalances.solana = balance;
+          }
         }
       }
       
@@ -759,6 +788,9 @@ export function WalletProvider({ children }) {
       if (chain === 'bitcoin') {
         // Bitcoin network: only need BTC price
         coinIds = ['bitcoin'];
+      } else if (chain === 'solana') {
+        // Solana network: only need SOL price
+        coinIds = ['solana'];
       } else if (chain === 'ethereum') {
         // Ethereum network: need ETH + popular token prices
         coinIds = ['ethereum', 'tether', 'usd-coin', 'dai', 'chainlink'];

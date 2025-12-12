@@ -13,32 +13,10 @@ class EthereumService {
       // Ethereum networks
       mainnet: null,
       sepolia: null,
-      goerli: null,
-      holesky: null,
       
       // Polygon networks
       'polygon-mainnet': null,
       'polygon-mumbai': null,
-      
-      // Arbitrum networks
-      'arbitrum-one': null,
-      'arbitrum-goerli': null,
-      
-      // Optimism networks
-      'optimism-mainnet': null,
-      'optimism-goerli': null,
-      
-      // BSC networks
-      'bsc-mainnet': null,
-      'bsc-testnet': null,
-      
-      // Avalanche networks
-      'avalanche-mainnet': null,
-      'avalanche-fuji': null,
-      
-      // Base networks
-      'base-mainnet': null,
-      'base-goerli': null,
     };
     
     // Network configurations
@@ -46,32 +24,10 @@ class EthereumService {
       // Ethereum networks
       mainnet: { rpc: process.env.ETHEREUM_MAINNET_RPC || 'https://ethereum.publicnode.com', chainId: 1 },
       sepolia: { rpc: process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com', chainId: 11155111 },
-      goerli: { rpc: process.env.ETHEREUM_GOERLI_RPC || 'https://ethereum-goerli.publicnode.com', chainId: 5 },
-      holesky: { rpc: process.env.ETHEREUM_HOLESKY_RPC || 'https://ethereum-holesky.publicnode.com', chainId: 17000 },
       
       // Polygon networks
       'polygon-mainnet': { rpc: process.env.POLYGON_MAINNET_RPC || 'https://polygon-rpc.com', chainId: 137 },
       'polygon-mumbai': { rpc: process.env.POLYGON_MUMBAI_RPC || 'https://rpc-mumbai.maticvigil.com', chainId: 80001 },
-      
-      // Arbitrum networks
-      'arbitrum-one': { rpc: process.env.ARBITRUM_ONE_RPC || 'https://arb1.arbitrum.io/rpc', chainId: 42161 },
-      'arbitrum-goerli': { rpc: process.env.ARBITRUM_GOERLI_RPC || 'https://goerli-rollup.arbitrum.io/rpc', chainId: 421613 },
-      
-      // Optimism networks
-      'optimism-mainnet': { rpc: process.env.OPTIMISM_MAINNET_RPC || 'https://mainnet.optimism.io', chainId: 10 },
-      'optimism-goerli': { rpc: process.env.OPTIMISM_GOERLI_RPC || 'https://goerli.optimism.io', chainId: 420 },
-      
-      // BSC networks
-      'bsc-mainnet': { rpc: process.env.BSC_MAINNET_RPC || 'https://bsc-dataseed.binance.org', chainId: 56 },
-      'bsc-testnet': { rpc: process.env.BSC_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545', chainId: 97 },
-      
-      // Avalanche networks
-      'avalanche-mainnet': { rpc: process.env.AVALANCHE_MAINNET_RPC || 'https://api.avax.network/ext/bc/C/rpc', chainId: 43114 },
-      'avalanche-fuji': { rpc: process.env.AVALANCHE_FUJI_RPC || 'https://api.avax-test.network/ext/bc/C/rpc', chainId: 43113 },
-      
-      // Base networks
-      'base-mainnet': { rpc: process.env.BASE_MAINNET_RPC || 'https://mainnet.base.org', chainId: 8453 },
-      'base-goerli': { rpc: process.env.BASE_GOERLI_RPC || 'https://goerli.base.org', chainId: 84531 },
     };
     
     this._initialized = false;

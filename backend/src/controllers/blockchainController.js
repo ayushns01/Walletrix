@@ -1,5 +1,6 @@
 import ethereumService from '../services/ethereumService.js';
 import bitcoinService from '../services/bitcoinService.js';
+import solanaService from '../services/solanaService.js';
 
 /**
  * Blockchain Controller
@@ -53,6 +54,31 @@ class BlockchainController {
       res.status(500).json({
         success: false,
         error: 'Failed to get Bitcoin balance',
+      });
+    }
+  }
+
+  /**
+   * Get Solana balance
+   * GET /api/v1/blockchain/solana/balance/:address
+   */
+  async getSolanaBalance(req, res) {
+    try {
+      const { address } = req.params;
+      const { network = 'mainnet-beta' } = req.query;
+
+      const result = await solanaService.getBalance(address, network);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error in getSolanaBalance:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get Solana balance',
       });
     }
   }

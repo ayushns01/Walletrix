@@ -155,7 +155,7 @@ export default function WalletSelector({ isOpen, onClose, onCreateWallet }) {
                     <div className="mt-2 space-y-1">
                       {wallet.addresses.ethereum && (
                         <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <span className="text-blue-400 font-semibold">ETH:</span>
+                          <span className="text-blue-400 font-semibold" title="Works on Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Base, BSC">EVM:</span>
                           <span className="font-mono text-blue-200 truncate">
                             {formatAddress(wallet.addresses.ethereum)}
                           </span>
@@ -166,6 +166,14 @@ export default function WalletSelector({ isOpen, onClose, onCreateWallet }) {
                           <span className="text-orange-400 font-semibold">BTC:</span>
                           <span className="font-mono text-blue-200 truncate">
                             {formatAddress(wallet.addresses.bitcoin)}
+                          </span>
+                        </div>
+                      )}
+                      {wallet.addresses.solana && (
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <span className="text-purple-400 font-semibold">SOL:</span>
+                          <span className="font-mono text-blue-200 truncate">
+                            {formatAddress(wallet.addresses.solana)}
                           </span>
                         </div>
                       )}

@@ -14,6 +14,9 @@ router.get('/ethereum/balance/:address', blockchainController.getEthereumBalance
 // Bitcoin balance
 router.get('/bitcoin/balance/:address', blockchainController.getBitcoinBalance);
 
+// Solana balance
+router.get('/solana/balance/:address', blockchainController.getSolanaBalance);
+
 // Ethereum gas price
 router.get('/ethereum/gas-price', blockchainController.getGasPrice);
 

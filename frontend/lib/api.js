@@ -60,6 +60,11 @@ export const blockchainAPI = {
     return response.data;
   },
 
+  getSolanaBalance: async (address, network = 'mainnet-beta') => {
+    const response = await api.get(`/api/v1/blockchain/solana/balance/${address}?network=${network}`);
+    return response.data;
+  },
+
   getGasPrice: async (network = 'mainnet') => {
     const response = await api.get(`/api/v1/blockchain/ethereum/gas-price?network=${network}`);
     return response.data;
@@ -302,6 +307,65 @@ export const transactionAPI = {
       success: false,
       error: 'Bitcoin transactions not yet implemented in frontend. Please use backend API.',
     };
+  },
+
+  sendSolanaTransaction: async (privateKey, to, amount, options = {}) => {
+    try {
+      const { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction } = await import('@solana/web3.js');
+      
+      const network = options.network || 'mainnet-beta';
+      let rpcUrl;
+      
+      if (network === 'mainnet-beta' || network === 'mainnet') {
+        rpcUrl = 'https://api.mainnet-beta.solana.com';
+      } else if (network === 'devnet') {
+        rpcUrl = 'https://api.devnet.solana.com';
+      } else if (network === 'testnet') {
+        rpcUrl = 'https://api.testnet.solana.com';
+      } else {
+        rpcUrl = 'https://api.mainnet-beta.solana.com';
+      }
+      
+      const connection = new Connection(rpcUrl, 'confirmed');
+      
+      // Convert private key hex string to Uint8Array
+      const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'hex'));
+      const fromKeypair = Keypair.fromSecretKey(privateKeyBytes);
+      
+      const toPublicKey = new PublicKey(to);
+      const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
+      
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: fromKeypair.publicKey,
+          toPubkey: toPublicKey,
+          lamports,
+        })
+      );
+      
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [fromKeypair]
+      );
+      
+      return {
+        success: true,
+        transactionHash: signature,
+        data: {
+          hash: signature,
+          from: fromKeypair.publicKey.toString(),
+          to,
+          amount,
+        },
+      };
+    } catch (error) {
+      console.error('Solana transaction error:', error);
+      return {
+        success: false,
+        error: error.message || 'Solana transaction failed',
+      };
+    }
   },
 };
 

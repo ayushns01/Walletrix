@@ -18,6 +18,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
     userWallets, 
     activeWalletId, 
     deleteWallet, 
+    deleteDatabaseWallet,
     importLocalStorageWallet,
     logout,
     user,
@@ -48,9 +49,11 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
     
     if (confirm(`Are you sure you want to delete "${activeWallet.name}"? This action cannot be undone. Make sure you have backed up your recovery phrase.`)) {
       try {
-        await deleteWallet(activeWalletId)
-        toast.success('Wallet deleted successfully')
-        onClose()
+        const result = await deleteDatabaseWallet(activeWalletId)
+        if (result.success) {
+          // Success toast already shown in deleteDatabaseWallet
+          onClose()
+        }
       } catch (error) {
         console.error('Delete failed:', error)
         toast.error('Failed to delete wallet')

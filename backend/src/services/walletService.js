@@ -4,6 +4,8 @@ import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { BIP32Factory } from 'bip32';
 import crypto from 'crypto';
+import { Keypair } from '@solana/web3.js';
+import * as ed25519 from 'ed25519-hd-key';
 
 // Initialize BIP32 with ECC library
 const bip32 = BIP32Factory(ecc);
@@ -156,18 +158,26 @@ class WalletService {
         network: bitcoin.networks.bitcoin,
       }).address;
 
+      // Create Solana wallet from mnemonic
+      const solSeed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+      const solPath = "m/44'/501'/0'/0'"; // Solana derivation path
+      const solDerivedSeed = ed25519.derivePath(solPath, solSeed.toString('hex')).key;
+      const solKeypair = Keypair.fromSeed(solDerivedSeed);
+
       return {
         success: true,
         mnemonic,
         addresses: {
           ethereum: ethWallet.address,
           bitcoin: btcAddress,
+          solana: solKeypair.publicKey.toString(),
         },
         // SECURITY: Private keys are never returned
         // They should only be used server-side for signing
         _privateKeys: {
           ethereum: ethWallet.privateKey,
           bitcoin: btcChild.privateKey.toString('hex'),
+          solana: Buffer.from(solKeypair.secretKey).toString('hex'),
         },
       };
     } catch (error) {
@@ -207,16 +217,24 @@ class WalletService {
         network: bitcoin.networks.bitcoin,
       }).address;
 
+      // Create Solana wallet from mnemonic
+      const solSeed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+      const solPath = "m/44'/501'/0'/0'"; // Solana derivation path
+      const solDerivedSeed = ed25519.derivePath(solPath, solSeed.toString('hex')).key;
+      const solKeypair = Keypair.fromSeed(solDerivedSeed);
+
       return {
         success: true,
         addresses: {
           ethereum: ethWallet.address,
           bitcoin: btcAddress,
+          solana: solKeypair.publicKey.toString(),
         },
         // SECURITY: Private keys stored internally, never exposed
         _privateKeys: {
           ethereum: ethWallet.privateKey,
           bitcoin: btcChild.privateKey.toString('hex'),
+          solana: Buffer.from(solKeypair.secretKey).toString('hex'),
         },
       };
     } catch (error) {
@@ -287,6 +305,11 @@ class WalletService {
           network: bitcoin.networks.bitcoin,
         }).address;
 
+        // Solana account derivation (BIP44 path: m/44'/501'/i'/0')
+        const solPath = `m/44'/501'/${i}'/0'`;
+        const solDerivedSeed = ed25519.derivePath(solPath, seed.toString('hex')).key;
+        const solKeypair = Keypair.fromSeed(solDerivedSeed);
+
         accounts.push({
           index: i,
           ethereum: {
@@ -296,6 +319,10 @@ class WalletService {
           bitcoin: {
             address: btcAddress,
             privateKey: btcChild.privateKey.toString('hex'),
+          },
+          solana: {
+            address: solKeypair.publicKey.toString(),
+            privateKey: Buffer.from(solKeypair.secretKey).toString('hex'),
           },
         });
       }
