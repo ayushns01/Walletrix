@@ -53,24 +53,27 @@ export default function ReceiveModal({ isOpen, onClose, asset }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 rounded-2xl max-w-md w-full border border-purple-500/20">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 9999 }}>
+      <div className="glass-effect rounded-3xl max-w-md w-full border border-green-500/30 shadow-2xl shadow-green-500/20 transform animate-scale-in">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-green-500/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-              {asset?.icon || asset?.symbol?.[0]}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-green-800 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-green-500/30">
+                {asset?.icon || asset?.symbol?.[0]}
+              </div>
+              <div className="absolute inset-0 blur-xl bg-green-400/20" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Receive {asset?.symbol}</h3>
-              <p className="text-sm text-gray-400">{asset?.name}</p>
+              <h3 className="text-xl font-bold text-green-50">Receive {asset?.symbol}</h3>
+              <p className="text-sm text-green-300">{asset?.name}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-red-500/20 rounded-lg transition-all duration-200 group"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-green-300 group-hover:text-red-400" />
           </button>
         </div>
 
@@ -78,22 +81,22 @@ export default function ReceiveModal({ isOpen, onClose, asset }) {
         <div className="p-6 space-y-6">
           {/* QR Code */}
           <div className="flex justify-center">
-            <div className="bg-white p-4 rounded-2xl">
+            <div className="bg-white p-6 rounded-2xl shadow-2xl ring-2 ring-green-500/20">
               {qrCode ? (
                 <img src={qrCode} alt="QR Code" className="w-64 h-64" />
               ) : (
-                <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+                <div className="w-64 h-64 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse rounded-lg"></div>
               )}
             </div>
           </div>
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-green-300 mb-2">
               Your {asset?.symbol} Address
             </label>
-            <div className="bg-gray-700 rounded-lg p-4 break-all">
-              <p className="text-white font-mono text-sm">{address}</p>
+            <div className="bg-gradient-to-r from-green-900/30 to-green-800/20 rounded-xl p-4 break-all border border-green-500/20">
+              <p className="text-green-50 font-mono text-sm">{address}</p>
             </div>
           </div>
 

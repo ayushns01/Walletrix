@@ -15,6 +15,16 @@ export default function SendModal({ isOpen, onClose, asset }) {
   const [gasPrice, setGasPrice] = useState(null);
   const [step, setStep] = useState(1); // 1: form, 2: confirmation
   const [addressHistory, setAddressHistory] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // Smooth modal animation
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => setShowModal(true), 10);
+    } else {
+      setShowModal(false);
+    }
+  }, [isOpen]);
 
   // Fetch gas price for Ethereum
   const fetchGas = async () => {
@@ -201,34 +211,37 @@ export default function SendModal({ isOpen, onClose, asset }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 rounded-2xl max-w-md w-full border border-purple-500/20">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" style={{ zIndex: 9999 }}>
+      <div className={`glass-effect rounded-3xl max-w-md w-full border border-blue-500/30 shadow-2xl shadow-blue-500/20 transform transition-all duration-300 ${showModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-blue-500/20">
           <div className="flex items-center gap-3">
             {step === 2 && (
               <button
                 onClick={() => setStep(1)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-blue-900/30 rounded-lg transition-all duration-200"
               >
-                <AlertCircle className="w-5 h-5 text-gray-400 rotate-180" />
+                <AlertCircle className="w-5 h-5 text-blue-400 rotate-180" />
               </button>
             )}
-            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-              {asset?.icon || asset?.symbol?.[0]}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30">
+                {asset?.icon || asset?.symbol?.[0]}
+              </div>
+              <div className="absolute inset-0 blur-xl bg-blue-400/20" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-xl font-bold text-blue-50">
                 {step === 1 ? `Send ${asset?.symbol}` : 'Confirm Transaction'}
               </h3>
-              <p className="text-sm text-gray-400">{asset?.name}</p>
+              <p className="text-sm text-blue-300">{asset?.name}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-red-500/20 rounded-lg transition-all duration-200 group"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-blue-300 group-hover:text-red-400" />
           </button>
         </div>
 

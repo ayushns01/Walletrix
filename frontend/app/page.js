@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2 } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import CreateWallet from '@/components/CreateWallet'
@@ -13,9 +13,11 @@ import ReceiveModal from '@/components/ReceiveModal'
 import AccountDetails from '@/components/AccountDetails'
 import NetworkSelector from '@/components/NetworkSelector'
 import WalletSelector from '@/components/WalletSelector'
+import LandingPage from '@/components/LandingPage'
+import SettingsModal from '@/components/Settings'
 
 export default function Home() {
-  const { user: clerkUser, isLoaded: isUserLoaded } = useUser()
+  const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
   const { signOut } = useClerk()
   
   const { 
@@ -36,13 +38,14 @@ export default function Home() {
     unlockWallet
   } = useWallet()
   
-  const [view, setView] = useState('welcome') // welcome, create, import
+  const [view, setView] = useState('landing') // landing, welcome, create, import
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAccountDetails, setShowAccountDetails] = useState(false)
-  const [showWalletSelector, setShowWalletSelector] = useState(false);
+  const [showWalletSelector, setShowWalletSelector] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Auto-unlock wallet for Clerk users
   useEffect(() => {
@@ -72,6 +75,11 @@ export default function Home() {
     }
   }
 
+  // Show landing page if no wallet and view is 'landing'
+  if (!wallet && view === 'landing') {
+    return <LandingPage onGetStarted={() => setView('welcome')} />
+  }
+
   // Show unlock screen if wallet exists but is locked
   if (wallet && isLocked) {
     return (
@@ -84,7 +92,7 @@ export default function Home() {
   // Show wallet setup screens or wallet list for authenticated users
   if (!wallet) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black">
+      <main className="min-h-screen bg-black">
         <div className="container mx-auto px-4 py-8">
           {view === 'welcome' && (
             <div className="max-w-md mx-auto text-center py-20">
@@ -206,48 +214,133 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-blue-950 to-black">
-      <div className="container mx-auto px-4 py-8">
-        {/* Top Header with Logo and Network Selector */}
-        <header className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-3">
-            <Wallet className="w-10 h-10 text-blue-400 blue-glow" />
-            <h1 className="text-3xl font-bold gradient-text">Walletrix</h1>
+    <main className="min-h-screen bg-black">
+      {/* Mobile Navigation Header */}
+      <nav className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-b border-blue-500/20" style={{ zIndex: 100 }}>
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3 group">
+            <div className="relative w-10 h-10">
+              {/* Geometric pattern */}
+              <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all" />
+              <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all" />
+              
+              {/* Corner nodes */}
+              <div className="absolute top-0 left-1/2 w-1 h-1 bg-blue-400 rounded-full -translate-x-1/2" />
+              <div className="absolute bottom-0 left-1/2 w-1 h-1 bg-blue-400 rounded-full -translate-x-1/2" />
+              <div className="absolute left-0 top-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-y-1/2" />
+              <div className="absolute right-0 top-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-y-1/2" />
+              
+              {/* Icon */}
+              <div className="relative z-10 flex items-center justify-center h-full">
+                <Wallet className="w-5 h-5 text-blue-300 drop-shadow-[0_0_6px_rgba(96,165,250,0.5)]" />
+              </div>
+              
+              {/* Glow */}
+              <div className="absolute inset-0 blur-lg bg-gradient-to-r from-blue-400/15 via-cyan-400/15 to-blue-400/15 animate-spin" style={{animationDuration: '8s'}} />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent">Walletrix</span>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg bg-blue-900/30 text-blue-100"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+        
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="absolute top-full left-0 right-0 bg-black/95 backdrop-blur-2xl border-b border-blue-500/20 p-4 space-y-4">
+            <NetworkSelector />
+            <div className="pt-4 border-t border-blue-500/20 space-y-3">
+              <button
+                onClick={() => {
+                  setShowSettings(true)
+                  setMobileMenuOpen(false)
+                }}
+                className="w-full px-4 py-3 bg-blue-900/30 hover:bg-blue-800/40 rounded-lg text-blue-100 flex items-center gap-3 transition-all"
+              >
+                <Settings className="w-5 h-5" />
+                Settings
+              </button>
+              {userWallets.length > 1 && (
+                <button
+                  onClick={() => {
+                    setShowWalletSelector(true)
+                    setMobileMenuOpen(false)
+                  }}
+                  className="w-full px-4 py-3 bg-blue-900/30 hover:bg-blue-800/40 rounded-lg text-blue-100 flex items-center gap-3 transition-all"
+                >
+                  <Users className="w-5 h-5" />
+                  Switch Wallet ({userWallets.length})
+                </button>
+              )}
+              <SignedIn>
+                <div className="px-4 py-3 bg-blue-900/20 rounded-lg">
+                  <UserButton 
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-10 h-10"
+                      }
+                    }}
+                  />
+                </div>
+              </SignedIn>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      <div className="container mx-auto px-4 py-8 lg:py-8 pt-24 lg:pt-8">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex items-center justify-between mb-10 glass-effect rounded-2xl p-6 border border-blue-500/20 shadow-xl relative" style={{ zIndex: 100 }}>
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative w-14 h-14">
+              {/* Rotating geometric frames */}
+              <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{animationDuration: '8s'}} />
+              <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{animationDuration: '12s', animationDirection: 'reverse'}} />
+              
+              {/* Center wallet icon */}
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <svg className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                </svg>
+              </div>
+              
+              {/* Network nodes */}
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 group-hover:shadow-cyan-300/70 transition-shadow" />
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 group-hover:shadow-blue-300/70 transition-shadow" />
+              
+              {/* Animated gradient glow */}
+              <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 to-cyan-400/30 group-hover:from-cyan-400/40 group-hover:to-blue-400/40 transition-all" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</h1>
+              <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200 transition-colors">Multi-Chain Network</p>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
             <NetworkSelector />
             
-            {/* User Info & Wallet Selector */}
-            {isAuthenticated && (
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm text-blue-100">{user?.email}</p>
-                  {userWallets.length > 1 && (
-                    <p className="text-xs text-blue-300">
-                      {userWallets.length} wallets
-                    </p>
-                  )}
-                </div>
-                {userWallets.length > 1 && (
-                  <button
-                    onClick={() => setShowWalletSelector(true)}
-                    className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
-                    title="Switch Wallet"
-                  >
-                    <Users className="w-6 h-6" />
-                  </button>
-                )}
-              </div>
+            {/* Desktop User Info & Controls */}
+            {isAuthenticated && userWallets.length > 1 && (
+              <button
+                onClick={() => setShowWalletSelector(true)}
+                className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
+                title="Switch Wallet"
+              >
+                <Wallet className="w-5 h-5" />
+              </button>
             )}
             
             <div className="flex items-center gap-3">
               <SignedOut>
                 <SignInButton mode="modal">
                   <button
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-300 flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-purple-500/30 hover:scale-105"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-5 h-5" />
                     Sign In
                   </button>
                 </SignInButton>
@@ -256,8 +349,8 @@ export default function Home() {
                 <UserButton 
                   appearance={{
                     elements: {
-                      avatarBox: "w-10 h-10",
-                      userButtonPopoverCard: "bg-gray-800 border-gray-700",
+                      avatarBox: "w-11 h-11 shadow-lg shadow-blue-500/30",
+                      userButtonPopoverCard: "bg-gray-900 border-gray-700",
                       userButtonPopoverActionButton: "text-white hover:bg-gray-700"
                     }
                   }}
@@ -265,7 +358,7 @@ export default function Home() {
               </SignedIn>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-3 rounded-xl bg-gradient-to-r from-black to-gray-900 hover:from-blue-900/50 hover:to-black border border-blue-500/30 text-blue-100 transition-all duration-300 shadow-lg shadow-blue-500/20"
+                className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
               >
                 <Settings className="w-6 h-6" />
               </button>
@@ -273,9 +366,9 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Settings Dropdown */}
-        {showSettings && (
-          <div className="max-w-4xl mx-auto mb-8">
+        {/* Settings Modal moved to end of component */}
+        {false && (
+          <div className="max-w-4xl mx-auto mb-8 relative" style={{ zIndex: 1000 }}>
             <div className="glass-effect rounded-2xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
               <h3 className="text-xl font-bold text-blue-100 mb-6">Settings</h3>
               <div className="space-y-4">
@@ -409,9 +502,9 @@ export default function Home() {
         )}
 
         {/* Quick Actions Bar */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
-            <div className="flex gap-6 justify-center">
+        <div className="max-w-4xl mx-auto mb-8 relative" style={{ zIndex: 1 }}>
+          <div className="glass-effect rounded-2xl p-4 lg:p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
+            <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-6 lg:justify-center">
               <button
                 onClick={() => handleQuickAction('send', {
                   name: 'Ethereum',
@@ -420,10 +513,10 @@ export default function Home() {
                   priceData: prices.ethereum,
                   icon: 'Ξ',
                 })}
-                className="flex items-center gap-3 py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 btn-glow shadow-lg shadow-blue-500/30"
+                className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-blue-500/30"
               >
                 <Send className="w-5 h-5" />
-                Send
+                <span className="hidden sm:inline">Send</span>
               </button>
               <button
                 onClick={() => handleQuickAction('receive', {
@@ -431,17 +524,17 @@ export default function Home() {
                   symbol: 'ETH',
                   icon: 'Ξ',
                 })}
-                className="flex items-center gap-3 py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 btn-glow shadow-lg shadow-blue-500/30"
+                className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/30"
               >
                 <Download className="w-5 h-5" />
-                Receive
+                <span className="hidden sm:inline">Receive</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Dashboard */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1 }}>
           <Dashboard />
         </div>
 
@@ -473,6 +566,15 @@ export default function Home() {
           isOpen={showWalletSelector}
           onClose={() => setShowWalletSelector(false)}
           onCreateWallet={() => setView('create')}
+        />
+        
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          onOpenAccountDetails={() => {
+            setShowSettings(false)
+            setShowAccountDetails(true)
+          }}
         />
       </div>
     </main>

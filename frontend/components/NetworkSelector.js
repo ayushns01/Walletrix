@@ -280,7 +280,7 @@ export default function NetworkSelector() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} style={{ zIndex: 1000 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-black to-gray-900 hover:from-gray-900 hover:to-blue-900 rounded-xl border border-blue-500/30 shadow-lg shadow-blue-500/20 transition-all duration-300 min-w-[220px] backdrop-blur-sm"
@@ -298,10 +298,10 @@ export default function NetworkSelector() {
       </button>
 
       {isOpen && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 mt-3 w-[650px] bg-gradient-to-br from-black via-gray-900 to-blue-950 border border-blue-500/40 rounded-2xl shadow-2xl shadow-blue-500/30 z-50 overflow-hidden backdrop-blur-xl">
-          <div className="flex">
+        <div className="absolute left-1/2 transform -translate-x-1/2 mt-3 w-[95vw] sm:w-[650px] bg-gradient-to-br from-black via-gray-900 to-blue-950 border border-blue-500/40 rounded-2xl shadow-2xl shadow-blue-500/30 overflow-hidden backdrop-blur-xl" style={{ zIndex: 1000 }}>
+          <div className="flex flex-col sm:flex-row">
             {/* Mainnet Column */}
-            <div className="flex-1 border-r border-blue-500/30">
+            <div className="flex-1 border-r-0 sm:border-r border-blue-500/30">
               <div className="px-6 py-4 text-sm font-bold text-blue-300 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-blue-950/50 to-black/50 backdrop-blur-sm">
                 🌐 Mainnets
               </div>
@@ -425,7 +425,7 @@ export default function NetworkSelector() {
             </div>
 
             {/* Testnet Column */}
-            <div className="flex-1">
+            <div className="flex-1 border-t sm:border-t-0 border-blue-500/30">
               <div className="px-6 py-4 text-sm font-bold text-blue-200 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-black/50 to-blue-950/50 backdrop-blur-sm">
                 🧪 Testnets
               </div>

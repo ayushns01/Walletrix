@@ -9,7 +9,7 @@ import crypto from 'crypto';
 const bip32 = BIP32Factory(ecc);
 
 // Encryption constants
-const PBKDF2_ITERATIONS = 100000; // Industry standard
+const PBKDF2_ITERATIONS = 600000; // Enhanced security (2024 OWASP recommendation)
 const SALT_LENGTH = 32; // 256 bits
 const IV_LENGTH = 16; // 128 bits for AES
 const KEY_LENGTH = 32; // 256 bits for AES-256
