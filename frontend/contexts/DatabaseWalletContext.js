@@ -48,6 +48,68 @@ export function WalletProvider({ children }) {
   const [priceCache, setPriceCache] = useState({ data: {}, lastFetch: null });
   const PRICE_CACHE_DURATION = 60000; // 60 seconds
 
+  // Auto-lock feature
+  const [autoLockEnabled, setAutoLockEnabled] = useState(true);
+  const [autoLockTimeout, setAutoLockTimeout] = useState(30000); // 30 seconds default
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const [autoLockTimer, setAutoLockTimer] = useState(null);
+
+  // Auto-lock effect - locks wallet after inactivity
+  useEffect(() => {
+    if (!autoLockEnabled || isLocked || !wallet) {
+      return;
+    }
+
+    const checkInactivity = () => {
+      const now = Date.now();
+      const timeSinceLastActivity = now - lastActivityTime;
+
+      if (timeSinceLastActivity >= autoLockTimeout) {
+        setIsLocked(true);
+        toast.info('Wallet locked due to inactivity');
+      }
+    };
+
+    // Check every second
+    const intervalId = setInterval(checkInactivity, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [autoLockEnabled, isLocked, wallet, lastActivityTime, autoLockTimeout]);
+
+  // Track user activity
+  useEffect(() => {
+    if (!autoLockEnabled || isLocked) {
+      return;
+    }
+
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+
+    const handleActivity = () => {
+      setLastActivityTime(Date.now());
+    };
+
+    // Add event listeners for all activity types
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    return () => {
+      // Cleanup event listeners
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [autoLockEnabled, isLocked]);
+
+  // Reset activity timer when wallet is unlocked
+  useEffect(() => {
+    if (!isLocked) {
+      setLastActivityTime(Date.now());
+    }
+  }, [isLocked]);
+
   // Load user wallets when Clerk user signs in
   useEffect(() => {
     const loadClerkUserWallets = async () => {
@@ -561,6 +623,7 @@ export function WalletProvider({ children }) {
       
       if (decryptedResponse.success) {
         setIsLocked(false);
+        setLastActivityTime(Date.now()); // Reset activity timer on unlock
         toast.success('Wallet unlocked!');
         return true;
       }
@@ -571,6 +634,11 @@ export function WalletProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const lockWallet = () => {
+    setIsLocked(true);
+    toast.success('Wallet locked');
   };
 
   const deleteWallet = () => {
@@ -929,11 +997,19 @@ export function WalletProvider({ children }) {
     generateWallet,
     importWallet,
     unlockWallet,
+    lockWallet,
     deleteWallet,
     refreshData,
     fetchBalances,
     fetchTokenBalances,
     fetchPrices,
+
+    // Auto-lock settings
+    autoLockEnabled,
+    setAutoLockEnabled,
+    autoLockTimeout,
+    setAutoLockTimeout,
+    lastActivityTime,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

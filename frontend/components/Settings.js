@@ -5,7 +5,7 @@ import {
   X, User, Shield, Globe, Bell, Lock, Wallet, Download, 
   Trash2, Key, Eye, EyeOff, Settings as SettingsIcon, 
   HelpCircle, FileText, ExternalLink, ChevronRight, AlertTriangle,
-  Users, LogOut, Moon, Sun, Smartphone, Languages, Database
+  Users, LogOut, Moon, Sun, Smartphone, Languages, Database, FileDown
 } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk } from '@clerk/nextjs'
@@ -22,7 +22,11 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
     importLocalStorageWallet,
     logout,
     user,
-    isAuthenticated 
+    isAuthenticated,
+    autoLockEnabled,
+    setAutoLockEnabled,
+    autoLockTimeout,
+    setAutoLockTimeout
   } = useWallet()
   
   const [activeTab, setActiveTab] = useState('account')
@@ -225,14 +229,54 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                     </div>
 
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
-                      <div className="flex items-center justify-between mb-2 gap-2">
+                      <div className="flex items-center justify-between mb-3 gap-2">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                           <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
-                          <h4 className="font-semibold text-blue-100 text-sm sm:text-base truncate">Auto-Lock</h4>
+                          <h4 className="font-semibold text-blue-100 text-sm sm:text-base truncate">Auto-Lock Wallet</h4>
                         </div>
-                        <span className="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-green-500/20 text-green-300 rounded-full whitespace-nowrap">Coming Soon</span>
+                        <button
+                          onClick={() => {
+                            setAutoLockEnabled(!autoLockEnabled)
+                            toast.success(autoLockEnabled ? 'Auto-lock disabled' : 'Auto-lock enabled')
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            autoLockEnabled ? 'bg-green-500' : 'bg-gray-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
                       </div>
-                      <p className="text-xs sm:text-sm text-blue-300 ml-6 sm:ml-8">Automatically lock wallet after inactivity</p>
+                      <p className="text-xs sm:text-sm text-blue-300 ml-6 sm:ml-8 mb-3">
+                        Automatically lock wallet after inactivity
+                      </p>
+                      
+                      {autoLockEnabled && (
+                        <div className="ml-6 sm:ml-8 space-y-2">
+                          <label className="block text-xs sm:text-sm text-blue-200 mb-1">
+                            Lock after (seconds):
+                          </label>
+                          <select
+                            value={autoLockTimeout / 1000}
+                            onChange={(e) => {
+                              const seconds = parseInt(e.target.value)
+                              setAutoLockTimeout(seconds * 1000)
+                              toast.success(`Auto-lock set to ${seconds} seconds`)
+                            }}
+                            className="w-full sm:w-48 px-3 py-2 bg-blue-900/30 border border-blue-500/30 rounded-lg text-blue-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          >
+                            <option value="15">15 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                            <option value="120">2 minutes</option>
+                            <option value="300">5 minutes</option>
+                            <option value="600">10 minutes</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
@@ -302,6 +346,22 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                         </div>
                       ))}
                     </div>
+
+                    {/* Export/Backup Wallet */}
+                    {activeWalletId && (
+                      <button
+                        onClick={() => {
+                          onClose()
+                          if (onOpenAccountDetails) {
+                            onOpenAccountDetails()
+                          }
+                        }}
+                        className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-300 font-semibold rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-400/40 flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base"
+                      >
+                        <FileDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                        Export Wallet Backup
+                      </button>
+                    )}
 
                     {/* Import Browser Wallet */}
                     {activeWalletId === null && (
@@ -456,27 +516,10 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-3 sm:mb-4 text-sm sm:text-base">Theme</h4>
-                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                        {[
-                          { name: 'Dark', icon: Moon, active: true },
-                          { name: 'Light', icon: Sun, active: false },
-                          { name: 'Auto', icon: Smartphone, active: false }
-                        ].map((theme) => (
-                          <button
-                            key={theme.name}
-                            className={`p-3 sm:p-4 rounded-xl border transition-all ${
-                              theme.active
-                                ? 'bg-blue-600/30 border-blue-500/50'
-                                : 'bg-blue-900/20 border-blue-500/20 hover:border-blue-500/40'
-                            }`}
-                          >
-                            <theme.icon className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 text-blue-300" />
-                            <p className="text-xs sm:text-sm text-blue-100">{theme.name}</p>
-                            {!theme.active && (
-                              <span className="text-xs text-blue-400 mt-1 block">Coming Soon</span>
-                            )}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-900/20 rounded-lg">
+                        <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                        <span className="text-blue-100 text-sm sm:text-base flex-1">Dark Theme</span>
+                        <span className="text-xs px-2 sm:px-3 py-1 bg-green-500/20 text-green-300 rounded-full whitespace-nowrap">Active</span>
                       </div>
                     </div>
 

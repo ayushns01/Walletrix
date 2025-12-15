@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import CreateWallet from '@/components/CreateWallet'
@@ -36,6 +36,7 @@ export default function Home() {
     importLocalStorageWallet,
     deleteWallet,
     unlockWallet,
+    lockWallet,
     selectedNetwork
   } = useWallet()
   
@@ -256,6 +257,18 @@ export default function Home() {
             <div className="pt-4 border-t border-blue-500/20 space-y-3">
               <button
                 onClick={() => {
+                  if (lockWallet) {
+                    lockWallet()
+                  }
+                  setMobileMenuOpen(false)
+                }}
+                className="w-full px-4 py-3 bg-orange-900/30 hover:bg-orange-800/40 rounded-lg text-orange-100 flex items-center gap-3 transition-all"
+              >
+                <Lock className="w-5 h-5" />
+                Lock Wallet
+              </button>
+              <button
+                onClick={() => {
                   setShowSettings(true)
                   setMobileMenuOpen(false)
                 }}
@@ -358,8 +371,20 @@ export default function Home() {
                 />
               </SignedIn>
               <button
+                onClick={() => {
+                  if (lockWallet) {
+                    lockWallet()
+                  }
+                }}
+                className="p-3 rounded-xl bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 border border-orange-500/30 text-orange-100 transition-all duration-300 hover:scale-105"
+                title="Lock Wallet"
+              >
+                <Lock className="w-6 h-6" />
+              </button>
+              <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
+                title="Settings"
               >
                 <Settings className="w-6 h-6" />
               </button>
