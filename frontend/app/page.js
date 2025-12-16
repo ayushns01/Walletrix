@@ -138,7 +138,7 @@ export default function Home() {
   // Show wallet setup screens or wallet list for authenticated users
   if (!wallet) {
     return (
-      <main className="min-h-screen bg-black">
+      <main className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           {view === 'welcome' && (
             <div className="max-w-md mx-auto text-center py-20">
@@ -260,7 +260,7 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen">
       {/* Mobile Navigation Header */}
       <nav className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-b border-blue-500/20" style={{ zIndex: 100 }}>
         <div className="flex items-center justify-between px-4 py-4">

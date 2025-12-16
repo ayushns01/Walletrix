@@ -6,7 +6,7 @@ import {
   Bitcoin, Coins, Lock, Smartphone, TrendingUp, Users,
   Github, Twitter, Mail, ArrowRight, Menu, X, Loader2, Key
 } from 'lucide-react'
-import { SignInButton, useUser } from '@clerk/nextjs'
+import { SignInButton, UserButton, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 export default function LandingPage({ onGetStarted }) {
@@ -222,12 +222,27 @@ export default function LandingPage({ onGetStarted }) {
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading...
                 </button>
               ) : isSignedIn ? (
-                <button
-                  onClick={onGetStarted}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-500/30"
-                >
-                  Open Wallet <ArrowRight className="w-4 h-4" />
-                </button>
+                <>
+                  <button
+                    onClick={onGetStarted}
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-500/30"
+                  >
+                    Open Wallet <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox: 'w-10 h-10 border-2 border-blue-500/50 hover:border-blue-400 transition-all',
+                        userButtonPopoverCard: 'bg-slate-800/95 backdrop-blur-xl border border-blue-500/40 shadow-2xl',
+                        userButtonPopoverActionButton: 'text-blue-100 hover:text-white hover:bg-blue-600/80 transition-all',
+                        userButtonPopoverActionButtonText: 'text-blue-100 font-medium',
+                        userButtonPopoverActionButtonIcon: 'text-blue-300',
+                        userButtonPopoverFooter: 'hidden',
+                      }
+                    }}
+                  />
+                </>
               ) : (
                 <SignInButton mode="modal" forceRedirectUrl="/">
                   <button className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-500/30">
@@ -260,12 +275,29 @@ export default function LandingPage({ onGetStarted }) {
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading...
                 </button>
               ) : isSignedIn ? (
-                <button
-                  onClick={onGetStarted}
-                  className="w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2"
-                >
-                  Open Wallet <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={onGetStarted}
+                    className="w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2"
+                  >
+                    Open Wallet <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <div className="flex justify-center">
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        elements: {
+                          userButtonAvatarBox: 'w-10 h-10 border-2 border-blue-500/50 hover:border-blue-400 transition-all',
+                          userButtonPopoverCard: 'bg-slate-800/95 backdrop-blur-xl border border-blue-500/40 shadow-2xl',
+                          userButtonPopoverActionButton: 'text-blue-100 hover:text-white hover:bg-blue-600/80 transition-all',
+                          userButtonPopoverActionButtonText: 'text-blue-100 font-medium',
+                          userButtonPopoverActionButtonIcon: 'text-blue-300',
+                          userButtonPopoverFooter: 'hidden',
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               ) : (
                 <SignInButton mode="modal" forceRedirectUrl="/">
                   <button className="w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2">

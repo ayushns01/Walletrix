@@ -53,10 +53,12 @@ export default function RootLayout({ children }) {
           <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
           <link rel="alternate icon" href="/favicon.ico" />
         </head>
-        <body>
+        <body className="min-h-screen">
           <ErrorBoundary>
             <WalletProvider>
-              {children}
+              <div className="min-h-screen relative">
+                {children}
+              </div>
               <Toaster
                 position="top-right"
                 toastOptions={{
