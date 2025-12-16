@@ -5,13 +5,13 @@ import {
   X, User, Shield, Globe, Bell, Lock, Wallet, Download, 
   Trash2, Key, Eye, EyeOff, Settings as SettingsIcon, 
   HelpCircle, FileText, ExternalLink, ChevronRight, AlertTriangle,
-  Users, LogOut, Moon, Sun, Smartphone, Languages, Database, FileDown
+  Users, LogOut, Moon, Sun, Smartphone, Languages, Database, FileDown, Sparkles
 } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 
-export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
+export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStartTutorial }) {
   const { user: clerkUser } = useUser()
   const { signOut } = useClerk()
   const { 
@@ -26,7 +26,9 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
     autoLockEnabled,
     setAutoLockEnabled,
     autoLockTimeout,
-    setAutoLockTimeout
+    setAutoLockTimeout,
+    showWalkthroughOnUnlock,
+    setShowWalkthroughOnUnlock
   } = useWallet()
   
   const [activeTab, setActiveTab] = useState('account')
@@ -277,6 +279,33 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                           </select>
                         </div>
                       )}
+                    </div>
+
+                    <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                      <div className="flex items-center justify-between mb-3 gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                          <h4 className="font-semibold text-blue-100 text-sm sm:text-base truncate">Show Tutorial on Unlock</h4>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowWalkthroughOnUnlock(!showWalkthroughOnUnlock)
+                            toast.success(showWalkthroughOnUnlock ? '❌ Tutorial disabled' : '✅ Tutorial enabled')
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            showWalkthroughOnUnlock ? 'bg-purple-500' : 'bg-gray-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              showWalkthroughOnUnlock ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <p className="text-xs sm:text-sm text-blue-300 ml-6 sm:ml-8">
+                        Automatically show feature walkthrough when wallet is unlocked
+                      </p>
                     </div>
 
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
@@ -580,6 +609,26 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                     </div>
 
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                      <h4 className="font-semibold text-blue-100 mb-2 text-sm sm:text-base">Tutorial Walkthrough</h4>
+                      <p className="text-xs sm:text-sm text-blue-300 mb-3 sm:mb-4">Start the interactive tutorial guide</p>
+                      <button 
+                        onClick={() => {
+                          onClose();
+                          sessionStorage.removeItem('walletrix_walkthrough_shown');
+                          if (onStartTutorial) {
+                            setTimeout(() => {
+                              onStartTutorial();
+                            }, 300);
+                          }
+                          toast.success('✨ Starting tutorial...');
+                        }}
+                        className="px-4 sm:px-6 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all text-sm sm:text-base"
+                      >
+                        Start Tutorial
+                      </button>
+                    </div>
+
+                    <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-2 text-sm sm:text-base">Clear Cache</h4>
                       <p className="text-xs sm:text-sm text-blue-300 mb-3 sm:mb-4">Clear cached data and preferences</p>
                       <button className="px-4 sm:px-6 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-all text-sm sm:text-base">
@@ -628,10 +677,29 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails }) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <button
+                        onClick={() => {
+                          onClose();
+                          sessionStorage.removeItem('walletrix_walkthrough_shown');
+                          if (onStartTutorial) {
+                            setTimeout(() => {
+                              onStartTutorial();
+                            }, 300);
+                          }
+                          toast.success('✨ Starting tutorial...');
+                        }}
+                        className="glass-effect rounded-xl p-3 sm:p-4 border border-green-500/20 hover:border-green-400/40 transition-all group text-left"
+                      >
+                        <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mb-2" />
+                        <h4 className="font-semibold text-green-100 mb-1 text-xs sm:text-sm">Start Tutorial</h4>
+                        <p className="text-xs text-green-300 hidden sm:block">Learn how to use Walletrix</p>
+                        <ChevronRight className="w-4 h-4 text-green-400 mt-2 group-hover:translate-x-1 transition-transform" />
+                      </button>
+
                       <a href="#" className="glass-effect rounded-xl p-3 sm:p-4 border border-blue-500/20 hover:border-blue-400/40 transition-all group">
                         <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2" />
                         <h4 className="font-semibold text-blue-100 mb-1 text-xs sm:text-sm">Documentation</h4>
-                        <p className="text-xs text-blue-300 hidden sm:block">Learn how to use Walletrix</p>
+                        <p className="text-xs text-blue-300 hidden sm:block">View documentation</p>
                         <ExternalLink className="w-4 h-4 text-blue-400 mt-2 group-hover:translate-x-1 transition-transform" />
                       </a>
 

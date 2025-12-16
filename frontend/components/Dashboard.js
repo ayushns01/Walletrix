@@ -121,7 +121,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Total Balance Card */}
-      <div className="bg-gradient-to-br from-black via-blue-900 to-blue-950 rounded-3xl p-8 text-white relative overflow-hidden border border-blue-500/30 shadow-2xl shadow-blue-500/30">
+      <div data-tour="portfolio" className="bg-gradient-to-br from-black via-blue-900 to-blue-950 rounded-3xl p-8 text-white relative overflow-hidden border border-blue-500/30 shadow-2xl shadow-blue-500/30">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/10 rounded-full -mr-32 -mt-32 blur-xl"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full -ml-24 -mb-24 blur-lg"></div>
         
@@ -132,6 +132,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                data-tour="refresh-button"
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="p-3 hover:bg-blue-500/20 rounded-xl transition-all duration-300 border border-blue-500/30 hover:border-blue-400/50"
@@ -163,7 +164,7 @@ export default function Dashboard() {
       </div>
 
       {/* Addresses Card */}
-      <div className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
+      <div data-tour="wallet-address" className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
         <h3 className="text-xl font-bold text-blue-100 mb-6">Your Address</h3>
         
         <div className="space-y-4">

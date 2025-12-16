@@ -25,26 +25,46 @@ export default function CreateWallet({ onComplete }) {
     console.log('Creating wallet...'); // Debug log
     
     // Always validate password
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+    if (!password || password.trim() === '') {
+      toast.error('⚠️ Password is required');
       return;
+    }
+    
+    if (password.length < 8) {
+      toast.error('⚠️ Password must be at least 8 characters long for security');
+      return;
+    }
+    
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      toast.error('⚠️ Password should contain uppercase, lowercase, and numbers for better security');
+      // Warning only, don't block
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('❌ Passwords do not match. Please check and try again.');
       return;
     }
 
     try {
       setLoading(true);
+      toast.loading('🔐 Creating your secure wallet...');
       console.log('Calling generateWallet...'); // Debug log
       const walletData = await generateWallet(password, walletName || undefined);
       console.log('Wallet generated:', walletData); // Debug log
+      toast.dismiss();
+      toast.success('✅ Wallet created successfully!');
       setMnemonic(walletData.mnemonic);
       setStep(2);
     } catch (error) {
       console.error('Error in handleCreateWallet:', error);
-      toast.error('Failed to create wallet: ' + error.message);
+      toast.dismiss();
+      if (error.message.includes('network')) {
+        toast.error('❌ Network error. Please check your internet connection.');
+      } else if (error.message.includes('already exists')) {
+        toast.error('❌ A wallet already exists. Please import or delete the existing wallet.');
+      } else {
+        toast.error('❌ Failed to create wallet: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,9 +72,10 @@ export default function CreateWallet({ onComplete }) {
 
   const handleComplete = () => {
     if (!mnemonicConfirmed) {
-      toast.error('Please confirm you have saved your recovery phrase');
+      toast.error('⚠️ Please confirm that you have safely backed up your recovery phrase. This is critical for wallet recovery!');
       return;
     }
+    toast.success('✅ Setup complete! Your wallet is ready to use.');
     onComplete();
   };
 

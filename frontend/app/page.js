@@ -15,6 +15,7 @@ import NetworkSelector from '@/components/NetworkSelector'
 import WalletSelector from '@/components/WalletSelector'
 import LandingPage from '@/components/LandingPage'
 import SettingsModal from '@/components/Settings'
+import Walkthrough from '@/components/Walkthrough'
 
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
@@ -37,7 +38,9 @@ export default function Home() {
     deleteWallet,
     unlockWallet,
     lockWallet,
-    selectedNetwork
+    selectedNetwork,
+    showWalkthroughOnUnlock,
+    setShowWalkthroughOnUnlock
   } = useWallet()
   
   const [view, setView] = useState('landing') // landing, welcome, create, import
@@ -48,6 +51,7 @@ export default function Home() {
   const [showAccountDetails, setShowAccountDetails] = useState(false)
   const [showWalletSelector, setShowWalletSelector] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showWalkthrough, setShowWalkthrough] = useState(false)
 
   // Auto-unlock wallet for Clerk users
   useEffect(() => {
@@ -57,13 +61,53 @@ export default function Home() {
     }
   }, [clerkUser, wallet, isLocked]);
 
+  // Show walkthrough when wallet is unlocked (if enabled in settings)
+  useEffect(() => {
+    if (wallet && !isLocked && showWalkthroughOnUnlock) {
+      // Check if we should show walkthrough after reload
+      const shouldShowAfterReload = localStorage.getItem('walletrix_show_walkthrough_on_load');
+      if (shouldShowAfterReload === 'true') {
+        localStorage.removeItem('walletrix_show_walkthrough_on_load');
+        setTimeout(() => {
+          setShowWalkthrough(true);
+        }, 2000); // Delay to ensure wallet is fully loaded
+      } else {
+        // Show walkthrough every time wallet is unlocked (not just after creation)
+        const hasShownThisSession = sessionStorage.getItem('walletrix_walkthrough_shown');
+        if (!hasShownThisSession) {
+          sessionStorage.setItem('walletrix_walkthrough_shown', 'true');
+          setTimeout(() => {
+            setShowWalkthrough(true);
+          }, 1500);
+        }
+      }
+    }
+  }, [wallet, isLocked, showWalkthroughOnUnlock]);
+
+  // Clear session flag when wallet locks
+  useEffect(() => {
+    if (isLocked) {
+      sessionStorage.removeItem('walletrix_walkthrough_shown');
+    }
+  }, [isLocked]);
+
   // Handle wallet creation/import completion
   const handleWalletCreated = async () => {
-    setView('welcome');
-    // Reload user wallets from database
     if (isAuthenticated) {
+      // For authenticated users, mark to show walkthrough after reload
+      if (showWalkthroughOnUnlock) {
+        localStorage.setItem('walletrix_show_walkthrough_on_load', 'true');
+      }
       // Trigger a refresh by clearing and reloading
       window.location.reload();
+    } else {
+      // For non-authenticated users, show walkthrough directly
+      setView('welcome');
+      if (showWalkthroughOnUnlock) {
+        setTimeout(() => {
+          setShowWalkthrough(true);
+        }, 1500); // Small delay for smooth transition
+      }
     }
   };
 
@@ -335,7 +379,9 @@ export default function Home() {
           </div>
           
           <div className="flex items-center gap-4">
-            <NetworkSelector />
+            <div data-tour="network-selector">
+              <NetworkSelector />
+            </div>
             
             {/* Desktop User Info & Controls */}
             {isAuthenticated && userWallets.length > 1 && (
@@ -371,6 +417,7 @@ export default function Home() {
                 />
               </SignedIn>
               <button
+                data-tour="lock-button"
                 onClick={() => {
                   if (lockWallet) {
                     lockWallet()
@@ -382,6 +429,7 @@ export default function Home() {
                 <Lock className="w-6 h-6" />
               </button>
               <button
+                data-tour="settings-button"
                 onClick={() => setShowSettings(!showSettings)}
                 className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
                 title="Settings"
@@ -532,6 +580,7 @@ export default function Home() {
           <div className="glass-effect rounded-2xl p-4 lg:p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
             <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-6 lg:justify-center">
               <button
+                data-tour="send-button"
                 onClick={() => {
                   const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
                   let asset;
@@ -550,6 +599,7 @@ export default function Home() {
                 <span className="hidden sm:inline">Send</span>
               </button>
               <button
+                data-tour="receive-button"
                 onClick={() => {
                   const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
                   let asset;
@@ -613,6 +663,12 @@ export default function Home() {
             setShowSettings(false)
             setShowAccountDetails(true)
           }}
+          onStartTutorial={() => setShowWalkthrough(true)}
+        />
+
+        <Walkthrough
+          isOpen={showWalkthrough}
+          onClose={() => setShowWalkthrough(false)}
         />
       </div>
     </main>

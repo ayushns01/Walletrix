@@ -54,6 +54,17 @@ export function WalletProvider({ children }) {
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   const [autoLockTimer, setAutoLockTimer] = useState(null);
 
+  // Walkthrough feature
+  const [showWalkthroughOnUnlock, setShowWalkthroughOnUnlock] = useState(() => {
+    const saved = localStorage.getItem('walletrix_show_walkthrough');
+    return saved !== 'false'; // Default to true (show walkthrough)
+  });
+
+  // Save walkthrough preference
+  useEffect(() => {
+    localStorage.setItem('walletrix_show_walkthrough', showWalkthroughOnUnlock.toString());
+  }, [showWalkthroughOnUnlock]);
+
   // Auto-lock effect - locks wallet after inactivity
   useEffect(() => {
     if (!autoLockEnabled || isLocked || !wallet) {
@@ -615,7 +626,13 @@ export function WalletProvider({ children }) {
     try {
       setLoading(true);
       
+      if (!password || password.trim() === '') {
+        toast.error('⚠️ Please enter your password');
+        return false;
+      }
+      
       if (!wallet || !wallet.encrypted) {
+        toast.error('❌ No wallet found. Please create or import a wallet first.');
         throw new Error('No wallet found');
       }
       
@@ -624,12 +641,21 @@ export function WalletProvider({ children }) {
       if (decryptedResponse.success) {
         setIsLocked(false);
         setLastActivityTime(Date.now()); // Reset activity timer on unlock
-        toast.success('Wallet unlocked!');
+        toast.success('✅ Wallet unlocked successfully! Welcome back.');
         return true;
+      } else {
+        toast.error('❌ Incorrect password. Please try again.');
+        return false;
       }
     } catch (error) {
       console.error('Error unlocking wallet:', error);
-      toast.error('Invalid password');
+      if (error.message.includes('decrypt')) {
+        toast.error('❌ Incorrect password or corrupted wallet data');
+      } else if (error.message.includes('No wallet')) {
+        // Already handled above
+      } else {
+        toast.error('❌ Failed to unlock wallet: ' + error.message);
+      }
       return false;
     } finally {
       setLoading(false);
@@ -638,7 +664,7 @@ export function WalletProvider({ children }) {
 
   const lockWallet = () => {
     setIsLocked(true);
-    toast.success('Wallet locked');
+    toast.success('🔒 Wallet locked securely');
   };
 
   const deleteWallet = () => {
@@ -1010,6 +1036,10 @@ export function WalletProvider({ children }) {
     autoLockTimeout,
     setAutoLockTimeout,
     lastActivityTime,
+
+    // Walkthrough settings
+    showWalkthroughOnUnlock,
+    setShowWalkthroughOnUnlock,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

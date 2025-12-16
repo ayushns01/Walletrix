@@ -75,8 +75,18 @@ export default function SendModal({ isOpen, onClose, asset }) {
 
   // Continue to confirmation screen
   const handleContinue = async () => {
-    if (!recipient || !amount || !password) {
-      toast.error('Please fill all fields');
+    if (!recipient) {
+      toast.error('⚠️ Please enter a recipient address');
+      return;
+    }
+    
+    if (!amount) {
+      toast.error('⚠️ Please enter an amount to send');
+      return;
+    }
+    
+    if (!password) {
+      toast.error('⚠️ Password is required to authorize this transaction');
       return;
     }
 
@@ -87,7 +97,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
       : wallet?.ethereum?.address;
     
     if (!fromAddress) {
-      toast.error('Wallet address not available');
+      toast.error('❌ Wallet address not available. Please try again.');
       return;
     }
 
@@ -96,12 +106,12 @@ export default function SendModal({ isOpen, onClose, asset }) {
     const currentBalance = parseFloat(asset?.balance || 0);
     
     if (isNaN(amountFloat) || amountFloat <= 0) {
-      toast.error('Please enter a valid amount');
+      toast.error('⚠️ Please enter a valid amount greater than 0');
       return;
     }
     
     if (amountFloat > currentBalance) {
-      toast.error(`Insufficient balance. Available: ${currentBalance.toFixed(6)} ${asset.symbol}`);
+      toast.error(`❌ Insufficient balance! You have ${currentBalance.toFixed(6)} ${asset.symbol}, but tried to send ${amountFloat} ${asset.symbol}`);
       return;
     }
 
@@ -114,20 +124,24 @@ export default function SendModal({ isOpen, onClose, asset }) {
 
   const handleSend = async () => {
     if (!recipient || !amount || !password) {
-      toast.error('Please fill all fields');
+      toast.error('⚠️ Please fill all required fields');
       return;
     }
 
     try {
       setLoading(true);
+      toast.loading('🔐 Verifying password...');
 
       // Decrypt wallet to get private key
       const decrypted = await walletAPI.decryptData(wallet.encryptedData || wallet.encrypted, password);
       
       if (!decrypted.success) {
-        toast.error('Invalid password');
+        toast.dismiss();
+        toast.error('❌ Incorrect password. Please try again.');
         return;
       }
+      
+      toast.dismiss();
 
       const walletDataString = decrypted.decrypted || decrypted.data;
       
@@ -213,11 +227,20 @@ export default function SendModal({ isOpen, onClose, asset }) {
         onClose();
       } else {
         console.error('Transaction failed:', result);
-        toast.error(result.error || 'Transaction failed');
+        toast.error('❌ Transaction failed: ' + (result.error || 'Unknown error. Please try again.'));
       }
     } catch (error) {
       console.error('Send error:', error);
-      toast.error(error.response?.data?.error || 'Failed to send transaction');
+      toast.dismiss();
+      if (error.message?.includes('insufficient funds')) {
+        toast.error('❌ Insufficient balance to cover transaction and gas fees');
+      } else if (error.message?.includes('network')) {
+        toast.error('❌ Network error. Please check your connection and try again.');
+      } else if (error.message?.includes('gas')) {
+        toast.error('❌ Gas estimation failed. Network may be congested.');
+      } else {
+        toast.error('❌ Failed to send transaction: ' + (error.response?.data?.error || error.message || 'Unknown error'));
+      }
     } finally {
       setLoading(false);
     }

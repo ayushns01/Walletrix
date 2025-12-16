@@ -22,31 +22,57 @@ export default function ImportWallet({ onComplete }) {
   const handleImport = async () => {
     console.log('Importing wallet...'); // Debug log
     
+    if (!mnemonic || mnemonic.trim() === '') {
+      toast.error('⚠️ Please enter your 12-word recovery phrase');
+      return;
+    }
+    
     const words = mnemonic.trim().split(/\s+/);
     
     if (words.length !== 12) {
-      toast.error('Recovery phrase must be 12 words');
+      toast.error(`❌ Recovery phrase must be exactly 12 words. You entered ${words.length} words.`);
+      return;
+    }
+    
+    // Check for invalid characters
+    if (!/^[a-z\s]+$/.test(mnemonic.toLowerCase())) {
+      toast.error('⚠️ Recovery phrase should only contain lowercase letters and spaces');
       return;
     }
 
     // Always validate password
+    if (!password || password.trim() === '') {
+      toast.error('⚠️ Password is required to encrypt your wallet');
+      return;
+    }
+    
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error('⚠️ Password must be at least 8 characters long for security');
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('❌ Passwords do not match. Please check and try again.');
       return;
     }
 
     try {
       setLoading(true);
+      toast.loading('🔄 Importing your wallet...');
       await importWallet(mnemonic.trim(), password, walletName || undefined);
+      toast.dismiss();
+      toast.success('✅ Wallet imported successfully! Welcome back.');
       onComplete();
     } catch (error) {
       console.error('Error in handleImport:', error);
-      toast.error('Failed to import wallet: ' + error.message);
+      toast.dismiss();
+      if (error.message.includes('Invalid mnemonic') || error.message.includes('invalid')) {
+        toast.error('❌ Invalid recovery phrase. Please check your words and try again.');
+      } else if (error.message.includes('network')) {
+        toast.error('❌ Network error. Please check your internet connection.');
+      } else {
+        toast.error('❌ Failed to import wallet: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
