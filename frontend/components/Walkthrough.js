@@ -158,8 +158,8 @@ export default function Walkthrough({ isOpen, onClose }) {
           currentStepData.position === 'center' 
             ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' 
             : currentStepData.position === 'top'
-            ? 'bottom-4 left-1/2 -translate-x-1/2'  // Changed to bottom when highlighting top elements
-            : 'top-4 left-1/2 -translate-x-1/2'     // Changed to top when highlighting bottom elements
+            ? 'bottom-4 left-1/2 -translate-x-1/2'     // At bottom when highlighting top elements
+            : 'bottom-4 left-1/2 -translate-x-1/2'     // Also at bottom when highlighting bottom elements (like send/receive)
         } w-full max-w-md px-4 animate-scale-in`}
         style={{ zIndex: 10000 }}
       >
@@ -258,61 +258,81 @@ export default function Walkthrough({ isOpen, onClose }) {
               z-index: 9998 !important;
               animation: pulse-highlight 2s ease-in-out infinite;
               border-radius: 12px;
-              backdrop-filter: brightness(1.8) contrast(1.2) !important;
+              backdrop-filter: brightness(2.2) contrast(1.4) saturate(1.3) !important;
+              transform: scale(1.02) !important;
+              transition: transform 0.3s ease !important;
             }
             
             [data-tour="${currentStepData.highlight}"]::before {
               content: '';
               position: absolute;
-              inset: -8px;
-              border: 3px solid rgb(59, 130, 246);
-              border-radius: 16px;
+              inset: -12px;
+              border: 4px solid rgb(59, 130, 246);
+              border-radius: 20px;
               pointer-events: none;
               animation: border-glow 2s ease-in-out infinite;
               z-index: 9999;
+              box-shadow: 0 0 30px rgba(59, 130, 246, 0.8),
+                         inset 0 0 20px rgba(59, 130, 246, 0.3);
             }
             
             [data-tour="${currentStepData.highlight}"]::after {
               content: '';
               position: absolute;
-              inset: -4px;
-              background: radial-gradient(circle at center, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
-              border-radius: 14px;
+              inset: -30px;
+              background: radial-gradient(ellipse at center, rgba(59, 130, 246, 0.5) 0%, rgba(59, 130, 246, 0.3) 40%, rgba(59, 130, 246, 0.15) 70%, transparent 100%);
+              border-radius: 18px;
               pointer-events: none;
               z-index: -1;
+              animation: glow-pulse 2s ease-in-out infinite;
             }
             
             @keyframes pulse-highlight {
               0%, 100% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7),
-                           0 0 30px rgba(59, 130, 246, 0.5),
-                           inset 0 0 20px rgba(59, 130, 246, 0.2);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.9),
+                           0 0 40px rgba(59, 130, 246, 0.7),
+                           0 0 60px rgba(96, 165, 250, 0.5),
+                           inset 0 0 30px rgba(59, 130, 246, 0.3);
               }
               50% {
-                box-shadow: 0 0 0 15px rgba(59, 130, 246, 0),
-                           0 0 50px rgba(59, 130, 246, 0.8),
-                           inset 0 0 30px rgba(59, 130, 246, 0.4);
+                box-shadow: 0 0 0 20px rgba(59, 130, 246, 0),
+                           0 0 60px rgba(59, 130, 246, 1),
+                           0 0 80px rgba(96, 165, 250, 0.8),
+                           inset 0 0 40px rgba(59, 130, 246, 0.5);
               }
             }
             
             @keyframes border-glow {
               0%, 100% {
                 opacity: 1;
-                filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 1)) 
+                       drop-shadow(0 0 20px rgba(96, 165, 250, 0.8));
               }
               50% {
-                opacity: 0.7;
-                filter: drop-shadow(0 0 16px rgba(59, 130, 246, 1));
+                opacity: 0.8;
+                filter: drop-shadow(0 0 20px rgba(59, 130, 246, 1.5)) 
+                       drop-shadow(0 0 30px rgba(96, 165, 250, 1));
+              }
+            }
+            
+            @keyframes glow-pulse {
+              0%, 100% {
+                opacity: 0.6;
+                transform: scale(1);
+              }
+              50% {
+                opacity: 1;
+                transform: scale(1.1);
               }
             }
           `}</style>
           
-          {/* Spotlight mask - very subtle darkening, large transparent area around highlighted element */}
+          {/* Spotlight mask - larger bright area to cover entire component evenly */}
           <div 
             className="fixed inset-0 pointer-events-none"
             style={{ 
               zIndex: 9997,
-              background: 'radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), transparent 250px, rgba(0, 0, 0, 0.5) 500px)'
+              background: 'radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), transparent 350px, rgba(0, 0, 0, 0.7) 600px, rgba(0, 0, 0, 0.85) 800px)'
             }}
           />
           
