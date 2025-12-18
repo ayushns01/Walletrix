@@ -63,19 +63,19 @@ export default function Home() {
 
   // Show walkthrough when wallet is unlocked (if enabled in settings)
   useEffect(() => {
-    if (wallet && !isLocked && showWalkthroughOnUnlock) {
+    if (typeof window !== 'undefined' && wallet && !isLocked && showWalkthroughOnUnlock) {
       // Check if we should show walkthrough after reload
-      const shouldShowAfterReload = localStorage.getItem('walletrix_show_walkthrough_on_load');
+      const shouldShowAfterReload = window.localStorage.getItem('walletrix_show_walkthrough_on_load');
       if (shouldShowAfterReload === 'true') {
-        localStorage.removeItem('walletrix_show_walkthrough_on_load');
+        window.localStorage.removeItem('walletrix_show_walkthrough_on_load');
         setTimeout(() => {
           setShowWalkthrough(true);
         }, 2000); // Delay to ensure wallet is fully loaded
       } else {
         // Show walkthrough every time wallet is unlocked (not just after creation)
-        const hasShownThisSession = sessionStorage.getItem('walletrix_walkthrough_shown');
+        const hasShownThisSession = window.sessionStorage.getItem('walletrix_walkthrough_shown');
         if (!hasShownThisSession) {
-          sessionStorage.setItem('walletrix_walkthrough_shown', 'true');
+          window.sessionStorage.setItem('walletrix_walkthrough_shown', 'true');
           setTimeout(() => {
             setShowWalkthrough(true);
           }, 1500);
@@ -95,11 +95,13 @@ export default function Home() {
   const handleWalletCreated = async () => {
     if (isAuthenticated) {
       // For authenticated users, mark to show walkthrough after reload
-      if (showWalkthroughOnUnlock) {
-        localStorage.setItem('walletrix_show_walkthrough_on_load', 'true');
+      if (typeof window !== 'undefined' && showWalkthroughOnUnlock) {
+        window.localStorage.setItem('walletrix_show_walkthrough_on_load', 'true');
       }
       // Trigger a refresh by clearing and reloading
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     } else {
       // For non-authenticated users, show walkthrough directly
       setView('welcome');
