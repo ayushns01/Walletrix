@@ -18,30 +18,34 @@ export function WalletProvider({ children }) {
 
   // Load wallet from localStorage
   useEffect(() => {
-    const savedWallet = localStorage.getItem('walletrix_wallet');
-    if (savedWallet) {
-      try {
-        const parsed = JSON.parse(savedWallet);
-        setWallet(parsed);
-        setIsLocked(true); // Wallet is locked by default
-      } catch (error) {
-        console.error('Error loading wallet:', error);
+    if (typeof window !== 'undefined') {
+      const savedWallet = window.localStorage.getItem('walletrix_wallet');
+      if (savedWallet) {
+        try {
+          const parsed = JSON.parse(savedWallet);
+          setWallet(parsed);
+          setIsLocked(true); // Wallet is locked by default
+        } catch (error) {
+          console.error('Error loading wallet:', error);
+        }
       }
     }
   }, []);
 
   // Load selected network from localStorage
   useEffect(() => {
-    const savedNetwork = localStorage.getItem('walletrix_network');
-    if (savedNetwork) {
-      setSelectedNetwork(savedNetwork);
+    if (typeof window !== 'undefined') {
+      const savedNetwork = window.localStorage.getItem('walletrix_network');
+      if (savedNetwork) {
+        setSelectedNetwork(savedNetwork);
+      }
     }
   }, []);
 
   // Save selected network to localStorage
   useEffect(() => {
-    if (selectedNetwork) {
-      localStorage.setItem('walletrix_network', selectedNetwork);
+    if (typeof window !== 'undefined' && selectedNetwork) {
+      window.localStorage.setItem('walletrix_network', selectedNetwork);
     }
   }, [selectedNetwork]);
 
@@ -74,7 +78,9 @@ export function WalletProvider({ children }) {
           encrypted: encryptedResponse.encrypted,
         };
         
-        localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
+        }
         setWallet(walletData);
         setIsLocked(false);
         
@@ -109,7 +115,9 @@ export function WalletProvider({ children }) {
           encrypted: encryptedResponse.encrypted,
         };
         
-        localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
+        }
         setWallet(walletData);
         setIsLocked(false);
         
@@ -369,7 +377,9 @@ export function WalletProvider({ children }) {
 
   // Delete wallet
   const deleteWallet = () => {
-    localStorage.removeItem('walletrix_wallet');
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('walletrix_wallet');
+    }
     setWallet(null);
     setIsLocked(true);
     setBalances({});

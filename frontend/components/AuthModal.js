@@ -32,10 +32,11 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
       
       if (data.success && data.url) {
         // Store callback handler for when we return
-        window.localStorage.setItem('authCallback', 'google');
-        
-        // Redirect to Google OAuth
-        window.location.href = data.url;
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('authCallback', 'google');
+          // Redirect to Google OAuth
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('Failed to get Google authorization URL');
       }
@@ -82,11 +83,11 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
 
       if (data.success) {
         // Store token in localStorage
-        localStorage.setItem('walletrix_auth_token', data.token);
-        localStorage.setItem('walletrix_user', JSON.stringify(data.user));
-        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('walletrix_auth_token', data.token);
+          localStorage.setItem('walletrix_user', JSON.stringify(data.user));
+        }
         toast.success(isLogin ? 'Login successful!' : 'Registration successful!');
-        
         // Call the authentication callback
         onAuthenticated(data.user, data.token);
         onClose();

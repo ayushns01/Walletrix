@@ -56,13 +56,18 @@ export function WalletProvider({ children }) {
 
   // Walkthrough feature
   const [showWalkthroughOnUnlock, setShowWalkthroughOnUnlock] = useState(() => {
-    const saved = localStorage.getItem('walletrix_show_walkthrough');
-    return saved !== 'false'; // Default to true (show walkthrough)
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('walletrix_show_walkthrough');
+      return saved !== 'false'; // Default to true (show walkthrough)
+    }
+    return true;
   });
 
   // Save walkthrough preference
   useEffect(() => {
-    localStorage.setItem('walletrix_show_walkthrough', showWalkthroughOnUnlock.toString());
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('walletrix_show_walkthrough', showWalkthroughOnUnlock.toString());
+    }
   }, [showWalkthroughOnUnlock]);
 
   // Auto-lock effect - locks wallet after inactivity
@@ -222,22 +227,26 @@ export function WalletProvider({ children }) {
 
   // Load legacy localStorage wallet (backward compatibility)
   const loadLegacyWallet = () => {
-    const savedWallet = localStorage.getItem('walletrix_wallet');
-    if (savedWallet) {
-      try {
-        const parsed = JSON.parse(savedWallet);
-        setWallet(parsed);
-        setIsLocked(true);
-      } catch (error) {
-        console.error('Error loading legacy wallet:', error);
+    if (typeof window !== 'undefined') {
+      const savedWallet = window.localStorage.getItem('walletrix_wallet');
+      if (savedWallet) {
+        try {
+          const parsed = JSON.parse(savedWallet);
+          setWallet(parsed);
+          setIsLocked(true);
+        } catch (error) {
+          console.error('Error loading legacy wallet:', error);
+        }
       }
     }
   };
 
   // Clear authentication state
   const clearAuthState = () => {
-    localStorage.removeItem('walletrix_auth_token');
-    localStorage.removeItem('walletrix_user');
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('walletrix_auth_token');
+      window.localStorage.removeItem('walletrix_user');
+    }
     setAuthToken(null);
     setUser(null);
     setIsAuthenticated(false);
@@ -385,8 +394,10 @@ export function WalletProvider({ children }) {
     setIsAuthenticated(true);
     
     // Store in localStorage as well
-    localStorage.setItem('walletrix_auth_token', token);
-    localStorage.setItem('walletrix_user', JSON.stringify(userData));
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('walletrix_auth_token', token);
+      window.localStorage.setItem('walletrix_user', JSON.stringify(userData));
+    }
     
     loadUserWallets(token);
   };
