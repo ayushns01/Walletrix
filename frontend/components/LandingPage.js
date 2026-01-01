@@ -529,6 +529,16 @@ export default function LandingPage({ onGetStarted }) {
                 ]
               },
               {
+                title: 'Privacy & Zero-Knowledge',
+                icon: Shield,
+                features: [
+                  'zk-SNARKs for private balance proofs',
+                  'Stealth addresses (one-time payments)',
+                  'Pedersen commitments',
+                  'ECDH key exchange privacy'
+                ]
+              },
+              {
                 title: 'Monitoring & Logging',
                 icon: Shield,
                 features: [

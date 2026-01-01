@@ -14,12 +14,12 @@ import compression from 'compression';
 import rateLimiters from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import logger, { morganStream } from './services/loggerService.js';
-import { 
-  requestLogger, 
-  metricsCollector, 
-  getMetrics, 
+import {
+  requestLogger,
+  metricsCollector,
+  getMetrics,
   getHealthStatus,
-  startMetricsLogging 
+  startMetricsLogging
 } from './middleware/monitoring.js';
 import walletRoutes from './routes/walletRoutes.js';
 import blockchainRoutes from './routes/blockchainRoutes.js';
@@ -31,6 +31,7 @@ import addressBookRoutes from './routes/addressBookRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
 import sessionCleanupJob from './jobs/sessionCleanup.js';
+import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
 
 const app = express();
 // Railway uses PORT, fallback to API_PORT or 3001
@@ -41,33 +42,34 @@ app.set('trust proxy', true);
 
 // Security middleware
 app.use(helmet());
+app.use(securityHeadersMiddleware.allSecurityHeaders); // Phase 1: Enhanced security headers
 
 // CORS configuration - Allow all localhost origins in development
 const corsOptions = {
   origin: function (origin, callback) {
     console.log(`CORS check - Origin: ${origin}, NODE_ENV: ${process.env.NODE_ENV}`);
     console.log(`ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS}`);
-    
+
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     // In development, allow all localhost origins
     if (process.env.NODE_ENV !== 'production') {
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         return callback(null, true);
       }
     }
-    
+
     // In production, check against whitelist and allow Vercel preview deployments
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
     console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
-    
+
     // Allow main production URL and Vercel preview deployments
-    const isAllowedOrigin = allowedOrigins.indexOf(origin) !== -1 || 
-                           origin.includes('walletrix.vercel.app') ||
-                           origin.includes('walletrix-git-') ||
-                           origin.includes('ayushns01s-projects.vercel.app');
-    
+    const isAllowedOrigin = allowedOrigins.indexOf(origin) !== -1 ||
+      origin.includes('walletrix.vercel.app') ||
+      origin.includes('walletrix-git-') ||
+      origin.includes('ayushns01s-projects.vercel.app');
+
     if (isAllowedOrigin) {
       callback(null, true);
     } else {
@@ -217,7 +219,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
       environment: process.env.NODE_ENV || 'development',
       nodeVersion: process.version,
     });
-    
+
     console.log(`\n🚀 Walletrix API server running!`);
     console.log(`📡 Port: ${PORT}`);
     console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -228,14 +230,14 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
       console.log(`📊 Metrics: http://localhost:${PORT}/metrics`);
     }
     console.log('');
-    
+
     // Start periodic metrics logging (every hour)
     startMetricsLogging(60);
-    
+
     // Start session cleanup job
     sessionCleanupJob.start();
     logger.info('Session cleanup job started');
-    
+
     // Resume transaction monitoring for pending transactions
     try {
       const { resumeMonitoring } = await import('./services/transactionMonitorService.js');

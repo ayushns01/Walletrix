@@ -4,6 +4,7 @@ import prisma from '../lib/prisma.js';
 import sessionService from './sessionService.js';
 import logger, { logAuth } from './loggerService.js';
 import activityLogService from './activityLogService.js';
+import argon2Service from './argon2Service.js'; // Phase 1: Argon2id integration
 
 class AuthService {
   /**
@@ -20,15 +21,15 @@ class AuthService {
         throw new Error('User already exists with this email');
       }
 
-      // Hash password
-      const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
+      // Hash password with Argon2id (Phase 1)
+      const passwordHash = await argon2Service.hashPassword(password);
 
       // Create user
       const user = await prisma.user.create({
         data: {
           email,
           passwordHash,
+          passwordHashAlgorithm: 'argon2id', // Phase 1: Track hash algorithm
           displayName,
           authProvider: 'local',
           emailVerified: false,
@@ -137,12 +138,36 @@ class AuthService {
         throw new Error('Invalid email or password');
       }
 
-      // Check password
-      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      // Check password (Phase 1: Support both bcrypt and Argon2id)
+      let isValidPassword = false;
+      let needsMigration = false;
+
+      if (user.passwordHashAlgorithm === 'argon2id') {
+        // Verify with Argon2
+        isValidPassword = await argon2Service.verifyPassword(password, user.passwordHash);
+      } else {
+        // Legacy bcrypt verification
+        isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        needsMigration = isValidPassword; // Migrate to Argon2 on successful login
+      }
+
       if (!isValidPassword) {
         // Log failed login attempt
         await activityLogService.logFailedLogin(email, ipAddress, userAgent, 'Invalid password');
         throw new Error('Invalid email or password');
+      }
+
+      // Migrate from bcrypt to Argon2id if needed (Phase 1)
+      if (needsMigration) {
+        const newPasswordHash = await argon2Service.hashPassword(password);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: newPasswordHash,
+            passwordHashAlgorithm: 'argon2id'
+          }
+        });
+        logger.info('Migrated user password from bcrypt to Argon2id', { userId: user.id });
       }
 
       // Update last login
@@ -329,14 +354,16 @@ class AuthService {
         throw new Error('Current password is incorrect');
       }
 
-      // Hash new password
-      const saltRounds = 12;
-      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+      // Hash new password with Argon2id (Phase 1)
+      const newPasswordHash = await argon2Service.hashPassword(newPassword);
 
       // Update password
       await prisma.user.update({
         where: { id: userId },
-        data: { passwordHash: newPasswordHash }
+        data: {
+          passwordHash: newPasswordHash,
+          passwordHashAlgorithm: 'argon2id' // Phase 1: Update algorithm
+        }
       });
 
       // Log successful password change

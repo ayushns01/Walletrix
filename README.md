@@ -87,6 +87,18 @@ A fully independent cryptocurrency wallet application built with modern web tech
 - **Address Poisoning Detection**: Similar address warnings
 - **Balance Verification**: Gas fee estimation included
 
+#### Privacy & Zero-Knowledge 🎭
+- **zk-SNARKs (Zero-Knowledge Proofs)**: Privacy-preserving balance proofs
+  - Prove sufficient balance without revealing exact amount
+  - Pedersen commitments for hiding transaction amounts
+  - Poseidon hash (optimized for zk-SNARKs)
+  - Same technology used by Zcash and Tornado Cash
+- **Stealth Addresses**: One-time addresses for enhanced privacy
+  - Generate unique address for each payment
+  - ECDH key exchange on secp256k1 curve
+  - Payment scanning and key derivation
+  - Monero-style privacy for Ethereum
+
 ## ⚠️ In Development
 
 ### 🔨 Features Under Development
