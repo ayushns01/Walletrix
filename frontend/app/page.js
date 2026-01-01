@@ -20,12 +20,12 @@ import Walkthrough from '@/components/Walkthrough'
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
   const { signOut } = useClerk()
-  
-  const { 
-    wallet, 
-    isLocked, 
-    balances, 
-    tokens, 
+
+  const {
+    wallet,
+    isLocked,
+    balances,
+    tokens,
     prices,
     user,
     isAuthenticated,
@@ -42,7 +42,7 @@ export default function Home() {
     showWalkthroughOnUnlock,
     setShowWalkthroughOnUnlock
   } = useWallet()
-  
+
   const [view, setView] = useState('landing') // landing, welcome, create, import
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
@@ -70,7 +70,7 @@ export default function Home() {
         window.localStorage.removeItem('walletrix_show_walkthrough_on_load');
         setTimeout(() => {
           setShowWalkthrough(true);
-        }, 2000); // Delay to ensure wallet is fully loaded
+        }, 1200); // Reduced delay for smoother experience
       } else {
         // Show walkthrough every time wallet is unlocked (not just after creation)
         const hasShownThisSession = window.sessionStorage.getItem('walletrix_walkthrough_shown');
@@ -78,7 +78,7 @@ export default function Home() {
           window.sessionStorage.setItem('walletrix_walkthrough_shown', 'true');
           setTimeout(() => {
             setShowWalkthrough(true);
-          }, 1500);
+          }, 800); // Reduced delay to prevent blink
         }
       }
     }
@@ -131,7 +131,7 @@ export default function Home() {
   // Show unlock screen if wallet exists but is locked
   if (wallet && isLocked) {
     return (
-      <UnlockWallet 
+      <UnlockWallet
         onDeleteWallet={deleteWallet}
       />
     )
@@ -150,7 +150,7 @@ export default function Home() {
                 <p className="text-blue-100/80 mb-10 text-lg leading-relaxed">
                   Your secure, independent cryptocurrency wallet. Manage Bitcoin, Ethereum, and more with ultimate security.
                 </p>
-                
+
                 {/* Authentication Banner - Only shown when signed out */}
                 <SignedOut>
                   <div className="mb-8 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
@@ -168,7 +168,7 @@ export default function Home() {
                     </SignInButton>
                   </div>
                 </SignedOut>
-                
+
                 {/* Wallet Management - Only shown when signed in */}
                 <SignedIn>
                   {isUserLoaded && clerkUser && (
@@ -177,7 +177,7 @@ export default function Home() {
                         <p className="text-blue-100 mb-1">Welcome back!</p>
                         <p className="text-sm text-blue-300">{clerkUser.primaryEmailAddress?.emailAddress}</p>
                       </div>
-                      
+
                       {/* Show existing wallets if any */}
                       {userWallets && userWallets.length > 0 && (
                         <div className="mb-6">
@@ -206,7 +206,7 @@ export default function Home() {
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="space-y-3">
                         <button
                           onClick={() => setView('create')}
@@ -254,7 +254,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         {/* Auth handled by Clerk modals */}
       </main>
     )
@@ -271,20 +271,20 @@ export default function Home() {
               {/* Geometric pattern */}
               <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all" />
               <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all" />
-              
+
               {/* Corner nodes */}
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-blue-400 rounded-full -translate-x-1/2" />
               <div className="absolute bottom-0 left-1/2 w-1 h-1 bg-blue-400 rounded-full -translate-x-1/2" />
               <div className="absolute left-0 top-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-y-1/2" />
               <div className="absolute right-0 top-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-y-1/2" />
-              
+
               {/* Icon */}
               <div className="relative z-10 flex items-center justify-center h-full">
                 <Wallet className="w-5 h-5 text-blue-300 drop-shadow-[0_0_6px_rgba(96,165,250,0.5)]" />
               </div>
-              
+
               {/* Glow */}
-              <div className="absolute inset-0 blur-lg bg-gradient-to-r from-blue-400/15 via-cyan-400/15 to-blue-400/15 animate-spin" style={{animationDuration: '8s'}} />
+              <div className="absolute inset-0 blur-lg bg-gradient-to-r from-blue-400/15 via-cyan-400/15 to-blue-400/15 animate-spin" style={{ animationDuration: '8s' }} />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent">Walletrix</span>
           </div>
@@ -295,7 +295,7 @@ export default function Home() {
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
-        
+
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-black/95 backdrop-blur-2xl border-b border-blue-500/20 p-4 space-y-4">
@@ -337,7 +337,7 @@ export default function Home() {
               )}
               <SignedIn>
                 <div className="px-4 py-3 bg-blue-900/20 rounded-lg">
-                  <UserButton 
+                  <UserButton
                     appearance={{
                       elements: {
                         avatarBox: "w-10 h-10"
@@ -357,20 +357,20 @@ export default function Home() {
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="relative w-14 h-14">
               {/* Rotating geometric frames */}
-              <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{animationDuration: '8s'}} />
-              <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{animationDuration: '12s', animationDirection: 'reverse'}} />
-              
+              <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{ animationDuration: '8s' }} />
+              <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+
               {/* Center wallet icon */}
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <svg className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                 </svg>
               </div>
-              
+
               {/* Network nodes */}
               <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 group-hover:shadow-cyan-300/70 transition-shadow" />
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 group-hover:shadow-blue-300/70 transition-shadow" />
-              
+
               {/* Animated gradient glow */}
               <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 to-cyan-400/30 group-hover:from-cyan-400/40 group-hover:to-blue-400/40 transition-all" />
             </div>
@@ -379,12 +379,12 @@ export default function Home() {
               <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200 transition-colors">Multi-Chain Network</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div data-tour="network-selector">
               <NetworkSelector />
             </div>
-            
+
             {/* Desktop User Info & Controls */}
             {isAuthenticated && userWallets.length > 1 && (
               <button
@@ -395,7 +395,7 @@ export default function Home() {
                 <Wallet className="w-5 h-5" />
               </button>
             )}
-            
+
             <div className="flex items-center gap-3">
               <SignedOut>
                 <SignInButton mode="modal">
@@ -408,7 +408,7 @@ export default function Home() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <UserButton 
+                <UserButton
                   appearance={{
                     elements: {
                       avatarBox: "w-11 h-11 shadow-lg shadow-blue-500/30",
@@ -459,7 +459,7 @@ export default function Home() {
                         Authenticated via Clerk • {clerkUser.fullName || 'User'}
                       </p>
                     </div>
-                    
+
                     <button
                       onClick={() => {
                         setShowAccountDetails(true);
@@ -470,7 +470,7 @@ export default function Home() {
                       <User className="w-5 h-5" />
                       Account Details & Private Keys
                     </button>
-                    
+
                     {/* Import localStorage wallet if exists */}
                     {wallet && !activeWalletId && (
                       <button
@@ -488,14 +488,14 @@ export default function Home() {
                         Import Browser Wallet to Account
                       </button>
                     )}
-                    
+
                     {/* Delete Active Wallet */}
                     {activeWalletId && (
                       <button
                         onClick={async () => {
                           const activeWallet = userWallets.find(w => w.id === activeWalletId);
                           if (!activeWallet) return;
-                          
+
                           if (confirm(`Are you sure you want to delete "${activeWallet.name}"? This action cannot be undone. Make sure you have backed up your recovery phrase.`)) {
                             try {
                               await deleteWallet(activeWalletId);
@@ -511,7 +511,7 @@ export default function Home() {
                         Delete Current Wallet
                       </button>
                     )}
-                    
+
                     <button
                       onClick={async () => {
                         await signOut();
@@ -532,7 +532,7 @@ export default function Home() {
                         Sign in to sync across devices and backup to cloud
                       </p>
                     </div>
-                    
+
                     <SignInButton mode="modal">
                       <button
                         onClick={() => setShowSettings(false)}
@@ -542,7 +542,7 @@ export default function Home() {
                         Sign In / Register
                       </button>
                     </SignInButton>
-                    
+
                     <button
                       onClick={() => {
                         setShowAccountDetails(true);
@@ -553,7 +553,7 @@ export default function Home() {
                       <User className="w-5 h-5" />
                       Account Details & Private Keys
                     </button>
-                    
+
                     {/* Delete Local Wallet */}
                     {wallet && (
                       <button
@@ -624,7 +624,7 @@ export default function Home() {
         </div>
 
         {/* Dashboard */}
-        <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1 }}>
+        <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1, willChange: 'contents' }}>
           <Dashboard />
         </div>
 
@@ -657,7 +657,7 @@ export default function Home() {
           onClose={() => setShowWalletSelector(false)}
           onCreateWallet={() => setView('create')}
         />
-        
+
         <SettingsModal
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}

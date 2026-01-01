@@ -120,7 +120,7 @@ export default function Walkthrough({ isOpen, onClose }) {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         element.classList.add('tour-highlight')
-        
+
         // Update spotlight position
         const updateSpotlight = () => {
           const rect = element.getBoundingClientRect()
@@ -129,11 +129,11 @@ export default function Walkthrough({ isOpen, onClose }) {
           document.documentElement.style.setProperty('--spotlight-x', `${x}%`)
           document.documentElement.style.setProperty('--spotlight-y', `${y}%`)
         }
-        
+
         updateSpotlight()
         window.addEventListener('resize', updateSpotlight)
         window.addEventListener('scroll', updateSpotlight)
-        
+
         return () => {
           element.classList.remove('tour-highlight')
           window.removeEventListener('resize', updateSpotlight)
@@ -151,16 +151,15 @@ export default function Walkthrough({ isOpen, onClose }) {
     <>
       {/* Overlay - Very light, mostly transparent to see highlighted elements clearly */}
       <div className="fixed inset-0 bg-black/30" style={{ zIndex: 9996 }} />
-      
+
       {/* Walkthrough Modal - Positioned to not cover highlighted elements */}
-      <div 
-        className={`fixed ${
-          currentStepData.position === 'center' 
-            ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' 
+      <div
+        className={`fixed ${currentStepData.position === 'center'
+            ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
             : currentStepData.position === 'top'
-            ? 'bottom-4 left-1/2 -translate-x-1/2'     // At bottom when highlighting top elements
-            : 'bottom-4 left-1/2 -translate-x-1/2'     // Also at bottom when highlighting bottom elements (like send/receive)
-        } w-full max-w-md px-4 animate-scale-in`}
+              ? 'bottom-4 left-1/2 -translate-x-1/2'     // At bottom when highlighting top elements
+              : 'bottom-4 left-1/2 -translate-x-1/2'     // Also at bottom when highlighting bottom elements (like send/receive)
+          } w-full max-w-md px-4 animate-fade-in`}
         style={{ zIndex: 10000 }}
       >
         <div className="glass-effect rounded-2xl p-4 border border-blue-500/40 shadow-2xl shadow-blue-500/30 backdrop-blur-xl bg-gray-900/95">
@@ -185,7 +184,7 @@ export default function Walkthrough({ isOpen, onClose }) {
 
           {/* Progress Bar */}
           <div className="w-full h-1.5 bg-blue-900/40 rounded-full mb-4 overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 rounded-full"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             />
@@ -203,11 +202,10 @@ export default function Walkthrough({ isOpen, onClose }) {
             <button
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-sm ${
-                currentStep === 0
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-sm ${currentStep === 0
                   ? 'opacity-50 cursor-not-allowed bg-gray-700'
                   : 'bg-blue-900/30 hover:bg-blue-800/40 text-blue-100'
-              }`}
+                }`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Back
@@ -217,13 +215,12 @@ export default function Walkthrough({ isOpen, onClose }) {
               {steps.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    index === currentStep
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${index === currentStep
                       ? 'bg-blue-400 w-4'
                       : index < currentStep
-                      ? 'bg-blue-500'
-                      : 'bg-blue-900'
-                  }`}
+                        ? 'bg-blue-500'
+                        : 'bg-blue-900'
+                    }`}
                 />
               ))}
             </div>
@@ -258,9 +255,8 @@ export default function Walkthrough({ isOpen, onClose }) {
               z-index: 9998 !important;
               animation: pulse-highlight 2s ease-in-out infinite;
               border-radius: 12px;
-              backdrop-filter: brightness(2.2) contrast(1.4) saturate(1.3) !important;
-              transform: scale(1.02) !important;
-              transition: transform 0.3s ease !important;
+              backdrop-filter: brightness(1.15) contrast(1.1) saturate(1.1) !important;
+              transition: all 0.3s ease !important;
             }
             
             [data-tour="${currentStepData.highlight}"]::before {
@@ -326,18 +322,18 @@ export default function Walkthrough({ isOpen, onClose }) {
               }
             }
           `}</style>
-          
+
           {/* Spotlight mask - larger bright area to cover entire component evenly */}
-          <div 
+          <div
             className="fixed inset-0 pointer-events-none"
-            style={{ 
+            style={{
               zIndex: 9997,
               background: 'radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), transparent 350px, rgba(0, 0, 0, 0.7) 600px, rgba(0, 0, 0, 0.85) 800px)'
             }}
           />
-          
+
           {/* Animated pointer - subtle and non-intrusive */}
-          <div 
+          <div
             className="fixed pointer-events-none"
             style={{
               zIndex: 9999,
@@ -348,7 +344,7 @@ export default function Walkthrough({ isOpen, onClose }) {
           >
             <div className="animate-bounce opacity-70">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-blue-400 drop-shadow-lg">
-                <path d="M12 5L12 19M12 19L7 14M12 19L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 5L12 19M12 19L7 14M12 19L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           </div>

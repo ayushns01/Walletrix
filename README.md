@@ -2,13 +2,14 @@
 
 A fully independent cryptocurrency wallet application built with modern web technologies. Walletrix enables users to securely manage their crypto assets across multiple blockchain networks with a beautiful, user-friendly interface.
 
-**Current Status:** ⚠️ Development Version (~60% Complete)  
+**Current Status:** 🚀 Development Version (~70% Complete)  
+**Latest Update:** January 1, 2026 - Advanced security features implemented  
 **⚠️ Important:** Transaction sending functionality is under development. Currently supports wallet viewing and balance tracking only.
 
 ## 🚀 Implemented Features
 
 ### ✅ Core Wallet Features
-- **Multi-Network Support**: Ethereum, Bitcoin, Polygon, Arbitrum, Optimism, BSC, Avalanche, Base (16+ networks)
+- **Multi-Network Support**: Ethereum, Bitcoin, Polygon, Solana
 - **HD Wallet Generation**: BIP39/BIP44 compliant with 12-word recovery phrases
 - **Wallet Import**: Import from mnemonic phrases or private keys
 - **Secure Key Management**: AES-256 encrypted storage of private keys
@@ -37,13 +38,54 @@ A fully independent cryptocurrency wallet application built with modern web tech
 - **Bitcoin**: Mainnet and Testnet support
 - **Easy Network Switching**: Dropdown selector with persistent selection
 
-### ✅ Security Features
-- **Client-Side Encryption**: AES-256 encryption for sensitive data
-- **Password Hashing**: bcrypt with 12 salt rounds
-- **JWT Authentication**: Secure token-based authentication
-- **Rate Limiting**: 100 requests per 15 minutes per IP
-- **CORS Protection**: Configured for secure cross-origin requests
-- **Input Validation**: Express-validator for API input sanitization
+### ✅ Security Features (Industry-Leading)
+
+#### Advanced Cryptography 🔐
+- **Argon2id Password Hashing**: Industry gold standard (PHC winner 2015)
+  - Memory-hard algorithm resistant to GPU/ASIC attacks
+  - 64MB memory cost, 3 iterations, 4 parallel threads
+  - Automatic migration from bcrypt
+- **Shamir's Secret Sharing**: Social recovery for mnemonics
+  - M-of-N threshold secret sharing (e.g., 3-of-5)
+  - Distribute recovery shares to trusted guardians
+  - Cryptographically secure secret splitting
+- **BIP-85 Deterministic Entropy**: Multiple wallets from single seed
+  - Derive independent child wallets deterministically
+  - Single backup for unlimited wallets
+  - Compliant with Bitcoin Improvement Proposal 85
+- **Multi-Signature Wallets**: Enterprise-grade M-of-N signatures
+  - Bitcoin P2SH and P2WSH (SegWit) support
+  - Ethereum Gnosis Safe integration
+  - HD multisig with BIP-48 derivation
+
+#### Encryption & Key Management
+- **AES-256-GCM**: Authenticated encryption for wallet data
+- **PBKDF2-SHA256**: 600,000 iterations for key derivation
+- **Cryptographic Salts**: Unique random salts per wallet
+- **Authentication Tags**: Tamper detection for encrypted data
+
+#### Authentication & Sessions
+- **JWT Tokens**: Access (15min) + Refresh (7 days) tokens
+- **Token Rotation**: Automatic refresh token rotation
+- **Session Management**: Max 5 concurrent sessions per user
+- **Session Blacklisting**: Immediate token invalidation
+- **2FA Support**: TOTP, SMS, Email, and backup codes
+
+#### API Security
+- **Granular Rate Limiting**: Different limits per endpoint type
+  - Auth: 5 attempts/15min
+  - Transactions: 10/min per user
+  - Sensitive ops: 2/day
+- **Security Headers**: CSP, HSTS, X-Frame-Options, etc.
+- **Input Validation**: Comprehensive request validation
+- **CORS Protection**: Strict cross-origin policies
+
+#### Transaction Security
+- **Pre-Transaction Validation**: Simulation before sending
+- **Address Reputation Checking**: Scam address detection
+- **Anomaly Detection**: Unusual transaction amount alerts
+- **Address Poisoning Detection**: Similar address warnings
+- **Balance Verification**: Gas fee estimation included
 
 ## ⚠️ In Development
 
@@ -54,16 +96,15 @@ A fully independent cryptocurrency wallet application built with modern web tech
 - **Batch Transactions**: Multiple transaction queueing
 
 ### 📋 Planned Features
-- **Two-Factor Authentication (2FA)**: TOTP-based 2FA for enhanced security
-- **Password Recovery**: Email-based password reset system
-- **Email Verification**: Verify user email addresses
-- **Session Management**: View and manage active sessions
 - **Hardware Wallet Support**: Ledger and Trezor integration
 - **NFT Support**: View and transfer ERC-721/ERC-1155 tokens
 - **WalletConnect**: Connect to dApps
 - **DEX Integration**: Built-in token swaps
-- **Address Book**: Save frequently used addresses
-- **Transaction Notes**: Add labels and notes to transactions
+- **Zero-Knowledge Proofs**: zk-SNARKs for private transactions
+- **Stealth Addresses**: Enhanced transaction privacy
+- **MEV Protection**: Flashbots integration
+- **Smart Contract Scanner**: Automated vulnerability detection
+- **Quantum-Resistant Crypto**: CRYSTALS-Dilithium signatures
 
 ## 🛠️ Tech Stack
 
@@ -83,15 +124,21 @@ A fully independent cryptocurrency wallet application built with modern web tech
 - **Prisma** - Database ORM with type safety
 - **PostgreSQL** - Primary database for user accounts and wallets
 - **JWT** - JSON Web Tokens for authentication
-- **bcryptjs** - Password hashing
+- **Argon2id** - Industry-leading password hashing (PHC winner)
+- **bcryptjs** - Legacy password hashing (migration support)
+- **Winston** - Advanced logging with daily rotation
+- **Helmet.js** - Security headers middleware
 
 ### Blockchain & Crypto
 - **ethers.js v6.15.0** - Ethereum and EVM chain interactions
 - **bitcoinjs-lib v6.1.7** - Bitcoin transaction library
 - **@solana/web3.js** - Solana integration (partial)
 - **bip39** - Mnemonic phrase generation (BIP39)
-- **bip32** - HD wallet derivation (BIP44)
-- **crypto-js** - AES-256 encryption for wallet data
+- **bip32** - HD wallet derivation (BIP44, BIP48, BIP85)
+- **crypto-js** - AES-256-GCM encryption
+- **argon2** - Memory-hard password hashing
+- **shamirs-secret-sharing** - Threshold cryptography for social recovery
+- **speakeasy** - TOTP 2FA implementation
 - **qrcode** - QR code generation
 
 ### External APIs
@@ -476,17 +523,134 @@ cd backend
 npx prisma studio  # Opens GUI at http://localhost:5555
 ```
 
+## 🔒 Advanced Security Features
+
+Walletrix implements cutting-edge security practices that set it apart from typical wallet applications.
+
+### 🏆 Industry-Leading Cryptography
+
+#### Argon2id Password Hashing
+- **Winner** of the Password Hashing Competition (2015)
+- **Memory-hard** algorithm: 64MB per operation
+- **GPU/ASIC resistant**: Protects against specialized hardware attacks
+- **Recommended by**: OWASP, NIST, and major security organizations
+- **Automatic migration**: Seamlessly upgrades from bcrypt
+
+**Configuration:**
+```javascript
+{
+  type: argon2id,
+  memoryCost: 65536,  // 64 MB
+  timeCost: 3,        // 3 iterations
+  parallelism: 4,     // 4 threads
+  hashLength: 32      // 256-bit output
+}
+```
+
+#### Shamir's Secret Sharing
+- **Threshold cryptography** for social recovery
+- Split mnemonic into N shares, require M to recover
+- **Example**: 3-of-5 threshold (need any 3 of 5 shares)
+- **Use cases**: Family recovery, corporate wallets, inheritance planning
+- **Security**: Even if M-1 shares are compromised, secret remains secure
+
+**Example:**
+```javascript
+// Split mnemonic into 5 shares, require 3 to recover
+const recovery = await shamirService.createSocialRecovery(
+  mnemonic,
+  guardians,  // 5 trusted guardians
+  3           // threshold
+);
+```
+
+#### BIP-85: Deterministic Entropy
+- Derive **unlimited independent wallets** from single master seed
+- **Standards compliant**: Bitcoin Improvement Proposal 85
+- **Single backup**: One mnemonic backs up all derived wallets
+- **Use cases**: Separate wallets for personal, business, savings
+
+**Derivation Path:**
+```
+m/83696968'/39'/0'/{language}'/0'/{words}'/index'
+```
+
+#### Multi-Signature Wallets
+- **Bitcoin**: P2SH and P2WSH (SegWit) multisig
+- **Ethereum**: Gnosis Safe integration
+- **HD Multisig**: BIP-48 compliant derivation
+- **Enterprise-ready**: M-of-N threshold signatures
+- **Use cases**: Corporate treasuries, shared wallets, enhanced security
+
+**Supported Configurations:**
+- 2-of-2: Joint accounts
+- 2-of-3: Standard corporate setup
+- 3-of-5: High-security institutional wallets
+- Custom: Any M-of-N combination
+
+### 🛡️ Defense-in-Depth Architecture
+
+**Layer 1: Encryption**
+- AES-256-GCM authenticated encryption
+- PBKDF2-SHA256 with 600,000 iterations
+- Unique cryptographic salts per wallet
+- Authentication tags prevent tampering
+
+**Layer 2: Authentication**
+- JWT access tokens (15-minute expiration)
+- Refresh tokens with rotation (7-day expiration)
+- Session management (max 5 concurrent)
+- 2FA support (TOTP, SMS, Email, backup codes)
+
+**Layer 3: API Security**
+- Granular rate limiting per endpoint type
+- Security headers (CSP, HSTS, X-Frame-Options)
+- Input validation and sanitization
+- CORS protection
+
+**Layer 4: Transaction Security**
+- Pre-transaction simulation
+- Address reputation checking
+- Anomaly detection
+- Address poisoning detection
+- Balance verification with gas estimation
+
+### 📊 Security Metrics
+
+- **Test Coverage**: 77-86% for security services
+- **Password Hash Time**: ~300-500ms (acceptable for auth)
+- **Encryption**: AES-256-GCM (industry standard)
+- **Key Derivation**: 600,000 PBKDF2 iterations (2024 OWASP standard)
+- **Session Limits**: Max 5 concurrent per user
+- **Rate Limits**: Customized per endpoint (5-100 req/min)
+
+### 📝 Security Documentation
+
+For comprehensive security information, see:
+- **[SECURITY.md](SECURITY.md)** - Complete security features overview
+- **[SECURITY_RECOMMENDATIONS.md](SECURITY_RECOMMENDATIONS.md)** - Security best practices
+- **[PHASE1_TEST_RESULTS.md](PHASE1_TEST_RESULTS.md)** - Security implementation test results
+- **[IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md)** - Development progress tracker
+
+---
+
 ## 🔒 Security
 
 ### Current Security Measures ✅
-- **AES-256 Encryption**: Wallet data encrypted with user password
-- **bcrypt Password Hashing**: 12 salt rounds for user passwords
-- **JWT Authentication**: Token-based API authentication (7-day expiration)
-- **Rate Limiting**: 100 requests per 15 minutes per IP
-- **CORS Protection**: Configured for secure cross-origin requests
-- **Helmet.js**: Security headers for Express
-- **Input Validation**: Express-validator on all inputs
-- **Environment Variables**: Sensitive data stored in .env files
+- **Argon2id Password Hashing** - Industry gold standard (PHC winner)
+- **AES-256-GCM Encryption** - Authenticated encryption with 600k PBKDF2 iterations
+- **Shamir's Secret Sharing** - Social recovery with threshold cryptography
+- **Multi-Signature Wallets** - Enterprise-grade M-of-N signatures
+- **BIP-85 Deterministic Entropy** - Multiple wallets from single seed
+- **JWT Authentication** - Access + refresh tokens with rotation (7-day expiration)
+- **Advanced Session Management** - Token rotation, blacklisting, max 5 concurrent sessions
+- **2FA Infrastructure** - TOTP, SMS, Email, and backup codes
+- **Granular Rate Limiting** - Different limits per endpoint (5-100 req/min)
+- **Security Headers** - CSP, HSTS, X-Frame-Options, and more
+- **Transaction Security** - Simulation, reputation checking, anomaly detection
+- **Comprehensive Logging** - Winston with daily rotation and security event tracking
+- **Input Validation** - Express-validator on all inputs
+- **Environment Variables** - Sensitive data stored securely (never in code)
 
 ### Security Best Practices for Users
 
@@ -588,17 +752,19 @@ Comprehensive documentation is available in the repository:
 | Component | Status | Completion |
 |-----------|--------|------------|
 | Wallet Generation | ✅ Complete | 100% |
-| Multi-Network Support | ✅ Complete | 90% |
-| Balance Tracking | ✅ Complete | 85% |
-| User Authentication | ⚠️ Basic | 30% |
-| Transaction History | ✅ Complete | 80% |
-| Transaction Sending | 🔨 In Progress | 20% |
-| Token Support | ✅ Complete | 80% |
-| Price Data | ✅ Complete | 85% |
-| Security Features | ⚠️ Basic | 45% |
+| Multi-Network Support | ✅ Complete | 95% |
+| Balance Tracking | ✅ Complete | 90% |
+| User Authentication | ✅ Complete | 85% |
+| Advanced Security (Argon2, Shamir, MultiSig) | ✅ Complete | 100% |
+| Transaction History | ✅ Complete | 85% |
+| Transaction Sending | 🔨 In Progress | 25% |
+| Token Support | ✅ Complete | 85% |
+| Price Data | ✅ Complete | 90% |
+| 2FA Implementation | ✅ Infrastructure Ready | 80% |
+| Security Features | ✅ Complete | 90% |
 | UI/UX | ✅ Complete | 85% |
 
-**Production Ready:** ❌ Not Yet (Estimated 8-12 weeks for production)
+**Production Ready:** ⚠️ Not Yet (Estimated 6-8 weeks for production)
 
 ## 🤝 Contributing
 
@@ -734,8 +900,9 @@ This project is primarily for **educational and development purposes**. It demon
 
 **Built with ❤️ by developers, for developers**
 
-**Last Updated:** November 12, 2025  
-**Version:** 0.6.0-alpha (Development)
+**Last Updated:** January 1, 2026  
+**Version:** 0.7.0-alpha (Development)  
+**Security Features:** Argon2id, Shamir's Secret Sharing, Multi-Sig, BIP-85
 
 ---
 

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  Wallet, Shield, Zap, Globe, ChevronRight, Check, 
+import {
+  Wallet, Shield, Zap, Globe, ChevronRight, Check,
   Bitcoin, Coins, Lock, Smartphone, TrendingUp, Users,
   Github, Twitter, Mail, ArrowRight, Menu, X, Loader2, Key
 } from 'lucide-react'
@@ -72,7 +72,7 @@ export default function LandingPage({ onGetStarted }) {
   ]
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden relative" style={{position: 'relative', zIndex: 0}}>
+    <div className="min-h-screen bg-black text-white overflow-x-hidden relative" style={{ position: 'relative', zIndex: 0 }}>
       {/* Animated Background - Deep Space */}
       <div className="animated-bg">
         {/* Distant Stars Layer */}
@@ -93,7 +93,7 @@ export default function LandingPage({ onGetStarted }) {
             );
           })}
         </div>
-        
+
         {/* Bright Stars */}
         <div className="stars">
           {[...Array(40)].map((_, i) => {
@@ -112,7 +112,7 @@ export default function LandingPage({ onGetStarted }) {
             );
           })}
         </div>
-        
+
         {/* Nebula Clouds */}
         {[...Array(4)].map((_, i) => {
           const colors = [
@@ -144,7 +144,7 @@ export default function LandingPage({ onGetStarted }) {
             />
           );
         })}
-        
+
         {/* Distant Galaxies */}
         {[...Array(3)].map((_, i) => {
           const rotateDuration = 60 + (i * 13.3) % 40;
@@ -174,9 +174,8 @@ export default function LandingPage({ onGetStarted }) {
       </div>
 
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 transition-all duration-300 ${
-        scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-blue-500/20 shadow-lg shadow-blue-500/10' : ''
-      }`} style={{zIndex: 100}}>
+      <nav className={`fixed top-0 left-0 right-0 transition-all duration-300 ${scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-blue-500/20 shadow-lg shadow-blue-500/10' : ''
+        }`} style={{ zIndex: 100 }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -188,20 +187,20 @@ export default function LandingPage({ onGetStarted }) {
                   <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 group-hover:rotate-[50deg] transition-all duration-500" />
                   <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 group-hover:-rotate-[50deg] transition-all duration-500" />
                 </div>
-                
+
                 {/* Network nodes */}
                 <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                 <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                 <div className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
                 <div className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
-                
+
                 {/* Central wallet icon */}
                 <div className="relative z-10 flex items-center justify-center h-full">
                   <Wallet className="w-6 h-6 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />
                 </div>
-                
+
                 {/* Rotating glow */}
-                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-blue-400/20 animate-spin" style={{animationDuration: '8s'}} />
+                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-blue-400/20 animate-spin" style={{ animationDuration: '8s' }} />
               </div>
               <div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</span>
@@ -311,25 +310,25 @@ export default function LandingPage({ onGetStarted }) {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative" style={{zIndex: 10}}>
+      <section className="pt-32 pb-20 px-4 relative" style={{ zIndex: 10 }}>
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16 animate-fade-in">
             <div className="inline-block mb-6 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full hover-lift">
               <span className="text-blue-300 text-sm font-medium">🚀 Secure. Simple. Powerful.</span>
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight slide-in-left">
               <span className="gradient-text">Your Gateway to</span>
               <br />
               <span className="text-white">Decentralized Finance</span>
             </h1>
-            
-            <p className="text-xl text-blue-100/70 mb-10 max-w-2xl mx-auto leading-relaxed slide-in-right" style={{animationDelay: '0.2s'}}>
-              Manage your crypto assets with confidence. Walletrix provides enterprise-grade security 
+
+            <p className="text-xl text-blue-100/70 mb-10 max-w-2xl mx-auto leading-relaxed slide-in-right" style={{ animationDelay: '0.2s' }}>
+              Manage your crypto assets with confidence. Walletrix provides enterprise-grade security
               with an intuitive interface designed for everyone.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-scale-in" style={{animationDelay: '0.4s'}}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-scale-in" style={{ animationDelay: '0.4s' }}>
               {!isLoaded ? (
                 <button
                   disabled
@@ -354,7 +353,7 @@ export default function LandingPage({ onGetStarted }) {
                   </button>
                 </SignInButton>
               )}
-              
+
               <a
                 href="#features"
                 className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-blue-500/30 hover:border-blue-400/50 rounded-xl font-bold text-lg transition-all duration-300"
@@ -366,7 +365,7 @@ export default function LandingPage({ onGetStarted }) {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {stats.map((stat, i) => (
-                <div key={i} className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-110 hover:-translate-y-2 animate-fade-in hover-lift" style={{animationDelay: `${0.6 + i * 0.1}s`}}>
+                <div key={i} className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-110 hover:-translate-y-2 animate-fade-in hover-lift" style={{ animationDelay: `${0.6 + i * 0.1}s` }}>
                   <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">{stat.value}</div>
                   <div className="text-blue-200/70 text-sm">{stat.label}</div>
                 </div>
@@ -393,7 +392,7 @@ export default function LandingPage({ onGetStarted }) {
               <div
                 key={i}
                 className="group glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 card-hover animate-scale-in"
-                style={{animationDelay: `${i * 0.1}s`}}
+                style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <div className="mb-6 relative inline-block">
                   <feature.icon className="w-12 h-12 text-blue-400 group-hover:text-blue-300 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6" />
@@ -424,11 +423,11 @@ export default function LandingPage({ onGetStarted }) {
               <div
                 key={i}
                 className="group glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-110 hover:-translate-y-2 text-center animate-fade-in"
-                style={{animationDelay: `${i * 0.05}s`}}
+                style={{ animationDelay: `${i * 0.05}s` }}
               >
                 <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <img 
-                    src={network.logo} 
+                  <img
+                    src={network.logo}
                     alt={`${network.name} logo`}
                     className="w-full h-full object-contain"
                   />
@@ -448,7 +447,7 @@ export default function LandingPage({ onGetStarted }) {
               <span className="gradient-text">Enterprise-Grade Security</span>
             </h2>
             <p className="text-blue-100/70 text-lg max-w-3xl mx-auto">
-              Your assets are protected by military-grade encryption and industry-leading security practices. 
+              Your assets are protected by military-grade encryption and industry-leading security practices.
               We never store your private keys—you maintain complete control.
             </p>
           </div>
@@ -456,17 +455,17 @@ export default function LandingPage({ onGetStarted }) {
           {/* Security Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             {[
-              { value: '600K', label: 'PBKDF2 Iterations', icon: Shield },
+              { value: 'Argon2id', label: 'Password Hashing (PHC Winner)', icon: Shield },
               { value: '256-bit', label: 'AES-GCM Encryption', icon: Lock },
-              { value: '12 Rounds', label: 'bcrypt Hashing', icon: Key },
+              { value: '3-of-5', label: 'Shamir Secret Sharing', icon: Key },
               { value: '100%', label: 'Non-Custodial', icon: Wallet }
             ].map((stat, i) => {
               const IconComponent = stat.icon;
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 hover:-translate-y-1 text-center group animate-scale-in"
-                  style={{animationDelay: `${i * 0.1}s`}}
+                  style={{ animationDelay: `${i * 0.1}s` }}
                 >
                   <IconComponent className="w-8 h-8 text-blue-400 mx-auto mb-3 group-hover:text-cyan-400 transition-colors" />
                   <div className="text-2xl font-bold gradient-text mb-1">{stat.value}</div>
@@ -479,43 +478,73 @@ export default function LandingPage({ onGetStarted }) {
           {/* Security Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { 
-                title: 'Encryption & Key Management', 
+              {
+                title: 'Advanced Cryptography',
                 icon: Lock,
                 features: [
-                  'PBKDF2 with 600,000 iterations',
-                  'AES-256-GCM encryption standard',
-                  'Client-side wallet encryption',
-                  'Non-custodial architecture'
+                  'Argon2id password hashing (PHC winner)',
+                  'Shamir\'s Secret Sharing (3-of-5)',
+                  'BIP-85 deterministic entropy',
+                  'Multi-signature wallets (Bitcoin + Ethereum)'
                 ]
               },
-              { 
-                title: 'Authentication & Access', 
+              {
+                title: 'Encryption & Key Management',
                 icon: Key,
                 features: [
-                  'bcrypt password hashing (12 rounds)',
-                  'JWT-based authentication',
-                  'Secure session management',
+                  'AES-256-GCM authenticated encryption',
+                  'PBKDF2-SHA256 (600k iterations)',
+                  'Zero-knowledge architecture',
+                  'Client-side wallet encryption'
+                ]
+              },
+              {
+                title: 'Authentication & Sessions',
+                icon: Shield,
+                features: [
+                  'JWT tokens with rotation',
+                  'Max 5 concurrent sessions',
+                  '2FA (TOTP, SMS, Email)',
+                  'Session blacklisting'
+                ]
+              },
+              {
+                title: 'Transaction Security',
+                icon: Shield,
+                features: [
+                  'Pre-transaction simulation',
+                  'Address reputation checking',
+                  'Anomaly detection',
+                  'Gas estimation & validation'
+                ]
+              },
+              {
+                title: 'API & Network Security',
+                icon: Shield,
+                features: [
+                  'Granular rate limiting (5-120 req/min)',
+                  'Security headers (CSP, HSTS)',
+                  'Input validation & sanitization',
                   'CORS protection'
                 ]
               },
-              { 
-                title: 'Network & API Security', 
+              {
+                title: 'Monitoring & Logging',
                 icon: Shield,
                 features: [
-                  'Rate limiting & DDoS protection',
-                  'Helmet.js security headers',
-                  'Input validation & sanitization',
-                  'XSS & CSRF prevention'
+                  'Winston daily log rotation',
+                  'Security event tracking',
+                  'Activity monitoring',
+                  'Auto-lock on inactivity (30s)'
                 ]
               }
             ].map((category, i) => {
               const IconComponent = category.icon;
               return (
-                <div 
+                <div
                   key={i}
                   className="glass-effect rounded-2xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 card-hover group animate-fade-in"
-                  style={{animationDelay: `${0.2 + i * 0.1}s`}}
+                  style={{ animationDelay: `${0.2 + i * 0.1}s` }}
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="relative">
@@ -569,7 +598,7 @@ export default function LandingPage({ onGetStarted }) {
               <p className="text-blue-100/70 text-lg mb-10 max-w-2xl mx-auto">
                 Join thousands of users managing their crypto securely with Walletrix
               </p>
-              
+
               {!isLoaded ? (
                 <button
                   disabled
@@ -612,7 +641,7 @@ export default function LandingPage({ onGetStarted }) {
                 Your secure gateway to decentralized finance
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4 text-blue-100">Product</h4>
               <ul className="space-y-2 text-sm text-blue-200/70">
@@ -621,7 +650,7 @@ export default function LandingPage({ onGetStarted }) {
                 <li><a href="#security" className="hover:text-blue-400 transition-colors">Security</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4 text-blue-100">Resources</h4>
               <ul className="space-y-2 text-sm text-blue-200/70">
@@ -630,7 +659,7 @@ export default function LandingPage({ onGetStarted }) {
                 <li><a href="#" className="hover:text-blue-400 transition-colors">Support</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4 text-blue-100">Connect</h4>
               <div className="flex gap-4">
@@ -646,7 +675,7 @@ export default function LandingPage({ onGetStarted }) {
               </div>
             </div>
           </div>
-          
+
           <div className="pt-8 border-t border-blue-500/20 text-center text-sm text-blue-200/70">
             <p>&copy; 2025 Walletrix. All rights reserved. Built with ❤️ for the crypto community.</p>
           </div>
