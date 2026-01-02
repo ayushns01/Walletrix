@@ -12,6 +12,8 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS token_decimals INTEGER DEFAULT
 
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS token_address VARCHAR(255);
 
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS nonce INTEGER;
+
 CREATE TABLE IF NOT EXISTS bip85_child_wallets (
     id TEXT PRIMARY KEY,
     parent_wallet_id TEXT NOT NULL,
