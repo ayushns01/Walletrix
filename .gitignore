@@ -156,7 +156,7 @@ cypress/screenshots/
 docker-compose.override.yml
 
 # Prisma
-migrations/
+# migrations/  # COMMENTED OUT - We need migrations in git for production deploys!
 
 # Vercel
 .vercel
