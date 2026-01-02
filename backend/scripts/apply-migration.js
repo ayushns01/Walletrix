@@ -25,8 +25,8 @@ async function applyMigration() {
   }
 
   try {
-    // Read migration SQL
-    const migrationPath = join(__dirname, '..', 'MIGRATION_FIX.sql');
+    // Read migration SQL (using V2 for simpler syntax)
+    const migrationPath = join(__dirname, '..', 'MIGRATION_FIX_V2.sql');
     console.log('📄 Reading migration file from:', migrationPath);
     
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
