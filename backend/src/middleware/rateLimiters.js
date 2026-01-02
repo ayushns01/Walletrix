@@ -18,6 +18,7 @@ export const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // Don't count successful logins
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -32,6 +33,7 @@ export const walletGenerationLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -46,6 +48,7 @@ export const transactionLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   keyGenerator: (req) => {
     // Use user ID if authenticated, otherwise IP
     return req.userId || req.ip;
@@ -64,6 +67,7 @@ export const blockchainQueryLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -78,6 +82,7 @@ export const priceDataLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -92,6 +97,7 @@ export const tokenQueryLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -106,6 +112,7 @@ export const databaseWalletLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   keyGenerator: (req) => {
     // Use user ID for authenticated requests
     return req.userId || req.ip;
@@ -124,6 +131,10 @@ export const globalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Fix trust proxy validation error on Render/Railway
+  validate: {
+    trustProxy: false,
+  },
 });
 
 /**
@@ -138,6 +149,7 @@ export const perUserLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   keyGenerator: (req) => {
     // Use user ID if authenticated
     return req.userId || `ip:${req.ip}`;
@@ -161,6 +173,7 @@ export const strictLimiter = rateLimit({
   skipSuccessfulRequests: false,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
@@ -175,6 +188,7 @@ export const backupLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   keyGenerator: (req) => {
     return req.userId || req.ip;
   },
@@ -192,6 +206,7 @@ export const sensitiveLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   keyGenerator: (req) => {
     return req.userId || req.ip;
   },
@@ -209,6 +224,7 @@ export const standardLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 /**
