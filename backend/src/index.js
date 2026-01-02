@@ -205,6 +205,18 @@ app.use('/api/v1/address-book', rateLimiters.global, addressBookRoutes);
 const walletBackupRoutes = await import('./routes/walletBackupRoutes.js');
 app.use('/api/v1/wallet-backup', rateLimiters.backup, walletBackupRoutes.default);
 
+// Import BIP-85 routes (Phase 1)
+const bip85Routes = await import('./routes/bip85Routes.js');
+app.use('/api/v1/wallet/bip85', rateLimiters.walletGeneration, bip85Routes.default);
+
+// Import Multi-Sig routes (Phase 1)
+const multiSigRoutes = await import('./routes/multiSigRoutes.js');
+app.use('/api/v1/wallet/multisig', rateLimiters.walletGeneration, multiSigRoutes.default);
+
+// Import Notification routes
+const notificationRoutes = await import('./routes/notificationRoutes.js');
+app.use('/api/v1/notifications', rateLimiters.global, notificationRoutes.default);
+
 // 404 handler - must be after all routes
 app.use(notFoundHandler);
 

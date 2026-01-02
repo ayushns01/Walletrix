@@ -30,11 +30,12 @@ model User {
   lastLoginAt           DateTime? @map("last_login_at")
 
   // Relations
-  wallets      Wallet[]
-  sessions     UserSession[]
-  preferences  UserPreferences?
-  activityLogs ActivityLog[]
-  addressBook  AddressBookEntry[]
+  wallets       Wallet[]
+  sessions      UserSession[]
+  preferences   UserPreferences?
+  activityLogs  ActivityLog[]
+  addressBook   AddressBookEntry[]
+  notifications Notification[] @relation("UserNotifications")
 
   @@map("users")
   @@index([email])
@@ -100,8 +101,9 @@ model Wallet {
   lastAccessedAt       DateTime @default(now()) @map("last_accessed_at")
 
   // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+  bip85Children    BIP85ChildWallet[]  // BIP-85 derived child wallets
 
   @@map("wallets")
   @@index([userId])
@@ -292,4 +294,123 @@ enum ActivityAction {
   TWO_FA_DISABLE     @map("2fa_disable")
 
   @@map("activity_action")
+}
+// BIP-85 Child Wallet Model
+model BIP85ChildWallet {
+  id                String   @id @default(cuid())
+  parentWalletId    String   @map("parent_wallet_id")
+  childIndex        Int      @map("child_index")
+  wordCount         Int      @map("word_count")
+  derivationPath    String   @map("derivation_path")
+  encryptedMnemonic String   @map("encrypted_mnemonic")
+  addresses         Json     // {ethereum: "0x...", bitcoin: "bc1..."}
+  label             String?
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  parentWallet Wallet @relation(fields: [parentWalletId], references: [id], onDelete: Cascade)
+
+  @@map("bip85_child_wallets")
+  @@unique([parentWalletId, childIndex])
+  @@index([parentWalletId])
+  @@index([isActive])
+}
+
+// Multi-Signature Wallet Models
+model MultiSigWallet {
+  id                  String   @id @default(cuid())
+  userId              String   @map("user_id")
+  name                String
+  network             String   // 'bitcoin', 'ethereum'
+  walletType          String   @map("wallet_type") // 'p2sh', 'p2wsh', 'gnosis-safe'
+  address             String
+  requiredSignatures  Int      @map("required_signatures")
+  totalSigners        Int      @map("total_signers")
+  redeemScript        String?  @map("redeem_script") // For Bitcoin
+  configuration       Json?    // For Ethereum Gnosis Safe
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  signers      MultiSigSigner[]
+  transactions MultiSigTransaction[]
+
+  @@map("multisig_wallets")
+  @@index([userId])
+  @@index([address])
+  @@index([isActive])
+}
+
+model MultiSigSigner {
+  id              String   @id @default(cuid())
+  multiSigWalletId String  @map("multisig_wallet_id")
+  userId          String?  @map("user_id") // Null if external signer
+  publicKey       String   @map("public_key")
+  address         String
+  label           String?
+  order           Int      // Signer order
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  multiSigWallet MultiSigWallet @relation(fields: [multiSigWalletId], references: [id], onDelete: Cascade)
+
+  @@map("multisig_signers")
+  @@unique([multiSigWalletId, publicKey])
+  @@index([multiSigWalletId])
+}
+
+model MultiSigTransaction {
+  id                String   @id @default(cuid())
+  multiSigWalletId  String   @map("multisig_wallet_id")
+  toAddress         String   @map("to_address")
+  amount            Decimal  @db.Decimal(36, 18)
+  tokenSymbol       String   @default("ETH") @map("token_symbol")
+  data              String?  // Transaction data
+  status            String   @default("pending") // 'pending', 'ready', 'executed', 'rejected'
+  requiredSignatures Int     @map("required_signatures")
+  currentSignatures  Int     @default(0) @map("current_signatures")
+  txHash            String?  @map("tx_hash")
+  createdAt         DateTime @default(now()) @map("created_at")
+  executedAt        DateTime? @map("executed_at")
+
+  multiSigWallet MultiSigWallet @relation(fields: [multiSigWalletId], references: [id], onDelete: Cascade)
+  signatures     MultiSigSignature[]
+
+  @@map("multisig_transactions")
+  @@index([multiSigWalletId])
+  @@index([status])
+}
+
+model MultiSigSignature {
+  id                    String   @id @default(cuid())
+  multiSigTransactionId String   @map("multisig_transaction_id")
+  signerId              String   @map("signer_id")
+  signature             String
+  signedAt              DateTime @default(now()) @map("signed_at")
+
+  transaction MultiSigTransaction @relation(fields: [multiSigTransactionId], references: [id], onDelete: Cascade)
+
+  @@map("multisig_signatures")
+  @@unique([multiSigTransactionId, signerId])
+  @@index([multiSigTransactionId])
+}
+
+// Notification Models
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  type            String   // 'multisig_transaction', 'multisig_signed', 'multisig_executed'
+  title           String
+  message         String
+  data            Json?    // Additional data (transaction details, etc.)
+  isRead          Boolean  @default(false) @map("is_read")
+  actionUrl       String?  @map("action_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

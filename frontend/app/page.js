@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
-import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
+import toast from 'react-hot-toast'
 import CreateWallet from '@/components/CreateWallet'
 import ImportWallet from '@/components/ImportWallet'
 import UnlockWallet from '@/components/UnlockWallet'
@@ -15,11 +16,14 @@ import NetworkSelector from '@/components/NetworkSelector'
 import WalletSelector from '@/components/WalletSelector'
 import LandingPage from '@/components/LandingPage'
 import SettingsModal from '@/components/Settings'
+import NotificationBell from '@/components/NotificationBell'
 import Walkthrough from '@/components/Walkthrough'
+import MultiSigWalletDetail from '@/components/MultiSigWalletDetail'
 
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
   const { signOut } = useClerk()
+  const { getToken } = useAuth()
 
   const {
     wallet,
@@ -43,10 +47,13 @@ export default function Home() {
     setShowWalkthroughOnUnlock
   } = useWallet()
 
-  const [view, setView] = useState('landing') // landing, welcome, create, import
+  const [view, setView] = useState('landing') // landing, welcome, create, import, multisig-detail
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
+  const [selectedMultiSigWallet, setSelectedMultiSigWallet] = useState(null)
+  const [multiSigWallets, setMultiSigWallets] = useState([])
+  const [loadingMultiSig, setLoadingMultiSig] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAccountDetails, setShowAccountDetails] = useState(false)
   const [showWalletSelector, setShowWalletSelector] = useState(false)
@@ -90,6 +97,37 @@ export default function Home() {
       sessionStorage.removeItem('walletrix_walkthrough_shown');
     }
   }, [isLocked]);
+
+  // Fetch multi-sig wallets
+  useEffect(() => {
+    const fetchMultiSigWallets = async () => {
+      if (!clerkUser || !isSignedIn) return;
+
+      setLoadingMultiSig(true);
+      try {
+        // Use getToken from useAuth hook (already defined at component level)
+        const token = await getToken();
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/user/${clerkUser.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setMultiSigWallets(data.multiSigWallets || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch multi-sig wallets:', error);
+      } finally {
+        setLoadingMultiSig(false);
+      }
+    };
+
+    fetchMultiSigWallets();
+  }, [clerkUser, isSignedIn, getToken]);
 
   // Handle wallet creation/import completion
   const handleWalletCreated = async () => {
@@ -179,16 +217,16 @@ export default function Home() {
                       </div>
 
                       {/* Show existing wallets if any */}
-                      {userWallets && userWallets.length > 0 && (
+                      {(userWallets && userWallets.length > 0) || (multiSigWallets && multiSigWallets.length > 0) ? (
                         <div className="mb-6">
                           <h3 className="text-lg font-semibold text-blue-100 mb-3">Your Wallets</h3>
                           <div className="space-y-2">
-                            {userWallets.map((w) => (
+                            {/* Regular Wallets */}
+                            {userWallets && userWallets.map((w) => (
                               <button
                                 key={w.id}
                                 onClick={() => {
                                   setActiveWalletId(w.id);
-                                  // Wallet will load automatically
                                 }}
                                 className="w-full p-4 bg-gradient-to-r from-blue-900/40 to-blue-800/30 hover:from-blue-800/50 hover:to-blue-700/40 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all text-left"
                               >
@@ -203,9 +241,31 @@ export default function Home() {
                                 </div>
                               </button>
                             ))}
+
+                            {/* Multi-Sig Wallets */}
+                            {multiSigWallets && multiSigWallets.map((msw) => (
+                              <button
+                                key={`multisig-${msw.id}`}
+                                onClick={() => {
+                                  setSelectedMultiSigWallet(msw);
+                                  setView('multisig-detail');
+                                }}
+                                className="w-full p-4 bg-gradient-to-r from-purple-900/40 to-purple-800/30 hover:from-purple-800/50 hover:to-purple-700/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all text-left"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-purple-100 font-medium">{msw.name}</p>
+                                    <p className="text-xs text-purple-300/70 mt-1">
+                                      Multi-Sig ({msw.requiredSignatures}/{msw.totalSigners}) • {msw.network}
+                                    </p>
+                                  </div>
+                                  <Users className="w-5 h-5 text-purple-400" />
+                                </div>
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      )}
+                      ) : null}
 
                       <div className="space-y-3">
                         <button
@@ -238,8 +298,24 @@ export default function Home() {
               >
                 ← Back to Welcome
               </button>
-              <CreateWallet onComplete={handleWalletCreated} />
+              <CreateWallet
+                onComplete={() => setView('dashboard')}
+                onMultiSigCreated={(wallet) => {
+                  setSelectedMultiSigWallet(wallet);
+                  setView('multisig-detail');
+                }}
+              />
             </div>
+          )}
+
+          {view === 'multisig-detail' && selectedMultiSigWallet && (
+            <MultiSigWalletDetail
+              walletId={selectedMultiSigWallet.id}
+              onBack={() => {
+                setSelectedMultiSigWallet(null);
+                setView('dashboard');
+              }}
+            />
           )}
 
           {view === 'import' && (
@@ -250,7 +326,7 @@ export default function Home() {
               >
                 ← Back to Welcome
               </button>
-              <ImportWallet onComplete={handleWalletCreated} />
+              <ImportWallet onComplete={() => setView('dashboard')} />
             </div>
           )}
         </div>
@@ -430,14 +506,21 @@ export default function Home() {
               >
                 <Lock className="w-6 h-6" />
               </button>
-              <button
-                data-tour="settings-button"
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
-                title="Settings"
-              >
-                <Settings className="w-6 h-6" />
-              </button>
+              {/* Header Actions */}
+              <div className="flex items-center gap-2">
+                {/* Notification Bell */}
+                <NotificationBell />
+
+                {/* Settings Button */}
+                <button
+                  data-tour="settings-button"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-6 h-6" />
+                </button>
+              </div>
             </div>
           </div>
         </header>
