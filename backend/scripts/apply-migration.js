@@ -32,11 +32,13 @@ async function applyMigration() {
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
     console.log('✅ Migration file loaded successfully');
 
-    // Split by semicolon and filter out comments and empty statements
+    // Split SQL statements more intelligently
+    // Split by semicolon followed by newline to avoid splitting within statements
     const statements = migrationSQL
-      .split(';')
+      .split(/;\s*\n/)
       .map(s => s.trim())
-      .filter(s => s && !s.startsWith('--') && !s.startsWith('/*'));
+      .filter(s => s && !s.startsWith('--') && s.length > 10) // Filter empty and comment-only lines
+      .map(s => s.endsWith(';') ? s : s + ';'); // Ensure each statement ends with semicolon
 
     console.log(`📝 Applying ${statements.length} SQL statements...`);
 
@@ -48,9 +50,9 @@ async function applyMigration() {
       const statement = statements[i];
       if (statement.trim()) {
         try {
-          await prisma.$executeRawUnsafe(statement + ';');
+          await prisma.$executeRawUnsafe(statement);
           successCount++;
-          if ((i + 1) % 10 === 0) {
+          if ((i + 1) % 5 === 0) {
             console.log(`   Progress: ${i + 1}/${statements.length} statements`);
           }
         } catch (err) {
@@ -61,7 +63,8 @@ async function applyMigration() {
             skipCount++;
           } else {
             console.error(`❌ Error on statement ${i + 1}: ${err.message}`);
-            console.error(`   Statement: ${statement.substring(0, 100)}...`);
+            const preview = statement.replace(/\s+/g, ' ').substring(0, 80);
+            console.error(`   Statement: ${preview}...`);
           }
         }
       }
