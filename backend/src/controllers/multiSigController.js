@@ -59,8 +59,32 @@ class MultiSigController {
                     'mainnet'
                 );
 
-                // Prepare signers
+                // 🔍 Look up userId for each public key by searching wallets
+                const signerUserIds = await Promise.all(
+                    publicKeys.map(async (pubKey) => {
+                        // Try to find a wallet that contains this public key
+                        // This is a simplified lookup - in production you'd need a more robust method
+                        const wallet = await prisma.wallet.findFirst({
+                            where: {
+                                userId: userId, // For now, assume all signers are from the creator's wallets
+                                isActive: true
+                            },
+                            select: {
+                                userId: true
+                            }
+                        });
+                        return wallet?.userId || null;
+                    })
+                );
+
+                console.log('🔍 Bitcoin public key to userId mapping:');
+                publicKeys.forEach((pk, i) => {
+                    console.log(`   ${pk.substring(0, 20)}... → userId: ${signerUserIds[i] || 'null (external)'}`);
+                });
+
+                // Prepare signers with userId mapping
                 signers = publicKeys.map((pubKey, index) => ({
+                    userId: signerUserIds[index],
                     publicKey: pubKey,
                     address: '', // Bitcoin doesn't have individual addresses in multisig
                     label: `Signer ${index + 1}`,
@@ -90,10 +114,15 @@ class MultiSigController {
                 );
 
                 // 🔍 Look up userId for each owner by their wallet address
+                console.log('🔍 Looking up userIds for owners:', owners);
+                
                 const ownerUserIds = await Promise.all(
                     owners.map(async (ownerAddress) => {
-                        // Find wallet with this address
-                        const wallet = await prisma.wallet.findFirst({
+                        // Normalize address (checksum)
+                        const normalizedAddress = ownerAddress.toLowerCase();
+                        
+                        // Find wallet with this address (try both exact match and JSON path)
+                        let wallet = await prisma.wallet.findFirst({
                             where: {
                                 addresses: {
                                     path: ['ethereum'],
@@ -102,9 +131,28 @@ class MultiSigController {
                                 isActive: true
                             },
                             select: {
-                                userId: true
+                                userId: true,
+                                addresses: true
                             }
                         });
+                        
+                        // If not found, try case-insensitive search
+                        if (!wallet) {
+                            const allWallets = await prisma.wallet.findMany({
+                                where: { isActive: true },
+                                select: {
+                                    userId: true,
+                                    addresses: true
+                                }
+                            });
+                            
+                            wallet = allWallets.find(w => {
+                                const ethAddress = w.addresses?.ethereum;
+                                return ethAddress && ethAddress.toLowerCase() === normalizedAddress;
+                            });
+                        }
+                        
+                        console.log(`   Address ${ownerAddress} → userId: ${wallet?.userId || 'NOT FOUND'}`);
                         return wallet?.userId || null;
                     })
                 );
@@ -749,6 +797,60 @@ class MultiSigController {
             res.status(500).json({
                 success: false,
                 error: 'Failed to execute transaction'
+            });
+        }
+    }
+
+    /**
+     * Delete multi-sig wallet
+     * DELETE /api/v1/wallet/multisig/:id
+     */
+    async deleteMultiSigWallet(req, res) {
+        try {
+            const { id } = req.params;
+            const userId = req.user.id;
+
+            // Verify wallet exists and belongs to user
+            const wallet = await prisma.multiSigWallet.findFirst({
+                where: {
+                    id: id,
+                    userId: userId,
+                    isActive: true
+                }
+            });
+
+            if (!wallet) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Multi-sig wallet not found or you do not have permission'
+                });
+            }
+
+            // Soft delete - set isActive to false
+            await prisma.multiSigWallet.update({
+                where: { id: id },
+                data: { isActive: false }
+            });
+
+            logger.info('Multi-sig wallet deleted', {
+                userId,
+                multiSigWalletId: id,
+                walletName: wallet.name
+            });
+
+            res.status(200).json({
+                success: true,
+                message: 'Multi-sig wallet deleted successfully'
+            });
+        } catch (error) {
+            logger.error('Error deleting multi-sig wallet', {
+                error: error.message,
+                userId: req.user?.id
+            });
+
+            res.status(500).json({
+                success: false,
+                error: 'Failed to delete wallet'
             });
         }
     }

@@ -471,6 +471,10 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                 <SettingsModal
                     wallet={wallet}
                     onClose={() => setShowSettings(false)}
+                    onDelete={() => {
+                        setShowSettings(false);
+                        onBack?.();
+                    }}
                 />
             )}
         </div>
@@ -636,9 +640,12 @@ function CreateTransactionModal({ walletId, onClose, onSuccess }) {
 }
 
 // Settings Modal - Enhanced Version with Full Multi-Sig Details
-function SettingsModal({ wallet, onClose }) {
+function SettingsModal({ wallet, onClose, onDelete }) {
+    const { getToken } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
     const [showSignerKey, setShowSignerKey] = useState({});
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const tabs = [
         { id: 'general', name: 'General', icon: Settings },
@@ -1059,9 +1066,15 @@ function SettingsModal({ wallet, onClose }) {
 
                                         <div className="bg-red-900/20 rounded-xl p-5 border border-red-500/20">
                                             <h4 className="text-red-300 font-medium mb-2">Danger Zone</h4>
-                                            <p className="text-sm text-red-200/80 mb-4">Irreversible actions that affect this wallet</p>
-                                            <button className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors text-sm font-medium">
-                                                Archive Wallet
+                                            <p className="text-sm text-red-200/80 mb-4">
+                                                Permanently delete this multi-sig wallet. This action cannot be undone.
+                                            </p>
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                                            >
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Delete Wallet
                                             </button>
                                         </div>
                                     </div>
@@ -1081,6 +1094,88 @@ function SettingsModal({ wallet, onClose }) {
                     </button>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-red-500/30 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-red-500/20 rounded-lg">
+                                <AlertTriangle className="w-6 h-6 text-red-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Delete Wallet?</h3>
+                        </div>
+
+                        <p className="text-gray-300 mb-6">
+                            Are you sure you want to delete <span className="font-bold text-white">"{wallet.name}"</span>?
+                            This will permanently remove the wallet and all associated data. This action cannot be undone.
+                        </p>
+
+                        <div className="bg-yellow-900/20 rounded-lg p-3 mb-6 border border-yellow-500/20">
+                            <p className="text-sm text-yellow-200/90">
+                                <strong>Warning:</strong> Make sure you have backed up your wallet configuration and any funds have been moved before deleting.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setDeleting(true);
+                                    try {
+                                        const token = await getToken();
+                                        const response = await fetch(
+                                            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/${wallet.id}`,
+                                            {
+                                                method: 'DELETE',
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`
+                                                }
+                                            }
+                                        );
+
+                                        const data = await response.json();
+
+                                        if (response.ok && data.success) {
+                                            toast.success('Wallet deleted successfully');
+                                            onDelete?.();
+                                            onClose();
+                                        } else {
+                                            toast.error(data.error || 'Failed to delete wallet');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error deleting wallet:', error);
+                                        toast.error('Failed to delete wallet');
+                                    } finally {
+                                        setDeleting(false);
+                                        setShowDeleteConfirm(false);
+                                    }
+                                }}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Delete Permanently
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

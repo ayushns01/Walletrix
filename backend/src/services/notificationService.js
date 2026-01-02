@@ -46,6 +46,15 @@ class NotificationService {
      */
     async notifyMultiSigTransaction({ multiSigWalletId, transactionId, creatorId, amount, toAddress, tokenSymbol }) {
         try {
+            console.log('🔔 notifyMultiSigTransaction called with:', {
+                multiSigWalletId,
+                transactionId,
+                creatorId,
+                amount,
+                toAddress,
+                tokenSymbol
+            });
+            
             // Get all signers except the creator
             const wallet = await prisma.multiSigWallet.findUnique({
                 where: { id: multiSigWalletId },
@@ -65,7 +74,7 @@ class NotificationService {
 
             const notifications = [];
 
-            // Create notification for each signer (except creator)
+            // Create notification for each signer
             for (const signer of wallet.signers) {
                 console.log('   Checking signer:', {
                     signerId: signer.id,
@@ -73,12 +82,6 @@ class NotificationService {
                     address: signer.address,
                     label: signer.label
                 });
-
-                // Skip if signer is the creator
-                if (signer.userId === creatorId) {
-                    console.log('   ⏭️  Skipping creator');
-                    continue;
-                }
 
                 // Skip if signer has no userId (external signer)
                 if (!signer.userId) {
@@ -92,14 +95,16 @@ class NotificationService {
                     userId: signer.userId,
                     type: 'multisig_transaction',
                     title: `New Multi-Sig Transaction`,
-                    message: `${wallet.name} requires your signature to send ${amount} ${tokenSymbol} to ${toAddress.substring(0, 10)}...`,
+                    message: `${wallet.name} requires signature from ${signer.label || signer.address.substring(0, 10)} to send ${amount} ${tokenSymbol} to ${toAddress.substring(0, 10)}...`,
                     data: {
                         multiSigWalletId,
                         transactionId,
                         amount,
                         toAddress,
                         tokenSymbol,
-                        walletName: wallet.name
+                        walletName: wallet.name,
+                        signerId: signer.id,
+                        signerAddress: signer.address
                     },
                     actionUrl: `/multisig/${multiSigWalletId}/transaction/${transactionId}`
                 });

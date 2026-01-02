@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/create', authenticateClerk, multiSigController.createMultiSigWallet);
 router.get('/:id', authenticateClerk, multiSigController.getMultiSigWallet);
 router.get('/user/:userId', authenticateClerk, multiSigController.getUserMultiSigWallets);
+router.delete('/:id', authenticateClerk, multiSigController.deleteMultiSigWallet);
 
 // Balance route
 router.get('/:id/balance', authenticateClerk, balanceController.getBalance);
