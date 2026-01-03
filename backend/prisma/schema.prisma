@@ -104,6 +104,7 @@ model Wallet {
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions     Transaction[]
   bip85Children    BIP85ChildWallet[]  // BIP-85 derived child wallets
+  notifications    Notification[]      @relation("WalletNotifications") // Wallet-specific notifications
 
   @@map("wallets")
   @@index([userId])
@@ -399,6 +400,7 @@ model MultiSigSignature {
 model Notification {
   id              String   @id @default(cuid())
   userId          String   @map("user_id")
+  walletId        String?  @map("wallet_id") // Optional: specific wallet this notification is for
   type            String   // 'multisig_transaction', 'multisig_signed', 'multisig_executed'
   title           String
   message         String
@@ -408,9 +410,11 @@ model Notification {
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
-  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  wallet Wallet? @relation("WalletNotifications", fields: [walletId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
   @@index([userId, isRead])
+  @@index([walletId, isRead]) // Index for wallet-specific notification queries
   @@index([createdAt])
 }

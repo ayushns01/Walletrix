@@ -14,9 +14,10 @@ class NotificationController {
     async getNotifications(req, res) {
         try {
             const userId = req.user.id;
-            const { limit, unreadOnly } = req.query;
+            const { walletId, limit, unreadOnly } = req.query; // NEW: Accept walletId
 
             const notifications = await notificationService.getUserNotifications(userId, {
+                walletId, // NEW: Pass walletId
                 limit: limit ? parseInt(limit) : 50,
                 unreadOnly: unreadOnly === 'true'
             });
@@ -45,7 +46,8 @@ class NotificationController {
     async getUnreadCount(req, res) {
         try {
             const userId = req.user.id;
-            const count = await notificationService.getUnreadCount(userId);
+            const { walletId } = req.query; // NEW: Accept walletId
+            const count = await notificationService.getUnreadCount(userId, walletId); // NEW: Pass walletId
 
             res.status(200).json({
                 success: true,

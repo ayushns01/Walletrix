@@ -509,7 +509,7 @@ export default function Home() {
               {/* Header Actions */}
               <div className="flex items-center gap-2">
                 {/* Notification Bell */}
-                <NotificationBell />
+                <NotificationBell currentWalletId={activeWalletId} />
 
                 {/* Settings Button */}
                 <button

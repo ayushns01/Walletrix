@@ -230,6 +230,19 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 py-6">
+                {/* Development Mode Warning Banner */}
+                <div className="mb-6 bg-gradient-to-r from-orange-500/20 to-red-500/20 border-2 border-orange-500/50 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="text-2xl">🚧</div>
+                        <div className="flex-1">
+                            <h3 className="text-orange-400 font-bold text-lg mb-1">Development Mode</h3>
+                            <p className="text-orange-200 text-sm">
+                                This multi-sig wallet is in development mode. Transaction execution is simulated and funds are NOT actually transferred on the blockchain.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Wallet Header Card */}
                 <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-purple-500/20 mb-6">
                     <div className="flex items-start justify-between mb-4">
@@ -268,27 +281,8 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                                     )}
                                 </div>
                             </div>
-
-                            {/* Debug Panel - Shows what data is loaded */}
-                            <details className="mt-4">
-                                <summary className="cursor-pointer text-xs text-yellow-400 hover:text-yellow-300 font-bold">
-                                    🔍 Debug Info (Click to expand)
-                                </summary>
-                                <div className="mt-2 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/20">
-                                    <div className="text-xs text-yellow-200 space-y-1 font-mono">
-                                        <p><strong>Wallet ID:</strong> {wallet.id || '❌'}</p>
-                                        <p><strong>Name:</strong> {wallet.name || '❌'}</p>
-                                        <p><strong>Address:</strong> {wallet.address || '❌ MISSING'}</p>
-                                        <p><strong>Network:</strong> {wallet.network || '❌'}</p>
-                                        <p><strong>Type:</strong> {wallet.walletType || wallet.type || '❌'}</p>
-                                        <p><strong>Signers Count:</strong> {wallet.signers?.length || '❌'}</p>
-                                        <p><strong>Redeem Script:</strong> {wallet.redeemScript ? '✅ Present' : '❌ Missing'}</p>
-                                        <p><strong>Balance:</strong> {wallet.balance || 'Not loaded yet'}</p>
-                                        <p className="text-yellow-300 mt-2">Check browser console for full wallet object</p>
-                                    </div>
-                                </div>
-                            </details>
                         </div>
+
 
                         <button
                             onClick={() => setShowCreateTx(true)}
@@ -327,7 +321,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                                 <span className="text-sm">Balance</span>
                             </div>
                             <p className="text-2xl font-bold text-green-400">
-                                {wallet.balance ? `${wallet.balance} ${wallet.network === 'bitcoin' ? 'BTC' : 'ETH'}` : 'Loading...'}
+                                {wallet.balance ? `${wallet.balance} ETH` : 'Loading...'}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">Current balance</p>
                         </div>
@@ -381,7 +375,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                                 </h2>
                                 <div className="space-y-3">
                                     {pendingTransactions.map(tx => (
-                                        <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} />
+                                        <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} onExecute={fetchWalletData} />
                                     ))}
                                 </div>
                             </div>
@@ -399,7 +393,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             ) : (
                                 <div className="space-y-3">
                                     {transactions.slice(0, 5).map(tx => (
-                                        <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} />
+                                        <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} onExecute={fetchWalletData} />
                                     ))}
                                 </div>
                             )}
@@ -418,7 +412,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                         ) : (
                             <div className="space-y-3">
                                 {transactions.map(tx => (
-                                    <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} detailed />
+                                    <TransactionCard key={tx.id} transaction={tx} getStatusColor={getStatusColor} getStatusIcon={getStatusIcon} detailed onExecute={fetchWalletData} />
                                 ))}
                             </div>
                         )}
@@ -482,7 +476,50 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
 }
 
 // Transaction Card Component
-function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed = false }) {
+function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed = false, onExecute }) {
+    const { getToken } = useAuth();
+    const [executing, setExecuting] = useState(false);
+
+    const handleExecute = async () => {
+        // Show development warning
+        toast('⚠️ Development Mode: Transaction will be marked as executed but NOT sent to blockchain', {
+            duration: 5000,
+            icon: '🚧',
+            style: {
+                background: '#f59e0b',
+                color: '#fff',
+            }
+        });
+
+        try {
+            setExecuting(true);
+            const token = await getToken();
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/transaction/${transaction.id}/execute`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success('Transaction marked as executed (simulated)');
+                if (onExecute) onExecute();
+            } else {
+                toast.error(data.error || 'Failed to execute transaction');
+            }
+        } catch (error) {
+            console.error('Error executing transaction:', error);
+            toast.error('Failed to execute transaction');
+        } finally {
+            setExecuting(false);
+        }
+    };
+
     return (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 border border-gray-700/50 hover:border-purple-500/30 transition-all">
             <div className="flex justify-between items-start">
@@ -521,9 +558,21 @@ function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed 
                         {transaction.currentSignatures}/{transaction.requiredSignatures}
                     </div>
                     {transaction.status === 'ready' && (
-                        <button className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                            Execute
-                        </button>
+                        <div className="mt-3 space-y-2">
+                            {/* Permanent Warning Banner */}
+                            <div className="bg-orange-500/10 border border-orange-500/50 rounded-lg p-2 text-xs">
+                                <div className="flex items-center gap-1.5 text-orange-400">
+                                    <span>⚠️</span>
+                                    <span className="font-medium">Dev Mode: Transaction not sent to blockchain</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleExecute}
+                                disabled={executing}
+                                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                {executing ? 'Executing...' : 'Execute'}
+                            </button>
+                        </div>
                     )}
                     {transaction.status === 'pending' && (
                         <button className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">

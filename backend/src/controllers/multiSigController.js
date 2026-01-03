@@ -33,150 +33,89 @@ class MultiSigController {
                 });
             }
 
-            let multiSigResult;
-            let signers = [];
 
-            if (network === 'bitcoin') {
-                // Bitcoin multisig
-                if (!publicKeys || !Array.isArray(publicKeys)) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Public keys array is required for Bitcoin multisig'
-                    });
-                }
-
-                if (requiredSignatures > publicKeys.length) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Required signatures cannot exceed total signers'
-                    });
-                }
-
-                // Create Bitcoin multisig
-                multiSigResult = multiSigService.createBitcoinMultisig(
-                    publicKeys,
-                    requiredSignatures,
-                    'mainnet'
-                );
-
-                // 🔍 Look up userId for each public key by searching wallets
-                const signerUserIds = await Promise.all(
-                    publicKeys.map(async (pubKey) => {
-                        // Try to find a wallet that contains this public key
-                        // This is a simplified lookup - in production you'd need a more robust method
-                        const wallet = await prisma.wallet.findFirst({
-                            where: {
-                                userId: userId, // For now, assume all signers are from the creator's wallets
-                                isActive: true
-                            },
-                            select: {
-                                userId: true
-                            }
-                        });
-                        return wallet?.userId || null;
-                    })
-                );
-
-                console.log('🔍 Bitcoin public key to userId mapping:');
-                publicKeys.forEach((pk, i) => {
-                    console.log(`   ${pk.substring(0, 20)}... → userId: ${signerUserIds[i] || 'null (external)'}`);
+            // Only Ethereum multisig supported
+            if (network !== 'ethereum') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Only Ethereum network is supported for multi-sig wallets'
                 });
+            }
 
-                // Prepare signers with userId mapping
-                signers = publicKeys.map((pubKey, index) => ({
-                    userId: signerUserIds[index],
-                    publicKey: pubKey,
-                    address: '', // Bitcoin doesn't have individual addresses in multisig
-                    label: `Signer ${index + 1}`,
-                    order: index
-                }));
+            // Ethereum multisig (Gnosis Safe)
+            if (!owners || !Array.isArray(owners)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Owners array is required for Ethereum multisig'
+                });
+            }
 
-            } else if (network === 'ethereum') {
-                // Ethereum multisig (Gnosis Safe)
-                if (!owners || !Array.isArray(owners)) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Owners array is required for Ethereum multisig'
-                    });
-                }
+            if (requiredSignatures > owners.length) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Required signatures cannot exceed total owners'
+                });
+            }
 
-                if (requiredSignatures > owners.length) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Required signatures cannot exceed total owners'
-                    });
-                }
+            // Create Ethereum multisig
+            const multiSigResult = multiSigService.createEthereumMultisig(
+                owners,
+                requiredSignatures
+            );
 
-                // Create Ethereum multisig
-                multiSigResult = multiSigService.createEthereumMultisig(
-                    owners,
-                    requiredSignatures
-                );
+            // 🔍 Look up userId for each owner by their wallet address
 
-                // 🔍 Look up userId for each owner by their wallet address
-                console.log('🔍 Looking up userIds for owners:', owners);
-                
-                const ownerUserIds = await Promise.all(
-                    owners.map(async (ownerAddress) => {
-                        // Normalize address (checksum)
-                        const normalizedAddress = ownerAddress.toLowerCase();
-                        
-                        // Find wallet with this address (try both exact match and JSON path)
-                        let wallet = await prisma.wallet.findFirst({
-                            where: {
-                                addresses: {
-                                    path: ['ethereum'],
-                                    equals: ownerAddress
-                                },
-                                isActive: true
+
+            const ownerUserIds = await Promise.all(
+                owners.map(async (ownerAddress) => {
+                    // Normalize address (checksum)
+                    const normalizedAddress = ownerAddress.toLowerCase();
+
+                    // Find wallet with this address (try both exact match and JSON path)
+                    let wallet = await prisma.wallet.findFirst({
+                        where: {
+                            addresses: {
+                                path: ['ethereum'],
+                                equals: ownerAddress
                             },
+                            isActive: true
+                        },
+                        select: {
+                            userId: true,
+                            addresses: true
+                        }
+                    });
+
+                    // If not found, try case-insensitive search
+                    if (!wallet) {
+                        const allWallets = await prisma.wallet.findMany({
+                            where: { isActive: true },
                             select: {
                                 userId: true,
                                 addresses: true
                             }
                         });
-                        
-                        // If not found, try case-insensitive search
-                        if (!wallet) {
-                            const allWallets = await prisma.wallet.findMany({
-                                where: { isActive: true },
-                                select: {
-                                    userId: true,
-                                    addresses: true
-                                }
-                            });
-                            
-                            wallet = allWallets.find(w => {
-                                const ethAddress = w.addresses?.ethereum;
-                                return ethAddress && ethAddress.toLowerCase() === normalizedAddress;
-                            });
-                        }
-                        
-                        console.log(`   Address ${ownerAddress} → userId: ${wallet?.userId || 'NOT FOUND'}`);
-                        return wallet?.userId || null;
-                    })
-                );
 
-                console.log('🔍 Owner address to userId mapping:');
-                owners.forEach((addr, i) => {
-                    console.log(`   ${addr} → userId: ${ownerUserIds[i] || 'null (external)'}`);
-                });
+                        wallet = allWallets.find(w => {
+                            const ethAddress = w.addresses?.ethereum;
+                            return ethAddress && ethAddress.toLowerCase() === normalizedAddress;
+                        });
+                    }
 
-                // Prepare signers with proper userId mapping
-                signers = owners.map((owner, index) => ({
-                    userId: ownerUserIds[index], // ✅ Use looked-up userId
-                    publicKey: owner, // Use address as publicKey for Ethereum (satisfies unique constraint)
-                    address: owner,
-                    label: `Owner ${index + 1}`,
-                    order: index
-                }));
 
-            } else {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Network must be "bitcoin" or "ethereum"'
-                });
-            }
+                    return wallet?.userId || null;
+                })
+            );
+
+            // Prepare signers with proper userId mapping
+            const signers = owners.map((owner, index) => ({
+                userId: ownerUserIds[index], // ✅ Use looked-up userId
+                publicKey: owner, // Use address as publicKey for Ethereum (satisfies unique constraint)
+                address: owner,
+                label: `Owner ${index + 1}`,
+                order: index
+            }));
+
 
             // Store in database
             const multiSigWallet = await prisma.multiSigWallet.create({

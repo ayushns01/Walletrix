@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Bell } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-export default function NotificationBell() {
+export default function NotificationBell({ currentWalletId }) {
     const { getToken } = useAuth();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -15,7 +16,15 @@ export default function NotificationBell() {
     const fetchUnreadCount = async () => {
         try {
             const token = await getToken();
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count`, {
+            console.log('🔍 NotificationBell - currentWalletId:', currentWalletId); // DEBUG
+            // 🔍 NEW: Add walletId query parameter if available
+            const url = currentWalletId
+                ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count?walletId=${currentWalletId}`
+                : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count`;
+
+            console.log('🔍 Fetching from URL:', url); // DEBUG
+
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -35,7 +44,12 @@ export default function NotificationBell() {
         try {
             setLoading(true);
             const token = await getToken();
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications?limit=10`, {
+            // 🔍 NEW: Add walletId query parameter if available
+            const url = currentWalletId
+                ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications?limit=10&walletId=${currentWalletId}`
+                : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications?limit=10`;
+
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -97,6 +111,11 @@ export default function NotificationBell() {
         const interval = setInterval(fetchUnreadCount, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    // 🔍 NEW: Re-fetch notifications when wallet changes
+    useEffect(() => {
+        fetchUnreadCount();
+    }, [currentWalletId]);
 
     // Fetch notifications when dropdown opens
     useEffect(() => {
@@ -187,15 +206,7 @@ export default function NotificationBell() {
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
-                                            onClick={() => {
-                                                if (!notification.isRead) {
-                                                    markAsRead(notification.id);
-                                                }
-                                                if (notification.actionUrl) {
-                                                    window.location.href = notification.actionUrl;
-                                                }
-                                            }}
-                                            className={`p-4 hover:bg-gray-750 transition-colors cursor-pointer ${!notification.isRead ? 'bg-purple-500/5' : ''
+                                            className={`p-4 hover:bg-gray-750 transition-colors ${!notification.isRead ? 'bg-purple-500/5' : ''
                                                 }`}
                                         >
                                             <div className="flex gap-3">
@@ -217,6 +228,101 @@ export default function NotificationBell() {
                                                     <p className="text-xs text-gray-500 mt-1">
                                                         {formatTime(notification.createdAt)}
                                                     </p>
+
+                                                    {/* Action buttons for multi-sig transactions */}
+                                                    {notification.type === 'multisig_transaction' && (
+                                                        <div className="flex gap-2 mt-3">
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+
+                                                                    // Check if already signed
+                                                                    if (notification.data?.hasSigned) {
+                                                                        return; // Already signed, do nothing
+                                                                    }
+
+                                                                    try {
+                                                                        const token = await getToken();
+                                                                        const txId = notification.data?.transactionId;
+                                                                        const signerId = notification.data?.signerId;
+
+                                                                        if (!txId || !signerId) {
+                                                                            toast.error('Missing transaction data');
+                                                                            return;
+                                                                        }
+
+                                                                        // TODO: Get actual signature from wallet
+                                                                        const signature = 'placeholder_signature';
+
+                                                                        const response = await fetch(
+                                                                            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/transaction/${txId}/sign`,
+                                                                            {
+                                                                                method: 'POST',
+                                                                                headers: {
+                                                                                    'Authorization': `Bearer ${token}`,
+                                                                                    'Content-Type': 'application/json'
+                                                                                },
+                                                                                body: JSON.stringify({
+                                                                                    signerId,
+                                                                                    signature
+                                                                                })
+                                                                            }
+                                                                        );
+
+                                                                        const data = await response.json();
+
+                                                                        if (data.success) {
+                                                                            toast.success('Transaction signed successfully!');
+                                                                            if (!notification.isRead) {
+                                                                                markAsRead(notification.id);
+                                                                            }
+                                                                            fetchNotifications(); // Refresh
+                                                                        } else {
+                                                                            toast.error(data.error || 'Failed to sign transaction');
+                                                                        }
+                                                                    } catch (error) {
+                                                                        console.error('Error signing transaction:', error);
+                                                                        toast.error('Failed to sign transaction');
+                                                                    }
+                                                                }}
+                                                                disabled={notification.data?.hasSigned}
+                                                                className={`px-3 py-1.5 text-white text-xs rounded-lg transition-colors font-medium ${notification.data?.hasSigned
+                                                                        ? 'bg-green-600 cursor-not-allowed opacity-75'
+                                                                        : 'bg-purple-600 hover:bg-purple-700'
+                                                                    }`}
+                                                            >
+                                                                {notification.data?.hasSigned ? '✓ Signed' : 'Sign Now'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (!notification.isRead) {
+                                                                        markAsRead(notification.id);
+                                                                    }
+                                                                    if (notification.actionUrl) {
+                                                                        window.location.href = notification.actionUrl;
+                                                                    }
+                                                                }}
+                                                                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded-lg transition-colors"
+                                                            >
+                                                                View Details
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* For other notification types, keep the old click behavior */}
+                                                    {notification.type !== 'multisig_transaction' && notification.actionUrl && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!notification.isRead) {
+                                                                    markAsRead(notification.id);
+                                                                }
+                                                                window.location.href = notification.actionUrl;
+                                                            }}
+                                                            className="text-xs text-purple-400 hover:text-purple-300 mt-2"
+                                                        >
+                                                            View →
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

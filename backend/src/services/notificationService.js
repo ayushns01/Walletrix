@@ -10,11 +10,12 @@ class NotificationService {
     /**
      * Create a notification for a user
      */
-    async createNotification({ userId, type, title, message, data, actionUrl }) {
+    async createNotification({ userId, walletId, type, title, message, data, actionUrl }) {
         try {
             const notification = await prisma.notification.create({
                 data: {
                     userId,
+                    walletId, // NEW: Store wallet-specific notification
                     type,
                     title,
                     message,
@@ -27,6 +28,7 @@ class NotificationService {
             logger.info('Notification created', {
                 notificationId: notification.id,
                 userId,
+                walletId, // NEW: Log walletId
                 type
             });
 
@@ -46,15 +48,8 @@ class NotificationService {
      */
     async notifyMultiSigTransaction({ multiSigWalletId, transactionId, creatorId, amount, toAddress, tokenSymbol }) {
         try {
-            console.log('🔔 notifyMultiSigTransaction called with:', {
-                multiSigWalletId,
-                transactionId,
-                creatorId,
-                amount,
-                toAddress,
-                tokenSymbol
-            });
-            
+
+
             // Get all signers except the creator
             const wallet = await prisma.multiSigWallet.findUnique({
                 where: { id: multiSigWalletId },
@@ -67,32 +62,46 @@ class NotificationService {
                 throw new Error('Multi-sig wallet not found');
             }
 
-            console.log('🔔 Processing multi-sig transaction notifications:');
-            console.log('   Wallet:', wallet.name);
-            console.log('   Total signers:', wallet.signers.length);
-            console.log('   Creator ID:', creatorId);
+
 
             const notifications = [];
 
             // Create notification for each signer
             for (const signer of wallet.signers) {
-                console.log('   Checking signer:', {
-                    signerId: signer.id,
-                    userId: signer.userId,
-                    address: signer.address,
-                    label: signer.label
-                });
+
 
                 // Skip if signer has no userId (external signer)
                 if (!signer.userId) {
-                    console.log('   ⚠️  Skipping - no userId (external signer)');
+
                     continue;
                 }
 
-                console.log('   ✅ Creating notification for userId:', signer.userId);
+                // 🔍 NEW: Find the wallet that matches this signer's address
+                const signerWallet = await prisma.wallet.findFirst({
+                    where: {
+                        userId: signer.userId,
+                        addresses: {
+                            path: ['ethereum'],
+                            equals: signer.address
+                        },
+                        isActive: true
+                    },
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                });
+
+                if (!signerWallet) {
+
+                    continue;
+                }
+
+
 
                 const notification = await this.createNotification({
                     userId: signer.userId,
+                    walletId: signerWallet.id, // 🔍 NEW: Specify the wallet
                     type: 'multisig_transaction',
                     title: `New Multi-Sig Transaction`,
                     message: `${wallet.name} requires signature from ${signer.label || signer.address.substring(0, 10)} to send ${amount} ${tokenSymbol} to ${toAddress.substring(0, 10)}...`,
@@ -118,7 +127,7 @@ class NotificationService {
                 notificationCount: notifications.length
             });
 
-            console.log(`🔔 Created ${notifications.length} notifications`);
+
 
             return notifications;
         } catch (error) {
@@ -246,11 +255,16 @@ class NotificationService {
     /**
      * Get user's notifications
      */
-    async getUserNotifications(userId, { limit = 50, unreadOnly = false } = {}) {
+    async getUserNotifications(userId, { walletId, limit = 50, unreadOnly = false } = {}) {
         try {
             const where = { userId };
             if (unreadOnly) {
                 where.isRead = false;
+            }
+
+            // 🔍 NEW: Filter by walletId if provided
+            if (walletId) {
+                where.walletId = walletId;
             }
 
             const notifications = await prisma.notification.findMany({
@@ -261,12 +275,36 @@ class NotificationService {
                 take: limit
             });
 
-            return notifications;
+            // 🔍 NEW: For multi-sig notifications, check if user has already signed
+            const enrichedNotifications = await Promise.all(notifications.map(async (notification) => {
+                if (notification.type === 'multisig_transaction' && notification.data?.transactionId) {
+                    // Check if this user has signed this transaction
+                    const signature = await prisma.multiSigSignature.findFirst({
+                        where: {
+                            multiSigTransactionId: notification.data.transactionId,
+                            signerId: notification.data.signerId
+                        }
+                    });
+
+                    return {
+                        ...notification,
+                        data: {
+                            ...notification.data,
+                            hasSigned: !!signature // Add hasSigned flag
+                        }
+                    };
+                }
+
+                return notification;
+            }));
+
+            return enrichedNotifications;
         } catch (error) {
             logger.error('Error fetching notifications', {
                 error: error.message,
                 stack: error.stack,
-                userId
+                userId,
+                walletId
             });
             throw error;
         }
@@ -325,13 +363,20 @@ class NotificationService {
     /**
      * Get unread notification count
      */
-    async getUnreadCount(userId) {
+    async getUnreadCount(userId, walletId = null) {
         try {
+            const where = {
+                userId: userId,
+                isRead: false
+            };
+
+            // 🔍 NEW: Filter by walletId if provided
+            if (walletId) {
+                where.walletId = walletId;
+            }
+
             const count = await prisma.notification.count({
-                where: {
-                    userId: userId,
-                    isRead: false
-                }
+                where
             });
 
             return count;
@@ -339,7 +384,8 @@ class NotificationService {
             logger.error('Error getting unread count', {
                 error: error.message,
                 stack: error.stack,
-                userId
+                userId,
+                walletId
             });
             throw error;
         }
