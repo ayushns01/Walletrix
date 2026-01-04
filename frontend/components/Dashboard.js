@@ -154,10 +154,33 @@ export default function Dashboard() {
           </h2>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-full border border-blue-400/30">
-              <TrendingUp className="w-5 h-5 text-blue-300" />
-              <span className="text-sm font-semibold text-blue-100">0.00%</span>
-            </div>
+            {(() => {
+              // Get price change based on selected network
+              let priceChange = 0;
+              if (isBitcoin && prices.bitcoin?.price_change_percentage_24h) {
+                priceChange = prices.bitcoin.price_change_percentage_24h;
+              } else if (isEthereum && prices.ethereum?.price_change_percentage_24h) {
+                priceChange = prices.ethereum.price_change_percentage_24h;
+              } else if (isSolana && prices.solana?.price_change_percentage_24h) {
+                priceChange = prices.solana.price_change_percentage_24h;
+              }
+
+              const isPositive = priceChange >= 0;
+              const changeColor = isPositive ? 'green' : 'red';
+
+              return (
+                <div className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-${changeColor}-500/20 to-${changeColor}-600/20 rounded-full border border-${changeColor}-400/30`}>
+                  {isPositive ? (
+                    <TrendingUp className={`w-5 h-5 text-${changeColor}-300`} />
+                  ) : (
+                    <TrendingDown className={`w-5 h-5 text-${changeColor}-300`} />
+                  )}
+                  <span className={`text-sm font-semibold text-${changeColor}-100`}>
+                    {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
+                  </span>
+                </div>
+              );
+            })()}
             <span className="text-sm text-blue-200/80">24h</span>
           </div>
         </div>
@@ -249,8 +272,8 @@ export default function Dashboard() {
               <div
                 key={index}
                 className={`flex items-center justify-between p-5 rounded-xl transition-all duration-300 ${hasBalance
-                    ? 'bg-gradient-to-r from-blue-900/40 to-black/50 hover:from-blue-800/50 hover:to-blue-900/40 cursor-pointer border border-blue-500/20 hover:border-blue-400/40 card-hover'
-                    : 'bg-gradient-to-r from-gray-800/30 to-gray-900/30 opacity-60 border border-gray-600/20'
+                  ? 'bg-gradient-to-r from-blue-900/40 to-black/50 hover:from-blue-800/50 hover:to-blue-900/40 cursor-pointer border border-blue-500/20 hover:border-blue-400/40 card-hover'
+                  : 'bg-gradient-to-r from-gray-800/30 to-gray-900/30 opacity-60 border border-gray-600/20'
                   }`}
               >
                 <div className="flex items-center gap-4">

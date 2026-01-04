@@ -210,70 +210,15 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         <label className="block text-sm font-medium text-gray-300 mb-3">
                             Network *
                         </label>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={() => handleNetworkChange('ethereum')}
-                                className={`p-4 rounded-lg border-2 transition-all ${(formData.network === 'ethereum' || formData.network === 'sepolia')
-                                    ? 'border-purple-500 bg-purple-500/10'
-                                    : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                                    }`}
-                            >
-                                <div className="text-left">
-                                    <div className="font-semibold text-white">Ethereum</div>
-                                    <div className="text-xs text-gray-400 mt-1">Gnosis Safe</div>
-                                    <div className="text-xs text-purple-400 mt-1">Multi-Sig Wallet</div>
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleNetworkChange('bitcoin')}
-                                className={`p-4 rounded-lg border-2 transition-all ${formData.network === 'bitcoin'
-                                    ? 'border-orange-500 bg-orange-500/10'
-                                    : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                                    }`}
-                            >
-                                <div className="text-left">
-                                    <div className="font-semibold text-white">Bitcoin</div>
-                                    <div className="text-xs text-gray-400 mt-1">P2WSH SegWit</div>
-                                    <div className="text-xs text-orange-400 mt-1">Multi-Sig Wallet</div>
-                                </div>
-                            </button>
+                        <div className="p-4 rounded-lg border-2 border-purple-500 bg-purple-500/10">
+                            <div className="text-left">
+                                <div className="font-semibold text-white">Ethereum</div>
+                                <div className="text-xs text-gray-400 mt-1">Gnosis Safe</div>
+                                <div className="text-xs text-purple-400 mt-1">Multi-Sig Wallet</div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Bitcoin Type Selection */}
-                    {formData.network === 'bitcoin' && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-3">
-                                Bitcoin Type
-                            </label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => handleInputChange('type', 'p2wsh')}
-                                    className={`p-3 rounded-lg border-2 transition-all ${formData.type === 'p2wsh'
-                                        ? 'border-purple-500 bg-purple-500/10'
-                                        : 'border-gray-700 bg-gray-800'
-                                        }`}
-                                >
-                                    <div className="text-sm font-medium text-white">P2WSH</div>
-                                    <div className="text-xs text-gray-400">SegWit (Lower fees)</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleInputChange('type', 'p2sh')}
-                                    className={`p-3 rounded-lg border-2 transition-all ${formData.type === 'p2sh'
-                                        ? 'border-purple-500 bg-purple-500/10'
-                                        : 'border-gray-700 bg-gray-800'
-                                        }`}
-                                >
-                                    <div className="text-sm font-medium text-white">P2SH</div>
-                                    <div className="text-xs text-gray-400">Legacy</div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Signers */}
                     <div>

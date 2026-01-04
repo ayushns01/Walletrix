@@ -313,7 +313,7 @@ export default function Home() {
               walletId={selectedMultiSigWallet.id}
               onBack={() => {
                 setSelectedMultiSigWallet(null);
-                setView('dashboard');
+                setView('multisig');
               }}
             />
           )}
@@ -430,29 +430,43 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 lg:py-8 pt-24 lg:pt-8">
         {/* Desktop Header */}
         <header className="hidden lg:flex items-center justify-between mb-10 glass-effect rounded-2xl p-6 border border-blue-500/20 shadow-xl relative" style={{ zIndex: 100 }}>
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="relative w-14 h-14">
-              {/* Rotating geometric frames */}
-              <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{ animationDuration: '8s' }} />
-              <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+          <div className="flex items-center gap-6">
+            {/* Back Button */}
+            <button
+              onClick={() => setView('welcome')}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="text-sm">Back</span>
+            </button>
 
-              {/* Center wallet icon */}
-              <div className="absolute inset-0 flex items-center justify-center z-10">
-                <svg className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-                </svg>
+            {/* Wallet Icon */}
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <div className="relative w-14 h-14">
+                {/* Rotating geometric frames */}
+                <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{ animationDuration: '8s' }} />
+                <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+
+                {/* Center wallet icon */}
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <svg className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                  </svg>
+                </div>
+
+                {/* Network nodes */}
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 group-hover:shadow-cyan-300/70 transition-shadow" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 group-hover:shadow-blue-300/70 transition-shadow" />
+
+                {/* Animated gradient glow */}
+                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 to-cyan-400/30 group-hover:from-cyan-400/40 group-hover:to-blue-400/40 transition-all" />
               </div>
-
-              {/* Network nodes */}
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 group-hover:shadow-cyan-300/70 transition-shadow" />
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 group-hover:shadow-blue-300/70 transition-shadow" />
-
-              {/* Animated gradient glow */}
-              <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 to-cyan-400/30 group-hover:from-cyan-400/40 group-hover:to-blue-400/40 transition-all" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</h1>
-              <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200 transition-colors">Multi-Chain Network</p>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</h1>
+                <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200 transition-colors">Multi-Chain Network</p>
+              </div>
             </div>
           </div>
 
