@@ -1,34 +1,19 @@
 import walletService from '../services/walletService.js';
-
-/**
- * Wallet Controller
- * Handles wallet-related HTTP requests
- */
+import logger from '../services/loggerService.js';
 
 class WalletController {
-  /**
-   * Generate new wallet
-   * POST /api/v1/wallet/generate
-   * Body: { passphrase?: string } - Optional BIP39 passphrase
-   */
   async generateWallet(req, res) {
     try {
       const { passphrase } = req.body;
-      
-      console.log('Generating wallet with passphrase:', !!passphrase);
       const result = walletService.generateNewWallet(passphrase);
-      console.log('Wallet generation result:', { success: result.success, hasAddresses: !!result.addresses });
-      
+
       if (!result.success) {
-        console.error('Wallet generation failed:', result.error);
         return res.status(400).json({
           success: false,
           error: result.error,
         });
       }
 
-      // Return wallet data for client-side encryption
-      // Private keys will be encrypted by client before storage
       res.status(200).json({
         success: true,
         message: 'Wallet generated successfully',
@@ -58,7 +43,7 @@ class WalletController {
         }
       });
     } catch (error) {
-      console.error('Error in generateWallet:', error);
+      logger.error('Wallet generation failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to generate wallet',
@@ -66,11 +51,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Import wallet from mnemonic
-   * POST /api/v1/wallet/import/mnemonic
-   * Body: { mnemonic: string, passphrase?: string }
-   */
   async importFromMnemonic(req, res) {
     try {
       const { mnemonic, passphrase } = req.body;
@@ -91,8 +71,6 @@ class WalletController {
         });
       }
 
-      // Return wallet data for client-side encryption
-      // Private keys will be encrypted by client before storage
       res.status(200).json({
         success: true,
         message: 'Wallet imported successfully',
@@ -113,7 +91,7 @@ class WalletController {
         },
       });
     } catch (error) {
-      console.error('Error in importFromMnemonic:', error);
+      logger.error('Mnemonic import failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to import wallet',
@@ -121,11 +99,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Import Ethereum wallet from private key
-   * POST /api/v1/wallet/import/private-key
-   * Body: { privateKey: string }
-   */
   async importFromPrivateKey(req, res) {
     try {
       const { privateKey } = req.body;
@@ -152,7 +125,7 @@ class WalletController {
         data: result.ethereum,
       });
     } catch (error) {
-      console.error('Error in importFromPrivateKey:', error);
+      logger.error('Private key import failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to import wallet',
@@ -160,11 +133,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Derive multiple accounts from mnemonic
-   * POST /api/v1/wallet/derive-accounts
-   * Body: { mnemonic: string, count?: number }
-   */
   async deriveAccounts(req, res) {
     try {
       const { mnemonic, count = 5 } = req.body;
@@ -198,7 +166,7 @@ class WalletController {
         data: result.accounts,
       });
     } catch (error) {
-      console.error('Error in deriveAccounts:', error);
+      logger.error('Account derivation failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to derive accounts',
@@ -206,14 +174,9 @@ class WalletController {
     }
   }
 
-  /**
-   * Validate address
-   * GET /api/v1/wallet/validate/:network/:address
-   */
   async validateAddress(req, res) {
     try {
       const { network, address } = req.params;
-
       let isValid = false;
 
       if (network === 'ethereum' || network === 'eth') {
@@ -234,7 +197,7 @@ class WalletController {
         isValid,
       });
     } catch (error) {
-      console.error('Error in validateAddress:', error);
+      logger.error('Address validation failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to validate address',
@@ -242,11 +205,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Encrypt data
-   * POST /api/v1/wallet/encrypt
-   * Body: { data: string, password: string }
-   */
   async encryptData(req, res) {
     try {
       const { data, password } = req.body;
@@ -265,7 +223,7 @@ class WalletController {
         encrypted,
       });
     } catch (error) {
-      console.error('Error in encryptData:', error);
+      logger.error('Data encryption failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to encrypt data',
@@ -273,11 +231,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Validate password strength
-   * POST /api/v1/wallet/validate-password
-   * Body: { password: string }
-   */
   async validatePasswordStrength(req, res) {
     try {
       const { password } = req.body;
@@ -296,7 +249,7 @@ class WalletController {
         validation,
       });
     } catch (error) {
-      console.error('Error in validatePasswordStrength:', error);
+      logger.error('Password validation failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to validate password',
@@ -304,11 +257,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Decrypt data
-   * POST /api/v1/wallet/decrypt
-   * Body: { encryptedData: string, password: string }
-   */
   async decryptData(req, res) {
     try {
       const { encryptedData, password } = req.body;
@@ -327,7 +275,7 @@ class WalletController {
         decrypted,
       });
     } catch (error) {
-      console.error('Error in decryptData:', error);
+      logger.error('Data decryption failed', { error: error.message });
       res.status(401).json({
         success: false,
         error: 'Failed to decrypt data. Invalid password or corrupted data.',
@@ -335,11 +283,6 @@ class WalletController {
     }
   }
 
-  /**
-   * Add Solana address to existing wallet
-   * POST /api/v1/wallet/migrate/add-solana
-   * Body: { mnemonic: string, passphrase?: string }
-   */
   async addSolanaToWallet(req, res) {
     try {
       const { mnemonic, passphrase } = req.body;
@@ -351,7 +294,6 @@ class WalletController {
         });
       }
 
-      // Re-import the wallet to get Solana address
       const result = walletService.importFromMnemonic(mnemonic.trim(), passphrase);
 
       if (!result.success) {
@@ -361,7 +303,6 @@ class WalletController {
         });
       }
 
-      // Return only the Solana address data
       res.status(200).json({
         success: true,
         message: 'Solana address generated successfully',
@@ -373,7 +314,7 @@ class WalletController {
         },
       });
     } catch (error) {
-      console.error('Error in addSolanaToWallet:', error);
+      logger.error('Solana address generation failed', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to generate Solana address',

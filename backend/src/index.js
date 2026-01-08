@@ -1,9 +1,6 @@
 import dotenv from 'dotenv';
-
-// Load environment variables FIRST before importing other modules
 dotenv.config();
 
-// Validate environment configuration before starting
 import { requireValidEnvironment } from './middleware/validateEnv.js';
 requireValidEnvironment();
 
@@ -34,37 +31,25 @@ import sessionCleanupJob from './jobs/sessionCleanup.js';
 import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
 
 const app = express();
-// Railway uses PORT, fallback to API_PORT or 3001
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
-// Trust proxy (required for rate limiting on Render)
 app.set('trust proxy', true);
 
-// Security middleware
 app.use(helmet());
-app.use(securityHeadersMiddleware.allSecurityHeaders); // Phase 1: Enhanced security headers
+app.use(securityHeadersMiddleware.allSecurityHeaders);
 
-// CORS configuration - Allow all localhost origins in development
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log(`CORS check - Origin: ${origin}, NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS}`);
-
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // In development, allow all localhost origins
     if (process.env.NODE_ENV !== 'production') {
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         return callback(null, true);
       }
     }
 
-    // In production, check against whitelist and allow Vercel preview deployments
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
-    console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
 
-    // Allow main production URL and Vercel preview deployments
     const isAllowedOrigin = allowedOrigins.indexOf(origin) !== -1 ||
       origin.includes('walletrix.vercel.app') ||
       origin.includes('walletrix-git-') ||
@@ -73,7 +58,7 @@ const corsOptions = {
     if (isAllowedOrigin) {
       callback(null, true);
     } else {
-      console.log(`CORS blocked origin: ${origin}, allowed: ${allowedOrigins.join(', ')}`);
+      logger.warn('CORS blocked origin', { origin, allowedOrigins });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -83,28 +68,18 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Global rate limiting (fallback)
 app.use(rateLimiters.global);
-
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Compression middleware
 app.use(compression());
-
-// Monitoring and metrics
 app.use(requestLogger);
 app.use(metricsCollector);
 
-// HTTP logging with winston
 if (process.env.NODE_ENV !== 'test') {
   const morgan = (await import('morgan')).default;
   app.use(morgan('combined', { stream: morganStream }));
 }
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
     name: 'Walletrix API',
@@ -118,30 +93,22 @@ app.get('/', (req, res) => {
       docs: '/api/docs',
       metrics: process.env.NODE_ENV === 'development' ? '/metrics' : 'disabled',
     },
-    database: {
-      connected: true,
-      port: 5431,
-    },
     timestamp: new Date().toISOString(),
   });
 });
 
-// Health check endpoint with detailed monitoring
 app.get('/health', (req, res) => {
   res.status(200).json(getHealthStatus());
 });
 
-// API Documentation - Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerConfig));
 
-// Metrics endpoint (development only for security)
 if (process.env.NODE_ENV === 'development') {
   app.get('/metrics', (req, res) => {
     res.status(200).json(getMetrics());
   });
 }
 
-// API routes
 app.get('/api/v1', (req, res) => {
   res.status(200).json({
     message: 'Walletrix API v1.0.0',
@@ -179,7 +146,6 @@ app.get('/api/v1', (req, res) => {
         trending: 'GET /api/v1/prices/list/trending',
         topCoins: 'GET /api/v1/prices/list/top',
       },
-
       backup: {
         createBackup: 'POST /api/v1/wallet-backup/:walletId/backup',
         importBackup: 'POST /api/v1/wallet-backup/import',
@@ -192,7 +158,6 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
-// Use all routes with specific rate limiters
 app.use('/api/v1/auth', rateLimiters.auth, authRoutes);
 app.use('/api/v1/wallet', rateLimiters.walletGeneration, walletRoutes);
 app.use('/api/v1/wallets', rateLimiters.databaseWallet, databaseWalletRoutes);
@@ -201,29 +166,21 @@ app.use('/api/v1/tokens', rateLimiters.tokenQuery, tokenRoutes);
 app.use('/api/v1/prices', rateLimiters.priceData, priceRoutes);
 app.use('/api/v1/address-book', rateLimiters.global, addressBookRoutes);
 
-// Import wallet backup routes
 const walletBackupRoutes = await import('./routes/walletBackupRoutes.js');
 app.use('/api/v1/wallet-backup', rateLimiters.backup, walletBackupRoutes.default);
 
-// Import BIP-85 routes (Phase 1)
 const bip85Routes = await import('./routes/bip85Routes.js');
 app.use('/api/v1/wallet/bip85', rateLimiters.walletGeneration, bip85Routes.default);
 
-// Import Multi-Sig routes (Phase 1)
 const multiSigRoutes = await import('./routes/multiSigRoutes.js');
 app.use('/api/v1/wallet/multisig', rateLimiters.walletGeneration, multiSigRoutes.default);
 
-// Import Notification routes
 const notificationRoutes = await import('./routes/notificationRoutes.js');
 app.use('/api/v1/notifications', rateLimiters.global, notificationRoutes.default);
 
-// 404 handler - must be after all routes
 app.use(notFoundHandler);
-
-// Global error handler - must be last
 app.use(errorHandler);
 
-// Start server (only in non-serverless environments)
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, async () => {
     logger.info('Server started', {
@@ -232,25 +189,10 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
       nodeVersion: process.version,
     });
 
-    console.log(`\n🚀 Walletrix API server running!`);
-    console.log(`📡 Port: ${PORT}`);
-    console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔗 API: http://localhost:${PORT}/api/v1`);
-    console.log(`📚 API Docs: http://localhost:${PORT}/api/docs`);
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 Metrics: http://localhost:${PORT}/metrics`);
-    }
-    console.log('');
-
-    // Start periodic metrics logging (every hour)
     startMetricsLogging(60);
-
-    // Start session cleanup job
     sessionCleanupJob.start();
     logger.info('Session cleanup job started');
 
-    // Resume transaction monitoring for pending transactions
     try {
       const { resumeMonitoring } = await import('./services/transactionMonitorService.js');
       await resumeMonitoring();

@@ -1,67 +1,45 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
-
-/**
- * Blockchain Service for Ethereum
- * Handles Ethereum blockchain interactions
- */
+import logger from './loggerService.js';
 
 class EthereumService {
   constructor() {
-    // Initialize providers as null - they'll be created lazily
     this.providers = {
-      // Ethereum networks
       mainnet: null,
       sepolia: null,
-      
-      // Polygon networks
       'polygon-mainnet': null,
       'polygon-mumbai': null,
     };
-    
-    // Network configurations
+
     this.networkConfigs = {
-      // Ethereum networks
       mainnet: { rpc: process.env.ETHEREUM_MAINNET_RPC || 'https://ethereum.publicnode.com', chainId: 1 },
       sepolia: { rpc: process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com', chainId: 11155111 },
-      
-      // Polygon networks
       'polygon-mainnet': { rpc: process.env.POLYGON_MAINNET_RPC || 'https://polygon-rpc.com', chainId: 137 },
       'polygon-mumbai': { rpc: process.env.POLYGON_MUMBAI_RPC || 'https://rpc-mumbai.maticvigil.com', chainId: 80001 },
     };
-    
+
     this._initialized = false;
   }
 
-  /**
-   * Initialize RPC providers (called lazily)
-   */
   initializeProviders() {
     if (this._initialized) return;
-    
+
     try {
-      // Initialize all providers
       Object.keys(this.networkConfigs).forEach(network => {
         const config = this.networkConfigs[network];
         this.providers[network] = new ethers.JsonRpcProvider(config.rpc);
       });
 
-      console.log('✅ Multi-network providers initialized');
-      console.log('🔗 Supported networks:', Object.keys(this.networkConfigs).join(', '));
-      
+      logger.info('Multi-network providers initialized', { networks: Object.keys(this.networkConfigs) });
       this._initialized = true;
     } catch (error) {
-      console.error('Error initializing providers:', error);
+      logger.error('Error initializing providers', { error: error.message });
     }
   }
 
-  /**
-   * Get provider for specific network
-   */
   getProvider(network = 'mainnet') {
     this.initializeProviders();
-    
-    // Handle network mapping for different naming conventions
+
     const networkMap = {
       'ethereum-mainnet': 'mainnet',
       'ethereum-sepolia': 'sepolia',
@@ -80,24 +58,18 @@ class EthereumService {
       'base-mainnet': 'base-mainnet',
       'base-goerli': 'base-goerli',
     };
-    
+
     const mappedNetwork = networkMap[network] || network;
     const provider = this.providers[mappedNetwork];
-    
+
     if (!provider) {
-      console.warn(`Provider not found for network: ${network}, falling back to mainnet`);
+      logger.warn('Provider not found, falling back to mainnet', { network });
       return this.providers.mainnet;
     }
-    
+
     return provider;
   }
 
-  /**
-   * Get ETH balance for an address
-   * @param {string} address - Ethereum address
-   * @param {string} network - Network name (mainnet, sepolia, goerli)
-   * @returns {Object} - Balance information
-   */
   async getBalance(address, network = 'mainnet') {
     try {
       if (!ethers.isAddress(address)) {
@@ -118,7 +90,7 @@ class EthereumService {
         },
       };
     } catch (error) {
-      console.error('Error getting ETH balance:', error);
+      logger.error('Error getting ETH balance', { error: error.message, address, network });
       return {
         success: false,
         error: error.message,
@@ -126,21 +98,18 @@ class EthereumService {
     }
   }
 
-  /**
-   * Get transaction count (nonce) for an address
-   */
   async getTransactionCount(address, network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
       const count = await provider.getTransactionCount(address);
-      
+
       return {
         success: true,
         address,
         transactionCount: count,
       };
     } catch (error) {
-      console.error('Error getting transaction count:', error);
+      logger.error('Error getting transaction count', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -148,9 +117,6 @@ class EthereumService {
     }
   }
 
-  /**
-   * Get current gas price
-   */
   async getGasPrice(network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
@@ -166,7 +132,7 @@ class EthereumService {
         },
       };
     } catch (error) {
-      console.error('Error getting gas price:', error);
+      logger.error('Error getting gas price', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -174,14 +140,11 @@ class EthereumService {
     }
   }
 
-  /**
-   * Get transaction by hash
-   */
   async getTransaction(txHash, network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
       const tx = await provider.getTransaction(txHash);
-      
+
       if (!tx) {
         throw new Error('Transaction not found');
       }
@@ -204,7 +167,7 @@ class EthereumService {
         },
       };
     } catch (error) {
-      console.error('Error getting transaction:', error);
+      logger.error('Error getting transaction', { error: error.message, txHash });
       return {
         success: false,
         error: error.message,
@@ -212,9 +175,6 @@ class EthereumService {
     }
   }
 
-  /**
-   * Get transaction history for an address using Etherscan API
-   */
   async getTransactionHistory(address, network = 'mainnet') {
     try {
       if (!ethers.isAddress(address)) {
@@ -223,7 +183,7 @@ class EthereumService {
 
       const apiKey = process.env.ETHERSCAN_API_KEY;
       if (!apiKey) {
-        console.warn('⚠️  Etherscan API key not configured. Transaction history unavailable.');
+        logger.warn('Etherscan API key not configured');
         return {
           success: true,
           address,
@@ -234,33 +194,19 @@ class EthereumService {
         };
       }
 
-      // Use unified Etherscan V2 API endpoint with chainid parameter
-      // This replaces the old per-explorer URLs (polygonscan, bscscan, etc.)
       const v2BaseUrl = 'https://api.etherscan.io/v2/api';
       const networkConfig = this.networkConfigs[network] || this.networkConfigs.mainnet;
       const chainId = networkConfig.chainId;
-      
+
       const url = `${v2BaseUrl}?chainid=${chainId}&module=account&action=txlist&address=${address}&page=1&offset=50&sort=desc&apikey=${apiKey}`;
 
       const response = await axios.get(url);
-      
-      console.log('Etherscan V2 API response:', {
-        status: response.data.status,
-        message: response.data.message,
-        resultType: typeof response.data.result,
-        isArray: Array.isArray(response.data.result),
-        network,
-        chainId
-      });
-      
-      // Handle both successful responses and graceful error cases
+
       if (response.data.status !== '1' && response.data.status !== 1) {
         const errorMessage = response.data.message || 'Failed to fetch transactions';
-        console.warn('Etherscan V2 API non-success status:', errorMessage);
-        
-        // If we still got transaction data despite status, process it
+
         if (Array.isArray(response.data.result) && response.data.result.length > 0) {
-          console.log('Processing transactions despite non-success status');
+          // Process transactions despite non-success status
         } else {
           return {
             success: true,
@@ -275,7 +221,6 @@ class EthereumService {
 
       const rawTransactions = response.data.result || [];
       if (!Array.isArray(rawTransactions)) {
-        console.warn('Unexpected V2 response format, result is not array:', typeof rawTransactions);
         return {
           success: true,
           address,
@@ -306,7 +251,7 @@ class EthereumService {
         count: transactions.length,
       };
     } catch (error) {
-      console.error('Error getting transaction history:', error);
+      logger.error('Error getting transaction history', { error: error.message, address });
       return {
         success: false,
         error: error.message,
@@ -314,13 +259,10 @@ class EthereumService {
     }
   }
 
-  /**
-   * Estimate gas for a transaction
-   */
   async estimateGas(from, to, value, network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
-      
+
       const gasEstimate = await provider.estimateGas({
         from,
         to,
@@ -336,7 +278,7 @@ class EthereumService {
         estimatedCost: ethers.formatEther(gasEstimate * (feeData.gasPrice || 0n)),
       };
     } catch (error) {
-      console.error('Error estimating gas:', error);
+      logger.error('Error estimating gas', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -344,21 +286,18 @@ class EthereumService {
     }
   }
 
-  /**
-   * Get current block number
-   */
   async getBlockNumber(network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
       const blockNumber = await provider.getBlockNumber();
-      
+
       return {
         success: true,
         network,
         blockNumber,
       };
     } catch (error) {
-      console.error('Error getting block number:', error);
+      logger.error('Error getting block number', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -366,21 +305,18 @@ class EthereumService {
     }
   }
 
-  /**
-   * Send raw signed transaction
-   */
   async sendTransaction(signedTx, network = 'mainnet') {
     try {
       const provider = this.getProvider(network);
       const tx = await provider.broadcastTransaction(signedTx);
-      
+
       return {
         success: true,
         txHash: tx.hash,
         message: 'Transaction broadcast successfully',
       };
     } catch (error) {
-      console.error('Error sending transaction:', error);
+      logger.error('Error sending transaction', { error: error.message });
       return {
         success: false,
         error: error.message,

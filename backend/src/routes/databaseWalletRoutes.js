@@ -1,12 +1,10 @@
 import express from 'express';
 import databaseWalletService from '../services/databaseWalletService.js';
 import { authenticateClerk, optionalAuthClerk, verifyWalletAccess } from '../middleware/clerkAuth.js';
+import logger from '../services/loggerService.js';
 
 const router = express.Router();
 
-/**
- * Get user's wallets
- */
 router.get('/', authenticateClerk, async (req, res) => {
   try {
     const userId = req.userId;
@@ -21,7 +19,7 @@ router.get('/', authenticateClerk, async (req, res) => {
       wallets: result.wallets
     });
   } catch (error) {
-    console.error('Get wallets error:', error);
+    logger.error('Get wallets error', { error: error.message, userId: req.userId });
     res.status(500).json({
       success: false,
       error: 'Failed to get wallets'
@@ -29,9 +27,6 @@ router.get('/', authenticateClerk, async (req, res) => {
   }
 });
 
-/**
- * Create new wallet
- */
 router.post('/', authenticateClerk, async (req, res) => {
   try {
     const { name, encryptedData, addresses, description } = req.body;
@@ -45,10 +40,10 @@ router.post('/', authenticateClerk, async (req, res) => {
     }
 
     const result = await databaseWalletService.createWallet(
-      userId, 
-      name, 
-      encryptedData, 
-      addresses, 
+      userId,
+      name,
+      encryptedData,
+      addresses,
       description
     );
 
@@ -62,7 +57,7 @@ router.post('/', authenticateClerk, async (req, res) => {
       wallet: result.wallet
     });
   } catch (error) {
-    console.error('Create wallet error:', error);
+    logger.error('Create wallet error', { error: error.message, userId: req.userId });
     res.status(500).json({
       success: false,
       error: 'Failed to create wallet'
@@ -70,9 +65,6 @@ router.post('/', authenticateClerk, async (req, res) => {
   }
 });
 
-/**
- * Get specific wallet
- */
 router.get('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
@@ -89,7 +81,7 @@ router.get('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res)
       wallet: result.wallet
     });
   } catch (error) {
-    console.error('Get wallet error:', error);
+    logger.error('Get wallet error', { error: error.message, walletId: req.params.walletId });
     res.status(500).json({
       success: false,
       error: 'Failed to get wallet'
@@ -97,16 +89,12 @@ router.get('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res)
   }
 });
 
-/**
- * Update wallet
- */
 router.put('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
     const userId = req.userId;
     const updates = req.body;
 
-    // Don't allow updating sensitive fields
     delete updates.id;
     delete updates.userId;
     delete updates.encryptedData;
@@ -124,7 +112,7 @@ router.put('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res)
       wallet: result.wallet
     });
   } catch (error) {
-    console.error('Update wallet error:', error);
+    logger.error('Update wallet error', { error: error.message, walletId: req.params.walletId });
     res.status(500).json({
       success: false,
       error: 'Failed to update wallet'
@@ -132,9 +120,6 @@ router.put('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res)
   }
 });
 
-/**
- * Delete wallet
- */
 router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, res) => {
   try {
     const { walletId } = req.params;
@@ -142,14 +127,9 @@ router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, r
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('user-agent');
 
-    console.log('Delete wallet request:', { walletId, userId, ipAddress });
-
     const result = await databaseWalletService.deleteWallet(walletId, userId, ipAddress, userAgent);
 
-    console.log('Delete wallet result:', result);
-
     if (!result.success) {
-      console.error('Delete wallet failed:', result.error);
       return res.status(400).json(result);
     }
 
@@ -158,7 +138,7 @@ router.delete('/:walletId', authenticateClerk, verifyWalletAccess, async (req, r
       message: 'Wallet deleted successfully'
     });
   } catch (error) {
-    console.error('Delete wallet error:', error);
+    logger.error('Delete wallet error', { error: error.message, walletId: req.params.walletId });
     res.status(500).json({
       success: false,
       error: 'Failed to delete wallet'
