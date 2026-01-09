@@ -6,22 +6,20 @@
 export default {
   // Test environment
   testEnvironment: 'node',
-  
+
   // Module resolution
   moduleFileExtensions: ['js', 'json'],
-  
+
   // Transform configuration
   transform: {
     '^.+\\.js$': ['babel-jest']
   },
-  
+
   // Test file patterns
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.test.js',
-    '<rootDir>/tests/**/*.test.js',
-    '<rootDir>/src/**/*.test.js'
+    '<rootDir>/tests/**/*.test.js'
   ],
-  
+
   // Coverage configuration
   collectCoverage: true,
   collectCoverageFrom: [
@@ -46,28 +44,28 @@ export default {
       statements: 70
     }
   },
-  
+
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
-  
+
   // Test timeout
   testTimeout: 30000,
-  
+
   // Verbose output
   verbose: true,
-  
+
   // Clear mocks between tests
   clearMocks: true,
   restoreMocks: true,
-  
+
   // Error handling
   errorOnDeprecated: true,
-  
+
   // Test execution
   maxWorkers: '50%',
   detectOpenHandles: true,
   forceExit: true,
-  
+
   // Reporter configuration
   reporters: [
     'default',

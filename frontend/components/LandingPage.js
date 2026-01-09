@@ -25,7 +25,7 @@ export default function LandingPage({ onGetStarted }) {
   const features = [
     {
       icon: Shield,
-      title: 'Bank-Grade Security',
+      title: 'Advanced Security',
       description: 'Your keys, your crypto. Full control with industry-leading encryption standards.'
     },
     {
@@ -441,160 +441,125 @@ export default function LandingPage({ onGetStarted }) {
 
       {/* Security Section */}
       <section id="security" className="py-20 px-4">
-        <div className="container mx-auto max-w-7xl">
+        <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="gradient-text">Enterprise-Grade Security</span>
+              <span className="gradient-text">Advanced Security</span>
             </h2>
-            <p className="text-blue-100/70 text-lg max-w-3xl mx-auto">
-              Your assets are protected by military-grade encryption and industry-leading security practices.
-              We never store your private keys—you maintain complete control.
+            <p className="text-blue-100/70 text-lg max-w-2xl mx-auto">
+              Your keys never leave your device. Protected by cryptographic standards used by Fortune 500 companies.
             </p>
           </div>
 
-          {/* Security Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          {/* Hero Security Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
             {[
-              { value: 'Argon2id', label: 'Password Hashing (PHC Winner)', icon: Shield },
-              { value: '256-bit', label: 'AES-GCM Encryption', icon: Lock },
-              { value: '3-of-5', label: 'Shamir Secret Sharing', icon: Key },
-              { value: '100%', label: 'Non-Custodial', icon: Wallet }
-            ].map((stat, i) => {
-              const IconComponent = stat.icon;
-              return (
-                <div
-                  key={i}
-                  className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 hover:-translate-y-1 text-center group animate-scale-in"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <IconComponent className="w-8 h-8 text-blue-400 mx-auto mb-3 group-hover:text-cyan-400 transition-colors" />
-                  <div className="text-2xl font-bold gradient-text mb-1">{stat.value}</div>
-                  <div className="text-blue-200/70 text-xs">{stat.label}</div>
-                </div>
-              );
-            })}
+              { value: '256-bit', label: 'AES-GCM Encryption', sublabel: 'Military-grade' },
+              { value: '600K', label: 'PBKDF2 Iterations', sublabel: 'OWASP 2024 standard' },
+              { value: '64 MB', label: 'Argon2id Memory', sublabel: 'GPU-resistant' },
+              { value: '100%', label: 'Non-Custodial', sublabel: 'Your keys only' }
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-green-400/50 transition-all duration-300 hover:scale-105 text-center group animate-scale-in"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div className="text-3xl font-bold text-green-400 mb-1">{stat.value}</div>
+                <div className="text-blue-100 text-sm font-medium">{stat.label}</div>
+                <div className="text-blue-300/50 text-xs mt-1">{stat.sublabel}</div>
+              </div>
+            ))}
           </div>
 
-          {/* Security Features Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'Advanced Cryptography',
-                icon: Lock,
-                features: [
-                  'Argon2id password hashing (PHC winner)',
-                  'Shamir\'s Secret Sharing (3-of-5)',
-                  'BIP-85 deterministic entropy',
-                  'Multi-signature wallets (Bitcoin + Ethereum)'
-                ]
-              },
-              {
-                title: 'Encryption & Key Management',
-                icon: Key,
-                features: [
-                  'AES-256-GCM authenticated encryption',
-                  'PBKDF2-SHA256 (600k iterations)',
-                  'Zero-knowledge architecture',
-                  'Client-side wallet encryption'
-                ]
-              },
-              {
-                title: 'Authentication & Sessions',
-                icon: Shield,
-                features: [
-                  'JWT tokens with rotation',
-                  'Max 5 concurrent sessions',
-                  '2FA (TOTP, SMS, Email)',
-                  'Session blacklisting'
-                ]
-              },
-              {
-                title: 'Transaction Security',
-                icon: Shield,
-                features: [
-                  'Pre-transaction simulation',
-                  'Address reputation checking',
-                  'Anomaly detection',
-                  'Gas estimation & validation'
-                ]
-              },
-              {
-                title: 'API & Network Security',
-                icon: Shield,
-                features: [
-                  'Granular rate limiting (5-120 req/min)',
-                  'Security headers (CSP, HSTS)',
-                  'Input validation & sanitization',
-                  'CORS protection'
-                ]
-              },
-              {
-                title: 'Privacy & Zero-Knowledge',
-                icon: Shield,
-                features: [
-                  'zk-SNARKs for private balance proofs',
-                  'Stealth addresses (one-time payments)',
-                  'Pedersen commitments',
-                  'ECDH key exchange privacy'
-                ]
-              },
-              {
-                title: 'Monitoring & Logging',
-                icon: Shield,
-                features: [
-                  'Winston daily log rotation',
-                  'Security event tracking',
-                  'Activity monitoring',
-                  'Auto-lock on inactivity (30s)'
-                ]
-              }
-            ].map((category, i) => {
-              const IconComponent = category.icon;
-              return (
-                <div
-                  key={i}
-                  className="glass-effect rounded-2xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 card-hover group animate-fade-in"
-                  style={{ animationDelay: `${0.2 + i * 0.1}s` }}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="relative">
-                      <IconComponent className="w-8 h-8 text-blue-400 group-hover:text-cyan-400 transition-colors" />
-                      <div className="absolute inset-0 blur-xl bg-blue-400/20 group-hover:bg-cyan-400/30 transition-all" />
-                    </div>
-                    <h3 className="text-lg font-bold text-blue-50">{category.title}</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {category.features.map((feature, j) => (
-                      <div key={j} className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                        <span className="text-blue-100/80 text-sm leading-relaxed">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
+          {/* 4 Core Security Features */}
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            {/* Argon2id */}
+            <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                  <Shield className="w-7 h-7 text-white" />
                 </div>
-              );
-            })}
+                <div>
+                  <h3 className="text-xl font-bold text-white">Argon2id Password Hashing</h3>
+                  <span className="text-xs text-green-400 font-medium">🏆 Password Hashing Competition Winner</span>
+                </div>
+              </div>
+              <p className="text-blue-200/80 text-sm leading-relaxed">
+                The same algorithm protecting government systems. 64MB memory cost makes GPU/ASIC brute-force attacks economically infeasible.
+              </p>
+            </div>
+
+            {/* Shamir Secret Sharing */}
+            <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                  <Key className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Shamir's Secret Sharing</h3>
+                  <span className="text-xs text-cyan-400 font-medium">Social Recovery System</span>
+                </div>
+              </div>
+              <p className="text-blue-200/80 text-sm leading-relaxed">
+                Split your seed phrase into 5 parts, need any 3 to recover. Even if 2 guardians are compromised, your funds stay safe.
+              </p>
+            </div>
+
+            {/* Zero-Knowledge Proofs */}
+            <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                  <Lock className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Zero-Knowledge Proofs</h3>
+                  <span className="text-xs text-emerald-400 font-medium">Groth16 zk-SNARKs</span>
+                </div>
+              </div>
+              <p className="text-blue-200/80 text-sm leading-relaxed">
+                Prove you have sufficient balance without revealing the amount. Privacy-preserving cryptography for the modern age.
+              </p>
+            </div>
+
+            {/* Multi-Signature */}
+            <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Multi-Signature Wallets</h3>
+                  <span className="text-xs text-orange-400 font-medium">Bitcoin P2WSH + Ethereum Gnosis Safe</span>
+                </div>
+              </div>
+              <p className="text-blue-200/80 text-sm leading-relaxed">
+                Require 2-of-3 or 3-of-5 signatures for transactions. Enterprise-grade security for teams and high-value accounts.
+              </p>
+            </div>
           </div>
 
-          {/* Security Badge */}
-          <div className="mt-12 text-center">
-            <div className="inline-block glass-effect rounded-2xl px-8 py-6 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 hover:scale-105 group">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Shield className="w-12 h-12 text-green-400 group-hover:text-green-300 transition-colors" />
-                  <div className="absolute inset-0 blur-xl bg-green-400/30 group-hover:bg-green-300/40 transition-all" />
-                </div>
-                <div className="text-left">
-                  <div className="text-xl font-bold text-blue-50 mb-1">Security Audited</div>
-                  <div className="text-sm text-blue-300/70">Industry-standard security practices implemented</div>
-                </div>
+          {/* Trust Badge */}
+          <div className="text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-4 md:gap-6 glass-effect rounded-2xl px-6 md:px-8 py-5 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 group">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-green-400 font-medium text-sm">12 Rate Limiters</span>
+              </div>
+              <div className="hidden md:block w-px h-5 bg-blue-500/30" />
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-green-400 font-medium text-sm">15+ Security Headers</span>
+              </div>
+              <div className="hidden md:block w-px h-5 bg-blue-500/30" />
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-green-400 font-medium text-sm">2FA + Session Control</span>
               </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-20 px-4">
