@@ -13,35 +13,50 @@ export default function RootLayout({ children }) {
         baseTheme: 'dark',
         variables: {
           colorPrimary: '#3b82f6',
-          colorBackground: '#0a1628',
+          colorBackground: '#0f172a',
           colorInputBackground: '#1e293b',
-          colorInputText: '#e0f2fe',
-          colorText: '#e0f2fe',
+          colorInputText: '#f1f5f9',
+          colorText: '#f8fafc',
           colorTextSecondary: '#93c5fd',
-          colorDanger: '#ef4444',
-          colorSuccess: '#10b981',
-          colorWarning: '#f59e0b',
+          colorDanger: '#f43f5e',
+          colorSuccess: '#22c55e',
+          colorWarning: '#eab308',
           borderRadius: '0.75rem',
+          fontFamily: 'inherit',
         },
         elements: {
-          formButtonPrimary: 
-            'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 shadow-lg shadow-blue-500/30 transition-all duration-300',
-          card: 'glass-effect border border-blue-500/30 shadow-2xl shadow-blue-500/20',
-          headerTitle: 'gradient-text',
-          headerSubtitle: 'text-blue-300',
-          socialButtonsBlockButton: 
-            'border-2 border-white/60 bg-white/10 hover:border-white/80 hover:bg-white/20 transition-all duration-300 text-white !important',
-          socialButtonsBlockButtonText: 'font-medium text-white',
+          rootBox: 'font-sans',
+          modalBackdrop: 'backdrop-blur-lg bg-black/70',
+          modalContent: 'animate-in fade-in zoom-in-95 duration-200',
+          card: 'bg-gradient-to-b from-slate-800 to-slate-900 border border-blue-400/40 shadow-2xl shadow-blue-600/30 rounded-2xl',
+          formButtonPrimary:
+            'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 shadow-lg shadow-blue-500/40 transition-all duration-300 font-semibold text-white py-3',
+          headerTitle: 'text-white font-bold text-2xl',
+          headerSubtitle: 'text-slate-300 text-base',
+          socialButtonsBlockButton:
+            'border-2 border-slate-500 bg-slate-700/60 hover:border-blue-400 hover:bg-slate-600/80 transition-all duration-300 text-white font-medium py-3',
+          socialButtonsBlockButtonText: 'font-semibold text-white text-base',
           socialButtonsProviderIcon__apple: 'brightness-0 invert',
-          socialButtonsIconButton: 
-            'border-2 border-white/60 bg-white/10 hover:border-white/80 hover:bg-white/20 transition-all duration-300',
-          socialButtonsIconButton__apple: 
-            'border-2 border-white/60 bg-white/10 hover:border-white/80 hover:bg-white/20',
-          socialButtonsIconButton__microsoft: 
-            'border-2 border-white/60 bg-white/10 hover:border-white/80 hover:bg-white/20',
-          formFieldInput: 
-            'border-blue-500/30 focus:border-blue-400/60 bg-blue-900/20 text-blue-100',
-          footerActionLink: 'text-blue-400 hover:text-blue-300',
+          socialButtonsProviderIcon__google: '',
+          socialButtonsIconButton:
+            'border-2 border-slate-500 bg-slate-700/60 hover:border-blue-400 hover:bg-slate-600/80 transition-all duration-300',
+          dividerLine: 'bg-slate-600',
+          dividerText: 'text-slate-400 font-medium',
+          formFieldLabel: 'text-slate-200 font-semibold mb-1',
+          formFieldInput:
+            'border-2 border-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 bg-slate-700/80 text-white placeholder:text-slate-400 py-3 rounded-lg',
+          footerActionLink: 'text-blue-400 hover:text-blue-300 font-semibold underline-offset-2',
+          identityPreviewText: 'text-slate-200',
+          identityPreviewEditButton: 'text-blue-400 hover:text-blue-300 font-medium',
+          formFieldAction: 'text-blue-400 hover:text-blue-300 font-medium',
+          alertText: 'text-slate-200',
+          formFieldInputShowPasswordButton: 'text-slate-400 hover:text-blue-400',
+          otpCodeFieldInput: 'border-2 border-slate-500 bg-slate-700/80 text-white text-xl font-bold',
+          userButtonPopoverCard: 'bg-slate-800 border border-blue-400/30 shadow-xl',
+          userButtonPopoverActionButton: 'hover:bg-blue-500/20 text-slate-200',
+          userButtonPopoverActionButtonText: 'text-slate-200 font-medium',
+          userButtonPopoverFooter: 'border-t border-slate-600',
+          userButtonAvatarBox: 'ring-2 ring-blue-400/50',
         },
       }}
     >

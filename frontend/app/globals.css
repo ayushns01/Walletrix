@@ -16,14 +16,12 @@ body {
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      135deg,
+  background: linear-gradient(135deg,
       #000000 0%,
       #0f172a 25%,
       #1e293b 50%,
       #0c4a6e 75%,
-      #000000 100%
-    );
+      #000000 100%);
   min-height: 100vh;
   background-attachment: fixed;
 }
@@ -62,16 +60,19 @@ body {
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 
+  box-shadow:
     0 8px 32px 0 rgba(59, 130, 246, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Animated blue glow */
 @keyframes blueGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
   }
@@ -92,9 +93,12 @@ body {
 }
 
 @keyframes gradientShift {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
@@ -122,6 +126,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -145,9 +150,12 @@ body {
 
 /* Pulse effect */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -162,6 +170,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -177,6 +186,7 @@ body {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -189,7 +199,7 @@ body {
 
 /* Button hover effects */
 .btn-glow:hover {
-  box-shadow: 
+  box-shadow:
     0 0 20px rgba(59, 130, 246, 0.4),
     0 0 40px rgba(59, 130, 246, 0.2),
     0 0 60px rgba(59, 130, 246, 0.1);
@@ -200,7 +210,7 @@ body {
 /* Card hover effects */
 .card-hover:hover {
   transform: translateY(-5px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(59, 130, 246, 0.3),
     0 0 0 1px rgba(59, 130, 246, 0.4);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -208,9 +218,12 @@ body {
 
 /* Loading animation */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -220,6 +233,7 @@ body {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   background: linear-gradient(135deg, #1e40af, #3b82f6);
 }
+
 /* Animated Background - Stars and Clouds */
 .animated-bg {
   position: fixed;
@@ -262,16 +276,39 @@ body {
 }
 
 @keyframes star-float {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(20px, -15px); }
-  50% { transform: translate(-15px, 20px); }
-  75% { transform: translate(15px, 10px); }
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(20px, -15px);
+  }
+
+  50% {
+    transform: translate(-15px, 20px);
+  }
+
+  75% {
+    transform: translate(15px, 10px);
+  }
 }
 
 @keyframes star-drift {
-  0%, 100% { transform: translate(0, 0); }
-  33% { transform: translate(-12px, 15px); }
-  66% { transform: translate(15px, -12px); }
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  33% {
+    transform: translate(-12px, 15px);
+  }
+
+  66% {
+    transform: translate(15px, -12px);
+  }
 }
 
 /* Nebula clouds */
@@ -284,10 +321,23 @@ body {
 }
 
 @keyframes nebula-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(50px, -60px) scale(1.1); }
-  50% { transform: translate(-45px, 55px) scale(0.9); }
-  75% { transform: translate(60px, 30px) scale(1.05); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(50px, -60px) scale(1.1);
+  }
+
+  50% {
+    transform: translate(-45px, 55px) scale(0.9);
+  }
+
+  75% {
+    transform: translate(60px, 30px) scale(1.05);
+  }
 }
 
 /* Galaxy spirals */
@@ -300,14 +350,29 @@ body {
 }
 
 @keyframes galaxy-rotate {
-  from { transform: rotate(0deg) translate(0, 0); }
-  to { transform: rotate(360deg) translate(0, 0); }
+  from {
+    transform: rotate(0deg) translate(0, 0);
+  }
+
+  to {
+    transform: rotate(360deg) translate(0, 0);
+  }
 }
 
 @keyframes galaxy-drift {
-  0%, 100% { transform: translate(0, 0); }
-  33% { transform: translate(20px, -30px); }
-  66% { transform: translate(-30px, 20px); }
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  33% {
+    transform: translate(20px, -30px);
+  }
+
+  66% {
+    transform: translate(-30px, 20px);
+  }
 }
 
 .cloud {
@@ -322,13 +387,17 @@ body {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100vw);
   }
 }
 
 /* Smooth transitions for all interactive elements */
-button, a, input, .card-hover {
+button,
+a,
+input,
+.card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -344,6 +413,7 @@ button, a, input, .card-hover {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -360,6 +430,7 @@ button, a, input, .card-hover {
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -372,9 +443,12 @@ button, a, input, .card-hover {
 
 /* Bounce effect for buttons */
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -389,18 +463,17 @@ button, a, input, .card-hover {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
 }
 
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(59, 130, 246, 0) 0%,
-    rgba(59, 130, 246, 0.2) 50%,
-    rgba(59, 130, 246, 0) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(59, 130, 246, 0) 0%,
+      rgba(59, 130, 246, 0.2) 50%,
+      rgba(59, 130, 246, 0) 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }

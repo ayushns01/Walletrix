@@ -17,18 +17,13 @@ Walletrix is a **production-ready cryptocurrency wallet** built with modern web 
 
 ## ⭐ Key Features
 
-### 🔗 Multi-Chain Support (10+ Networks)
+### 🔗 Multi-Chain Support
 | Network | Type | Status |
 |---------|------|--------|
-| Ethereum | Mainnet + Testnets | ✅ |
 | Bitcoin | Mainnet + Testnet | ✅ |
+| Ethereum | Mainnet + Testnets | ✅ |
 | Polygon | Layer 2 | ✅ |
-| Arbitrum | Layer 2 | ✅ |
-| Optimism | Layer 2 | ✅ |
-| Base | Layer 2 | ✅ |
-| BSC | EVM | ✅ |
-| Avalanche | EVM | ✅ |
-| Solana | Non-EVM | 🔨 |
+| Solana | Non-EVM | ✅ |
 
 ### 💼 Wallet Features
 - **HD Wallet Generation** — BIP-39/44/48/85 compliant

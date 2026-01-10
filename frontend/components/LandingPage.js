@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   Wallet, Shield, Zap, Globe, ChevronRight, Check,
   Bitcoin, Coins, Lock, Smartphone, TrendingUp, Users,
-  Github, Twitter, Mail, ArrowRight, Menu, X, Loader2, Key
+  Github, Twitter, Mail, ArrowRight, Menu, X, Loader2, Key, Linkedin
 } from 'lucide-react'
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
@@ -25,50 +25,48 @@ export default function LandingPage({ onGetStarted }) {
   const features = [
     {
       icon: Shield,
-      title: 'Advanced Security',
-      description: 'Your keys, your crypto. Full control with industry-leading encryption standards.'
-    },
-    {
-      icon: Zap,
-      title: 'Lightning Fast',
-      description: 'Instant transactions and real-time balance updates across all networks.'
+      title: 'Military-Grade Security',
+      description: 'Argon2id + AES-256-GCM encryption. Same standards protecting banks.'
     },
     {
       icon: Globe,
-      title: 'Multi-Chain Support',
-      description: 'Bitcoin, Ethereum, Polygon, BSC, and more. One wallet for all your assets.'
+      title: 'Multi-Chain',
+      description: 'Bitcoin, Ethereum, Polygon, and Solana in one unified wallet.'
     },
     {
-      icon: Smartphone,
-      title: 'Mobile Optimized',
-      description: 'Seamless experience across desktop, tablet, and mobile devices.'
+      icon: Key,
+      title: 'Social Recovery',
+      description: "Shamir's Secret Sharing protects you from losing access forever."
     },
     {
-      icon: TrendingUp,
-      title: 'Live Market Data',
-      description: 'Real-time price tracking and portfolio analytics at your fingertips.'
+      icon: Users,
+      title: 'Multi-Sig Wallets',
+      description: 'Require multiple signatures for high-value transactions.'
     },
     {
       icon: Lock,
-      title: 'Self-Custody',
-      description: 'Non-custodial design means you always maintain complete control.'
+      title: '100% Self-Custody',
+      description: 'Your keys never leave your device. Zero trust required.'
+    },
+    {
+      icon: Zap,
+      title: 'Privacy First',
+      description: 'zk-SNARKs let you prove ownership without revealing balances.'
     }
   ]
 
   const networks = [
     { name: 'Bitcoin', color: 'from-orange-500 to-orange-600', logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.svg' },
     { name: 'Ethereum', color: 'from-blue-500 to-blue-600', logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.svg' },
-    { name: 'Solana', color: 'from-purple-400 to-pink-500', logo: 'https://cryptologos.cc/logos/solana-sol-logo.svg' },
     { name: 'Polygon', color: 'from-purple-500 to-purple-600', logo: 'https://cryptologos.cc/logos/polygon-matic-logo.svg' },
-    { name: 'Arbitrum', color: 'from-cyan-500 to-cyan-600', logo: 'https://cryptologos.cc/logos/arbitrum-arb-logo.svg' },
-    { name: 'Avalanche', color: 'from-red-500 to-red-600', logo: 'https://cryptologos.cc/logos/avalanche-avax-logo.svg' }
+    { name: 'Solana', color: 'from-purple-400 to-pink-500', logo: 'https://cryptologos.cc/logos/solana-sol-logo.svg' }
   ]
 
   const stats = [
-    { value: '10+', label: 'Networks Supported' },
+    { value: '4', label: 'Blockchains' },
     { value: '100%', label: 'Self-Custody' },
-    { value: '<1s', label: 'Transaction Speed' },
-    { value: '24/7', label: 'Access Anytime' }
+    { value: 'Multi-Sig', label: 'Team Wallets' },
+    { value: 'Argon2id', label: 'Encryption' }
   ]
 
   return (
@@ -78,8 +76,8 @@ export default function LandingPage({ onGetStarted }) {
         {/* Distant Stars Layer */}
         <div className="stars">
           {[...Array(150)].map((_, i) => {
-            const duration = 40 + (i * 0.33) % 50;
-            const delay = -(i * 0.27) % 40;
+            const duration = 15 + (i * 0.2) % 20;
+            const delay = -(i * 0.15) % 15;
             return (
               <div
                 key={`star-distant-${i}`}
@@ -97,8 +95,8 @@ export default function LandingPage({ onGetStarted }) {
         {/* Bright Stars */}
         <div className="stars">
           {[...Array(40)].map((_, i) => {
-            const duration = 30 + (i * 0.97) % 40;
-            const delay = -(i * 0.73) % 30;
+            const duration = 12 + (i * 0.5) % 18;
+            const delay = -(i * 0.4) % 12;
             return (
               <div
                 key={`star-${i}`}
@@ -196,11 +194,11 @@ export default function LandingPage({ onGetStarted }) {
 
                 {/* Central wallet icon */}
                 <div className="relative z-10 flex items-center justify-center h-full">
-                  <Wallet className="w-6 h-6 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />
+                  <Wallet className="w-6 h-6 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
                 </div>
 
                 {/* Rotating glow */}
-                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-blue-400/20 animate-spin" style={{ animationDuration: '8s' }} />
+                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
               </div>
               <div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</span>
@@ -310,29 +308,32 @@ export default function LandingPage({ onGetStarted }) {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative" style={{ zIndex: 10 }}>
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16 animate-fade-in">
-            <div className="inline-block mb-6 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full hover-lift">
-              <span className="text-blue-300 text-sm font-medium">🚀 Secure. Simple. Powerful.</span>
-            </div>
+      <section className="pt-52 pb-20 px-4 relative" style={{ zIndex: 10 }}>
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center animate-fade-in">
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight slide-in-left">
-              <span className="gradient-text">Your Gateway to</span>
+            {/* Main Title */}
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 leading-tight">
+              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+                Your Gateway to
+              </span>
               <br />
-              <span className="text-white">Decentralized Finance</span>
+              <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                Decentralized Finance
+              </span>
             </h1>
 
-            <p className="text-xl text-blue-100/70 mb-10 max-w-2xl mx-auto leading-relaxed slide-in-right" style={{ animationDelay: '0.2s' }}>
-              Manage your crypto assets with confidence. Walletrix provides enterprise-grade security
-              with an intuitive interface designed for everyone.
+            {/* Subtitle */}
+            <p className="text-lg md:text-xl text-blue-100/80 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+              Manage your crypto assets with confidence. Self-custody security with an intuitive interface designed for everyone.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-scale-in" style={{ animationDelay: '0.4s' }}>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
               {!isLoaded ? (
                 <button
                   disabled
-                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl font-bold text-lg flex items-center gap-3 shadow-2xl shadow-blue-500/50 opacity-60 cursor-not-allowed"
+                  className="px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl font-bold text-lg flex items-center gap-3 shadow-2xl shadow-blue-500/40 opacity-60 cursor-not-allowed"
                 >
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Loading...
@@ -340,15 +341,17 @@ export default function LandingPage({ onGetStarted }) {
               ) : isSignedIn ? (
                 <button
                   onClick={onGetStarted}
-                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-3 shadow-2xl shadow-blue-500/50 hover:scale-105 hover:-translate-y-1"
+                  className="group px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center gap-3 shadow-2xl shadow-blue-500/40 hover:shadow-blue-400/60 hover:scale-105 hover:-translate-y-1"
                 >
+                  <Wallet className="w-5 h-5" />
                   Open Your Wallet
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               ) : (
                 <SignInButton mode="modal" forceRedirectUrl="/">
-                  <button className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-3 shadow-2xl shadow-blue-500/50 hover:scale-105 hover:-translate-y-1">
-                    Create Free Wallet
+                  <button className="group px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center gap-3 shadow-2xl shadow-blue-500/40 hover:shadow-blue-400/60 hover:scale-105 hover:-translate-y-1">
+                    <Zap className="w-5 h-5" />
+                    Get Started Free
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </SignInButton>
@@ -356,20 +359,11 @@ export default function LandingPage({ onGetStarted }) {
 
               <a
                 href="#features"
-                className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-blue-500/30 hover:border-blue-400/50 rounded-xl font-bold text-lg transition-all duration-300"
+                className="group px-10 py-5 bg-white/5 hover:bg-white/10 border-2 border-blue-400/30 hover:border-blue-400/60 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center gap-2 hover:scale-105"
               >
-                Learn More
+                Explore Features
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {stats.map((stat, i) => (
-                <div key={i} className="glass-effect rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-110 hover:-translate-y-2 animate-fade-in hover-lift" style={{ animationDelay: `${0.6 + i * 0.1}s` }}>
-                  <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">{stat.value}</div>
-                  <div className="text-blue-200/70 text-sm">{stat.label}</div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -383,25 +377,38 @@ export default function LandingPage({ onGetStarted }) {
               <span className="gradient-text">Why Choose Walletrix?</span>
             </h2>
             <p className="text-blue-100/70 text-lg max-w-2xl mx-auto">
-              Built with cutting-edge technology and designed for the modern crypto user
+              Advanced cryptography meets intuitive design
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, i) => (
-              <div
-                key={i}
-                className="group glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 card-hover animate-scale-in"
-                style={{ animationDelay: `${i * 0.1}s` }}
-              >
-                <div className="mb-6 relative inline-block">
-                  <feature.icon className="w-12 h-12 text-blue-400 group-hover:text-blue-300 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6" />
-                  <div className="absolute inset-0 blur-xl bg-blue-400/20 group-hover:bg-blue-400/40 transition-all" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, i) => {
+              const colors = [
+                'from-purple-500 to-pink-600',
+                'from-blue-500 to-cyan-600',
+                'from-green-500 to-emerald-600',
+                'from-orange-500 to-red-600',
+                'from-indigo-500 to-purple-600',
+                'from-cyan-500 to-blue-600'
+              ];
+              return (
+                <div
+                  key={i}
+                  className="group glass-effect rounded-2xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10 animate-fade-in"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors[i]} flex items-center justify-center flex-shrink-0`}>
+                      <feature.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold mb-2 text-white">{feature.title}</h3>
+                      <p className="text-blue-200/70 text-sm leading-relaxed">{feature.description}</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-blue-50">{feature.title}</h3>
-                <p className="text-blue-200/70 leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -418,7 +425,7 @@ export default function LandingPage({ onGetStarted }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
             {networks.map((network, i) => (
               <div
                 key={i}
@@ -638,13 +645,13 @@ export default function LandingPage({ onGetStarted }) {
             <div>
               <h4 className="font-semibold mb-4 text-blue-100">Connect</h4>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 transition-all">
+                <a href="https://github.com/ayushns01" target="_blank" rel="noopener noreferrer" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 hover:scale-110 transition-all">
                   <Github className="w-5 h-5 text-blue-400" />
                 </a>
-                <a href="#" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 transition-all">
-                  <Twitter className="w-5 h-5 text-blue-400" />
+                <a href="https://www.linkedin.com/in/ayush-n-a6a89a19a/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 hover:scale-110 transition-all">
+                  <Linkedin className="w-5 h-5 text-blue-400" />
                 </a>
-                <a href="#" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 transition-all">
+                <a href="mailto:ayushnarayansharma@gmail.com" className="w-10 h-10 glass-effect rounded-full flex items-center justify-center border border-blue-500/20 hover:border-blue-400/40 hover:scale-110 transition-all">
                   <Mail className="w-5 h-5 text-blue-400" />
                 </a>
               </div>
