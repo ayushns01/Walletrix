@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
@@ -59,6 +59,19 @@ export default function Home() {
   const [showWalletSelector, setShowWalletSelector] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
+  const [guestMode, setGuestMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('walletrix_guest_mode') === 'true'
+    }
+    return false
+  })
+
+  // Persist guest mode to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('walletrix_guest_mode', guestMode.toString())
+    }
+  }, [guestMode])
 
   // Auto-unlock wallet for Clerk users
   useEffect(() => {
@@ -161,9 +174,17 @@ export default function Home() {
     }
   }
 
-  // Show landing page if no wallet and view is 'landing'
-  if (!wallet && view === 'landing') {
-    return <LandingPage onGetStarted={() => setView('welcome')} />
+  // Show landing page if no wallet and view is 'landing' and not in guest mode
+  if (!wallet && view === 'landing' && !guestMode) {
+    return (
+      <LandingPage
+        onGetStarted={() => setView('welcome')}
+        onGuestMode={() => {
+          setGuestMode(true)
+          setView('welcome')
+        }}
+      />
+    )
   }
 
   // Show unlock screen if wallet exists but is locked
@@ -178,49 +199,201 @@ export default function Home() {
   // Show wallet setup screens or wallet list for authenticated users
   if (!wallet) {
     return (
-      <main className="min-h-screen">
-        <div className="container mx-auto px-4 py-8">
+      <main className="min-h-screen bg-black text-white overflow-x-hidden relative">
+        {/* Animated Background - Same as Landing Page with subtle blur */}
+        <div className="animated-bg" style={{ filter: 'blur(1px)' }}>
+          {/* Distant Stars Layer */}
+          <div className="stars">
+            {[...Array(150)].map((_, i) => {
+              const duration = 15 + (i * 0.2) % 20;
+              const delay = -(i * 0.15) % 15;
+              return (
+                <div
+                  key={`star-distant-${i}`}
+                  className="star-distant"
+                  style={{
+                    left: `${(i * 7.19) % 100}%`,
+                    top: `${(i * 11.37) % 100}%`,
+                    animation: `star-drift ${duration}s ease-in-out ${delay}s infinite`
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Bright Stars */}
+          <div className="stars">
+            {[...Array(40)].map((_, i) => {
+              const duration = 12 + (i * 0.5) % 18;
+              const delay = -(i * 0.4) % 12;
+              return (
+                <div
+                  key={`star-${i}`}
+                  className="star"
+                  style={{
+                    left: `${(i * 13.71) % 100}%`,
+                    top: `${(i * 17.83) % 100}%`,
+                    animation: `star-float ${duration}s ease-in-out ${delay}s infinite`
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Nebula Clouds */}
+          {[...Array(4)].map((_, i) => {
+            const colors = [
+              'radial-gradient(circle, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3) 40%, transparent 70%)',
+              'radial-gradient(circle, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.25) 40%, transparent 70%)',
+              'radial-gradient(circle, rgba(219, 39, 119, 0.4), rgba(219, 39, 119, 0.2) 40%, transparent 70%)',
+              'radial-gradient(circle, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3) 40%, transparent 70%)'
+            ];
+            const duration = 50 + (i * 9.7) % 40;
+            const delay = -(i * 12.3) % 50;
+            const positions = [
+              { left: 15, top: 20, width: 650, height: 450 },
+              { left: 65, top: 60, width: 550, height: 400 },
+              { left: 35, top: 75, width: 700, height: 500 },
+              { left: 80, top: 25, width: 600, height: 420 }
+            ];
+            return (
+              <div
+                key={`nebula-${i}`}
+                className="nebula"
+                style={{
+                  width: `${positions[i].width}px`,
+                  height: `${positions[i].height}px`,
+                  left: `${positions[i].left}%`,
+                  top: `${positions[i].top}%`,
+                  background: colors[i],
+                  animation: `nebula-drift ${duration}s ease-in-out ${delay}s infinite`
+                }}
+              />
+            );
+          })}
+
+          {/* Distant Galaxies */}
+          {[...Array(3)].map((_, i) => {
+            const rotateDuration = 60 + (i * 13.3) % 40;
+            const driftDuration = 50 + (i * 9.7) % 30;
+            const delay = -(i * 19.3) % 60;
+            const positions = [
+              { left: 25, top: 45, width: 900, height: 350, rotation: 45 },
+              { left: 70, top: 15, width: 1000, height: 400, rotation: 120 },
+              { left: 10, top: 70, width: 850, height: 380, rotation: 270 }
+            ];
+            return (
+              <div
+                key={`galaxy-${i}`}
+                className="galaxy"
+                style={{
+                  width: `${positions[i].width}px`,
+                  height: `${positions[i].height}px`,
+                  left: `${positions[i].left}%`,
+                  top: `${positions[i].top}%`,
+                  background: 'radial-gradient(ellipse, rgba(167, 139, 250, 0.4), rgba(59, 130, 246, 0.25) 40%, rgba(96, 165, 250, 0.1) 60%, transparent 80%)',
+                  animation: `galaxy-rotate ${rotateDuration}s linear ${delay}s infinite, galaxy-drift ${driftDuration}s ease-in-out ${delay}s infinite`,
+                  transform: `rotate(${positions[i].rotation}deg)`
+                }}
+              />
+            );
+          })}
+        </div>
+
+        <div className="container mx-auto px-4 py-8 relative" style={{ zIndex: 10 }}>
           {view === 'welcome' && (
-            <div className="max-w-md mx-auto text-center py-20">
-              <div className="glass-effect rounded-3xl p-10 border border-blue-500/30 shadow-2xl shadow-blue-500/20">
-                <Wallet className="w-24 h-24 text-blue-400 mx-auto mb-8 blue-glow" />
-                <h2 className="text-4xl font-bold gradient-text mb-6">Welcome to Walletrix</h2>
-                <p className="text-blue-100/80 mb-10 text-lg leading-relaxed">
-                  Your secure, independent cryptocurrency wallet. Manage Bitcoin, Ethereum, and more with ultimate security.
+            <div className="max-w-lg mx-auto text-center py-12">
+              <div className="bg-gradient-to-b from-slate-800/90 to-slate-900/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-blue-500/20 shadow-2xl shadow-blue-500/10">
+
+                {/* Logo - Same as Landing Page */}
+                <div className="flex items-center gap-4 justify-center mb-8 group cursor-pointer">
+                  <div className="relative w-16 h-16">
+                    {/* Geometric background pattern */}
+                    <div className="absolute inset-0">
+                      {/* Central hexagon */}
+                      <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
+                      <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
+                    </div>
+
+                    {/* Network nodes */}
+                    <div className="absolute top-0 left-1/2 w-2 h-2 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
+                    <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
+                    <div className="absolute left-0 top-1/2 w-2 h-2 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
+                    <div className="absolute right-0 top-1/2 w-2 h-2 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
+
+                    {/* Central wallet icon */}
+                    <div className="relative z-10 flex items-center justify-center h-full">
+                      <Wallet className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
+                    </div>
+
+                    {/* Rotating glow */}
+                    <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</span>
+                    <div className="text-xs text-cyan-400/70 font-medium tracking-widest uppercase">Multi-Chain Network Wallet</div>
+                  </div>
+                </div>
+
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  Welcome to <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Walletrix</span>
+                </h2>
+                <p className="text-slate-300 mb-8 text-base leading-relaxed">
+                  Your secure, non-custodial cryptocurrency wallet. Full control of your Bitcoin, Ethereum, and more.
                 </p>
 
-                {/* Authentication Banner - Only shown when signed out */}
-                <SignedOut>
-                  <div className="mb-8 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-500/30">
-                    <h3 className="text-lg font-semibold text-blue-100 mb-2">Sign in to Get Started</h3>
-                    <p className="text-blue-200/70 text-sm mb-4">
-                      Create and manage your crypto wallets securely. Supports Google, GitHub, and email authentication.
+                {/* Authentication Banner - Only shown when signed out and NOT in guest mode */}
+                {!guestMode && (
+                  <SignedOut>
+                    <div className="mb-8 p-5 bg-gradient-to-r from-blue-900/40 to-cyan-900/40 rounded-2xl border border-blue-500/30">
+                      <h3 className="text-lg font-semibold text-white mb-2">Get Started</h3>
+                      <p className="text-slate-300 text-sm mb-5">
+                        Sign in with Google, GitHub, or email to create your wallet.
+                      </p>
+                      <SignInButton mode="modal">
+                        <button
+                          className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/30 hover:scale-[1.02]"
+                        >
+                          <User className="w-5 h-5" />
+                          Sign In / Create Account
+                        </button>
+                      </SignInButton>
+                    </div>
+                  </SignedOut>
+                )}
+
+                {/* Guest Mode Info Banner */}
+                {guestMode && (
+                  <div className="mb-8 p-5 bg-gradient-to-r from-amber-900/30 to-orange-900/30 rounded-2xl border border-amber-500/30">
+                    <h3 className="text-lg font-semibold text-amber-200 mb-2">👋 Guest Mode</h3>
+                    <p className="text-amber-100/80 text-sm">
+                      You're using Walletrix without an account. Your wallet will be stored locally on this device only.
                     </p>
-                    <SignInButton mode="modal">
-                      <button
-                        className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                      >
-                        <User className="w-5 h-5" />
-                        Sign In / Register
-                      </button>
-                    </SignInButton>
                   </div>
-                </SignedOut>
+                )}
 
                 {/* Wallet Management - Only shown when signed in */}
                 <SignedIn>
                   {isUserLoaded && clerkUser && (
                     <>
-                      <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl border border-purple-500/30">
-                        <p className="text-blue-100 mb-1">Welcome back!</p>
-                        <p className="text-sm text-blue-300">{clerkUser.primaryEmailAddress?.emailAddress}</p>
+                      {/* User Info Card */}
+                      <div className="mb-6 p-4 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-xl border border-slate-600/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
+                            {clerkUser.firstName?.[0] || clerkUser.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase() || '?'}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-white font-medium text-sm">Welcome back!</p>
+                            <p className="text-slate-400 text-xs">{clerkUser.primaryEmailAddress?.emailAddress}</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Show existing wallets if any */}
                       {(userWallets && userWallets.length > 0) || (multiSigWallets && multiSigWallets.length > 0) ? (
                         <div className="mb-6">
-                          <h3 className="text-lg font-semibold text-blue-100 mb-3">Your Wallets</h3>
-                          <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 text-left">Your Wallets</h3>
+                          <div className="space-y-3">
                             {/* Regular Wallets */}
                             {userWallets && userWallets.map((w) => (
                               <button
@@ -228,16 +401,19 @@ export default function Home() {
                                 onClick={() => {
                                   setActiveWalletId(w.id);
                                 }}
-                                className="w-full p-4 bg-gradient-to-r from-blue-900/40 to-blue-800/30 hover:from-blue-800/50 hover:to-blue-700/40 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all text-left"
+                                className="w-full p-4 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl border border-slate-600/50 hover:border-blue-400/50 transition-all text-left group"
                               >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-blue-100 font-medium">{w.name || 'Unnamed Wallet'}</p>
-                                    <p className="text-xs text-blue-300 mt-1">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                    <Wallet className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium truncate">{w.name || 'Unnamed Wallet'}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
                                       Created {new Date(w.createdAt).toLocaleDateString()}
                                     </p>
                                   </div>
-                                  <Wallet className="w-5 h-5 text-blue-400" />
+                                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                                 </div>
                               </button>
                             ))}
@@ -250,16 +426,19 @@ export default function Home() {
                                   setSelectedMultiSigWallet(msw);
                                   setView('multisig-detail');
                                 }}
-                                className="w-full p-4 bg-gradient-to-r from-purple-900/40 to-purple-800/30 hover:from-purple-800/50 hover:to-purple-700/40 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all text-left"
+                                className="w-full p-4 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl border border-slate-600/50 hover:border-purple-400/50 transition-all text-left group"
                               >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-purple-100 font-medium">{msw.name}</p>
-                                    <p className="text-xs text-purple-300/70 mt-1">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                                    <Users className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium truncate">{msw.name}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
                                       Multi-Sig ({msw.requiredSignatures}/{msw.totalSigners}) • {msw.network}
                                     </p>
                                   </div>
-                                  <Users className="w-5 h-5 text-purple-400" />
+                                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
                                 </div>
                               </button>
                             ))}
@@ -270,14 +449,14 @@ export default function Home() {
                       <div className="space-y-3">
                         <button
                           onClick={() => setView('create')}
-                          className="w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 btn-glow shadow-lg shadow-blue-500/30"
+                          className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/30 hover:scale-[1.02]"
                         >
-                          <Plus className="w-6 h-6" />
+                          <Plus className="w-5 h-5" />
                           Create New Wallet
                         </button>
                         <button
                           onClick={() => setView('import')}
-                          className="w-full py-3 px-6 bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-900 text-blue-100 font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-blue-500/30 hover:border-blue-400/50"
+                          className="w-full py-3 px-6 bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-slate-600/50 hover:border-slate-500/50"
                         >
                           <FileDown className="w-5 h-5" />
                           Import Existing Wallet
@@ -286,6 +465,36 @@ export default function Home() {
                     </>
                   )}
                 </SignedIn>
+
+                {/* Guest Mode Wallet Creation */}
+                {guestMode && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setView('create')}
+                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/30 hover:scale-[1.02]"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Create New Wallet
+                    </button>
+                    <button
+                      onClick={() => setView('import')}
+                      className="w-full py-3 px-6 bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-slate-600/50 hover:border-slate-500/50"
+                    >
+                      <FileDown className="w-5 h-5" />
+                      Import Existing Wallet
+                    </button>
+
+                    {/* Option to sign in instead */}
+                    <div className="pt-4 text-center">
+                      <p className="text-slate-400 text-sm mb-2">Want cloud sync & backup?</p>
+                      <SignInButton mode="modal">
+                        <button className="text-blue-400 hover:text-blue-300 text-sm font-medium underline">
+                          Sign in to enable cloud features
+                        </button>
+                      </SignInButton>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -338,7 +547,107 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-black text-white overflow-x-hidden relative">
+      {/* Animated Background - Same as Landing Page with subtle blur */}
+      <div className="animated-bg" style={{ filter: 'blur(1px)' }}>
+        {/* Distant Stars Layer */}
+        <div className="stars">
+          {[...Array(150)].map((_, i) => {
+            const duration = 15 + (i * 0.2) % 20;
+            const delay = -(i * 0.15) % 15;
+            return (
+              <div
+                key={`star-distant-${i}`}
+                className="star-distant"
+                style={{
+                  left: `${(i * 7.19) % 100}%`,
+                  top: `${(i * 11.37) % 100}%`,
+                  animation: `star-drift ${duration}s ease-in-out ${delay}s infinite`
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Bright Stars */}
+        <div className="stars">
+          {[...Array(40)].map((_, i) => {
+            const duration = 12 + (i * 0.5) % 18;
+            const delay = -(i * 0.4) % 12;
+            return (
+              <div
+                key={`star-${i}`}
+                className="star"
+                style={{
+                  left: `${(i * 13.71) % 100}%`,
+                  top: `${(i * 17.83) % 100}%`,
+                  animation: `star-float ${duration}s ease-in-out ${delay}s infinite`
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Nebula Clouds */}
+        {[...Array(4)].map((_, i) => {
+          const colors = [
+            'radial-gradient(circle, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3) 40%, transparent 70%)',
+            'radial-gradient(circle, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.25) 40%, transparent 70%)',
+            'radial-gradient(circle, rgba(219, 39, 119, 0.4), rgba(219, 39, 119, 0.2) 40%, transparent 70%)',
+            'radial-gradient(circle, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3) 40%, transparent 70%)'
+          ];
+          const duration = 50 + (i * 9.7) % 40;
+          const delay = -(i * 12.3) % 50;
+          const positions = [
+            { left: 15, top: 20, width: 650, height: 450 },
+            { left: 65, top: 60, width: 550, height: 400 },
+            { left: 35, top: 75, width: 700, height: 500 },
+            { left: 80, top: 25, width: 600, height: 420 }
+          ];
+          return (
+            <div
+              key={`nebula-${i}`}
+              className="nebula"
+              style={{
+                width: `${positions[i].width}px`,
+                height: `${positions[i].height}px`,
+                left: `${positions[i].left}%`,
+                top: `${positions[i].top}%`,
+                background: colors[i],
+                animation: `nebula-drift ${duration}s ease-in-out ${delay}s infinite`
+              }}
+            />
+          );
+        })}
+
+        {/* Distant Galaxies */}
+        {[...Array(3)].map((_, i) => {
+          const rotateDuration = 60 + (i * 13.3) % 40;
+          const driftDuration = 50 + (i * 9.7) % 30;
+          const delay = -(i * 19.3) % 60;
+          const positions = [
+            { left: 25, top: 45, width: 900, height: 350, rotation: 45 },
+            { left: 70, top: 15, width: 1000, height: 400, rotation: 120 },
+            { left: 10, top: 70, width: 850, height: 380, rotation: 270 }
+          ];
+          return (
+            <div
+              key={`galaxy-${i}`}
+              className="galaxy"
+              style={{
+                width: `${positions[i].width}px`,
+                height: `${positions[i].height}px`,
+                left: `${positions[i].left}%`,
+                top: `${positions[i].top}%`,
+                background: 'radial-gradient(ellipse, rgba(167, 139, 250, 0.4), rgba(59, 130, 246, 0.25) 40%, rgba(96, 165, 250, 0.1) 60%, transparent 80%)',
+                animation: `galaxy-rotate ${rotateDuration}s linear ${delay}s infinite, galaxy-drift ${driftDuration}s ease-in-out ${delay}s infinite`,
+                transform: `rotate(${positions[i].rotation}deg)`
+              }}
+            />
+          );
+        })}
+      </div>
+
       {/* Mobile Navigation Header */}
       <nav className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-b border-blue-500/20" style={{ zIndex: 100 }}>
         <div className="flex items-center justify-between px-4 py-4">
@@ -429,48 +738,31 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-8 lg:py-8 pt-24 lg:pt-8">
         {/* Desktop Header */}
-        <header className="hidden lg:flex items-center justify-between mb-10 glass-effect rounded-2xl p-6 border border-blue-500/20 shadow-xl relative" style={{ zIndex: 100 }}>
-          <div className="flex items-center gap-6">
+        <header className="hidden lg:flex items-center justify-between mb-8 bg-slate-800/80 backdrop-blur-xl rounded-2xl px-6 py-4 border border-slate-700/50 shadow-xl relative" style={{ zIndex: 100 }}>
+          <div className="flex items-center gap-5">
             {/* Back Button */}
             <button
               onClick={() => setView('welcome')}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="text-sm">Back</span>
             </button>
 
-            {/* Wallet Icon */}
-            <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative w-14 h-14">
-                {/* Rotating geometric frames */}
-                <div className="absolute inset-0 border-2 border-blue-400/40 rounded-lg animate-spin" style={{ animationDuration: '8s' }} />
-                <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-lg animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
-
-                {/* Center wallet icon */}
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <svg className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-                  </svg>
-                </div>
-
-                {/* Network nodes */}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 group-hover:shadow-cyan-300/70 transition-shadow" />
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50 group-hover:shadow-blue-300/70 transition-shadow" />
-
-                {/* Animated gradient glow */}
-                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 to-cyan-400/30 group-hover:from-cyan-400/40 group-hover:to-blue-400/40 transition-all" />
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent group-hover:tracking-wide transition-all">Walletrix</h1>
-                <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200 transition-colors">Multi-Chain Network</p>
+                <h1 className="text-xl font-bold text-white">Walletrix</h1>
+                <p className="text-xs text-slate-400">Multi-Chain Wallet</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div data-tour="network-selector">
               <NetworkSelector />
             </div>
@@ -479,20 +771,66 @@ export default function Home() {
             {isAuthenticated && userWallets.length > 1 && (
               <button
                 onClick={() => setShowWalletSelector(true)}
-                className="p-3 rounded-xl bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 border border-blue-500/30 text-blue-100 transition-all duration-300 hover:scale-105"
+                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 text-slate-300 hover:text-white transition-all"
                 title="Switch Wallet"
               >
                 <Wallet className="w-5 h-5" />
               </button>
             )}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <NotificationBell currentWalletId={activeWalletId} />
+
+              {/* Lock Button */}
+              <button
+                data-tour="lock-button"
+                onClick={() => {
+                  if (lockWallet) {
+                    lockWallet()
+                  }
+                }}
+                className="group relative p-3 rounded-xl bg-gradient-to-br from-orange-500/30 via-amber-500/20 to-orange-600/30 hover:from-orange-500/50 hover:via-amber-500/30 hover:to-orange-600/50 border border-orange-400/50 hover:border-orange-300/70 text-orange-300 hover:text-orange-200 transition-all duration-300 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-110"
+                title="Lock Wallet"
+              >
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Lock className="w-5 h-5 relative z-10 group-hover:animate-pulse" />
+              </button>
+
+              {/* Settings Button */}
+              <button
+                data-tour="settings-button"
+                onClick={() => setShowSettings(!showSettings)}
+                className="group relative p-3 rounded-xl bg-gradient-to-br from-purple-500/30 via-blue-500/20 to-cyan-600/30 hover:from-purple-500/50 hover:via-blue-500/30 hover:to-cyan-600/50 border border-purple-400/50 hover:border-cyan-300/70 text-purple-300 hover:text-cyan-200 transition-all duration-300 shadow-lg shadow-purple-500/20 hover:shadow-cyan-500/40 hover:scale-110"
+                title="Settings"
+              >
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Settings className="w-5 h-5 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
+              </button>
+
+              {/* Clerk User Button - Moved to end */}
               <SignedOut>
-                <SignInButton mode="modal">
+                {/* Delete Wallet Button - Only in Guest Mode */}
+                {guestMode && wallet && (
                   <button
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-purple-500/30 hover:scale-105"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this wallet? This cannot be undone.')) {
+                        deleteWallet()
+                        setGuestMode(false)
+                        setView('landing')
+                      }
+                    }}
+                    className="group relative p-3 rounded-xl bg-gradient-to-br from-red-500/30 via-red-500/20 to-red-600/30 hover:from-red-500/50 hover:via-red-500/30 hover:to-red-600/50 border border-red-400/50 hover:border-red-300/70 text-red-300 hover:text-red-200 transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 hover:scale-110"
+                    title="Delete Wallet"
                   >
-                    <User className="w-5 h-5" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Trash2 className="w-5 h-5 relative z-10" />
+                  </button>
+                )}
+
+                <SignInButton mode="modal">
+                  <button className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:scale-105">
+                    <User className="w-4 h-4" />
                     Sign In
                   </button>
                 </SignInButton>
@@ -501,40 +839,13 @@ export default function Home() {
                 <UserButton
                   appearance={{
                     elements: {
-                      avatarBox: "w-11 h-11 shadow-lg shadow-blue-500/30",
-                      userButtonPopoverCard: "bg-gray-900 border-gray-700",
-                      userButtonPopoverActionButton: "text-white hover:bg-gray-700"
+                      avatarBox: "w-10 h-10 ring-2 ring-blue-500/30 hover:ring-cyan-400/50 transition-all",
+                      userButtonPopoverCard: "bg-slate-800 border-slate-700",
+                      userButtonPopoverActionButton: "text-white hover:bg-slate-700"
                     }
                   }}
                 />
               </SignedIn>
-              <button
-                data-tour="lock-button"
-                onClick={() => {
-                  if (lockWallet) {
-                    lockWallet()
-                  }
-                }}
-                className="p-3 rounded-xl bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 border border-orange-500/30 text-orange-100 transition-all duration-300 hover:scale-105"
-                title="Lock Wallet"
-              >
-                <Lock className="w-6 h-6" />
-              </button>
-              {/* Header Actions */}
-              <div className="flex items-center gap-2">
-                {/* Notification Bell */}
-                <NotificationBell currentWalletId={activeWalletId} />
-
-                {/* Settings Button */}
-                <button
-                  data-tour="settings-button"
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                  title="Settings"
-                >
-                  <Settings className="w-6 h-6" />
-                </button>
-              </div>
             </div>
           </div>
         </header>
@@ -675,9 +986,9 @@ export default function Home() {
         )}
 
         {/* Quick Actions Bar */}
-        <div className="max-w-4xl mx-auto mb-8 relative" style={{ zIndex: 1 }}>
-          <div className="glass-effect rounded-2xl p-4 lg:p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
-            <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-6 lg:justify-center">
+        <div className="max-w-4xl mx-auto mb-6 relative" style={{ zIndex: 1 }}>
+          <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-4 border border-slate-700/50">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 data-tour="send-button"
                 onClick={() => {
@@ -692,10 +1003,10 @@ export default function Home() {
                   }
                   handleQuickAction('send', asset);
                 }}
-                className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-blue-500/30"
+                className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-blue-500/20"
               >
                 <Send className="w-5 h-5" />
-                <span className="hidden sm:inline">Send</span>
+                <span>Send</span>
               </button>
               <button
                 data-tour="receive-button"
@@ -711,10 +1022,10 @@ export default function Home() {
                   }
                   handleQuickAction('receive', asset);
                 }}
-                className="flex items-center justify-center gap-3 py-4 px-4 lg:px-8 bg-gradient-to-r from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-green-500/30"
+                className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-emerald-500/20"
               >
                 <Download className="w-5 h-5" />
-                <span className="hidden sm:inline">Receive</span>
+                <span>Receive</span>
               </button>
             </div>
           </div>

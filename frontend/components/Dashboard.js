@@ -119,43 +119,39 @@ export default function Dashboard() {
 
 
   return (
-    <div className="space-y-6" style={{ minHeight: '600px' }}>
+    <div className="space-y-5">
       {/* Total Balance Card */}
-      <div data-tour="portfolio" className="bg-gradient-to-br from-black via-blue-900 to-blue-950 rounded-3xl p-8 text-white relative overflow-hidden border border-blue-500/30 shadow-2xl shadow-blue-500/30 transition-opacity duration-300" style={{ opacity: portfolioValueLoading ? 0.7 : 1 }}>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/10 rounded-full -mr-32 -mt-32 blur-xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full -ml-24 -mb-24 blur-lg"></div>
+      <div data-tour="portfolio" className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 relative overflow-hidden border border-slate-700/50 transition-opacity duration-300" style={{ opacity: portfolioValueLoading ? 0.7 : 1 }}>
+        {/* Background decorations */}
+        <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -mr-20 -mt-20 blur-2xl" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/10 rounded-full -ml-16 -mb-16 blur-2xl" />
 
         <div className="relative">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex-1">
-              <p className="text-lg text-blue-200/80 font-medium">Your Balance</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                data-tour="refresh-button"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="p-3 hover:bg-blue-500/20 rounded-xl transition-all duration-300 border border-blue-500/30 hover:border-blue-400/50"
-              >
-                <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''} text-blue-300`} />
-              </button>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-slate-400 text-sm font-medium">Total Balance</p>
+            <button
+              data-tour="refresh-button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-slate-700/50 rounded-lg transition-all border border-slate-600/50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''} text-slate-400`} />
+            </button>
           </div>
 
-          <h2 className="text-5xl font-bold mb-6 gradient-text" style={{ minHeight: '60px' }}>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4" style={{ minHeight: '48px' }}>
             {portfolioValueLoading ? (
               <div className="flex items-center gap-2">
-                <RefreshCw className="w-8 h-8 animate-spin text-blue-300" />
-                <span className="text-3xl">Loading...</span>
+                <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
+                <span className="text-2xl text-slate-400">Loading...</span>
               </div>
             ) : (
-              `$${totalValue.toFixed(2)}`
+              `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             )}
           </h2>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {(() => {
-              // Get price change based on selected network
               let priceChange = 0;
               if (isBitcoin && prices.bitcoin?.price_change_percentage_24h) {
                 priceChange = prices.bitcoin.price_change_percentage_24h;
@@ -166,86 +162,100 @@ export default function Dashboard() {
               }
 
               const isPositive = priceChange >= 0;
-              const changeColor = isPositive ? 'green' : 'red';
 
               return (
-                <div className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-${changeColor}-500/20 to-${changeColor}-600/20 rounded-full border border-${changeColor}-400/30`}>
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                   {isPositive ? (
-                    <TrendingUp className={`w-5 h-5 text-${changeColor}-300`} />
+                    <TrendingUp className="w-4 h-4" />
                   ) : (
-                    <TrendingDown className={`w-5 h-5 text-${changeColor}-300`} />
+                    <TrendingDown className="w-4 h-4" />
                   )}
-                  <span className={`text-sm font-semibold text-${changeColor}-100`}>
+                  <span className="text-sm font-medium">
                     {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
                   </span>
                 </div>
               );
             })()}
-            <span className="text-sm text-blue-200/80">24h</span>
+            <span className="text-xs text-slate-500">24h</span>
           </div>
         </div>
       </div>
 
-      {/* Addresses Card */}
-      <div data-tour="wallet-address" className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
-        <h3 className="text-xl font-bold text-blue-100 mb-6">Your Address</h3>
+      {/* Wallet Address Card */}
+      <div data-tour="wallet-address" className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Wallet Address</h3>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {isEthereum && (
-            <div className="bg-gradient-to-r from-blue-900/30 to-black/50 rounded-xl p-5 border border-blue-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-blue-300 font-medium">Ethereum Address</span>
+            <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">Ξ</span>
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">Ethereum</span>
+                </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(wallet?.ethereum?.address);
                     toast.success('Address copied!');
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold px-3 py-1 bg-blue-500/20 rounded-lg hover:bg-blue-500/30 transition-all"
+                  className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2.5 py-1 bg-blue-500/20 rounded-lg hover:bg-blue-500/30 transition-all"
                 >
                   Copy
                 </button>
               </div>
-              <p className="text-blue-50 font-mono text-sm break-all">
+              <p className="text-slate-200 font-mono text-xs break-all">
                 {wallet?.ethereum?.address}
               </p>
             </div>
           )}
 
           {isBitcoin && (
-            <div className="bg-gradient-to-r from-blue-900/30 to-black/50 rounded-xl p-5 border border-blue-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-blue-300 font-medium">Bitcoin Address</span>
+            <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">₿</span>
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">Bitcoin</span>
+                </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(wallet?.bitcoin?.address);
                     toast.success('Address copied!');
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold px-3 py-1 bg-blue-500/20 rounded-lg hover:bg-blue-500/30 transition-all"
+                  className="text-xs text-orange-400 hover:text-orange-300 font-medium px-2.5 py-1 bg-orange-500/20 rounded-lg hover:bg-orange-500/30 transition-all"
                 >
                   Copy
                 </button>
               </div>
-              <p className="text-blue-50 font-mono text-sm break-all">
+              <p className="text-slate-200 font-mono text-xs break-all">
                 {wallet?.bitcoin?.address}
               </p>
             </div>
           )}
 
           {isSolana && (
-            <div className="bg-gradient-to-r from-purple-900/30 to-black/50 rounded-xl p-5 border border-purple-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-purple-300 font-medium">Solana Address</span>
+            <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">◎</span>
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">Solana</span>
+                </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(wallet?.solana?.address);
                     toast.success('Address copied!');
                   }}
-                  className="text-xs text-purple-400 hover:text-purple-300 font-semibold px-3 py-1 bg-purple-500/20 rounded-lg hover:bg-purple-500/30 transition-all"
+                  className="text-xs text-purple-400 hover:text-purple-300 font-medium px-2.5 py-1 bg-purple-500/20 rounded-lg hover:bg-purple-500/30 transition-all"
                 >
                   Copy
                 </button>
               </div>
-              <p className="text-purple-50 font-mono text-sm break-all">
+              <p className="text-slate-200 font-mono text-xs break-all">
                 {wallet?.solana?.address}
               </p>
             </div>
@@ -254,13 +264,13 @@ export default function Dashboard() {
       </div>
 
       {/* Assets List */}
-      <div className="glass-effect rounded-2xl p-6 border border-blue-500/30 shadow-xl shadow-blue-500/20">
-        <h3 className="text-xl font-bold text-blue-100 mb-6">Your Assets</h3>
+      <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Assets</h3>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {allAssets.length === 0 && (
-            <div className="text-center py-12 text-blue-300/70">
-              <p className="text-lg">No assets found</p>
+            <div className="text-center py-10 text-slate-500">
+              <p>No assets found</p>
             </div>
           )}
 
@@ -268,30 +278,36 @@ export default function Dashboard() {
             const value = parseFloat(asset.balance) * (asset.priceData?.current_price || 0);
             const hasBalance = parseFloat(asset.balance) > 0;
 
+            // Determine icon color based on asset
+            let iconGradient = 'from-blue-500 to-blue-600';
+            if (asset.symbol === 'BTC') iconGradient = 'from-orange-500 to-orange-600';
+            else if (asset.symbol === 'SOL') iconGradient = 'from-purple-500 to-pink-500';
+            else if (asset.symbol === 'USDT' || asset.symbol === 'USDC') iconGradient = 'from-green-500 to-emerald-600';
+
             return (
               <div
                 key={index}
-                className={`flex items-center justify-between p-5 rounded-xl transition-all duration-300 ${hasBalance
-                  ? 'bg-gradient-to-r from-blue-900/40 to-black/50 hover:from-blue-800/50 hover:to-blue-900/40 cursor-pointer border border-blue-500/20 hover:border-blue-400/40 card-hover'
-                  : 'bg-gradient-to-r from-gray-800/30 to-gray-900/30 opacity-60 border border-gray-600/20'
+                className={`flex items-center justify-between p-4 rounded-xl transition-all ${hasBalance
+                  ? 'bg-slate-700/40 hover:bg-slate-700/60 cursor-pointer border border-slate-600/30 hover:border-slate-500/50'
+                  : 'bg-slate-800/30 opacity-50 border border-slate-700/20'
                   }`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${iconGradient} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
                     {asset.icon}
                   </div>
                   <div>
-                    <p className="text-blue-50 font-semibold text-lg">{asset.name}</p>
-                    <p className="text-blue-300/70 text-sm font-medium">{asset.symbol}</p>
+                    <p className="text-white font-medium">{asset.name}</p>
+                    <p className="text-slate-400 text-xs">{asset.symbol}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-blue-50 font-bold text-lg">
-                    {asset.balance} {asset.symbol}
+                  <p className="text-white font-medium">
+                    {parseFloat(asset.balance).toLocaleString('en-US', { maximumFractionDigits: 6 })} <span className="text-slate-400 text-sm">{asset.symbol}</span>
                   </p>
-                  <p className="text-blue-300/70 text-sm font-medium">
-                    ${value.toFixed(2)}
+                  <p className="text-slate-400 text-sm">
+                    ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>

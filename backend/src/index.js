@@ -31,7 +31,7 @@ import sessionCleanupJob from './jobs/sessionCleanup.js';
 import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
 
 const app = express();
-const PORT = process.env.PORT || process.env.API_PORT || 3001;
+const PORT = process.env.PORT || process.env.API_PORT || 5001;
 
 app.set('trust proxy', true);
 

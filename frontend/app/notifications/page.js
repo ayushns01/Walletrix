@@ -140,31 +140,56 @@ export default function NotificationsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 p-6">
+        <div className="min-h-screen bg-black text-white p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
                     <button
                         onClick={() => router.back()}
-                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 p-2 hover:bg-slate-800/50 rounded-lg"
                     >
                         <ArrowLeft className="w-5 h-5" />
-                        <span>Back</span>
+                        <span>Back to Wallet</span>
                     </button>
 
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-4xl font-bold text-white mb-2">Notifications & News</h1>
-                            <p className="text-gray-400">Stay updated with your wallet activity and crypto news</p>
+                        <div className="flex items-center gap-4">
+                            {/* Logo - Same as Landing Page */}
+                            <div className="relative w-14 h-14 group cursor-pointer">
+                                {/* Geometric background pattern */}
+                                <div className="absolute inset-0">
+                                    <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
+                                    <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
+                                </div>
+
+                                {/* Network nodes */}
+                                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2" />
+                                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2" />
+                                <div className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2" />
+                                <div className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2" />
+
+                                {/* Central bell icon */}
+                                <div className="relative z-10 flex items-center justify-center h-full">
+                                    <Bell className="w-6 h-6 text-blue-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
+                                </div>
+
+                                {/* Rotating glow */}
+                                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent">Notifications</h1>
+                                <p className="text-sm text-slate-400">Stay updated with your wallet activity</p>
+                            </div>
                         </div>
                         <button
                             onClick={() => {
                                 fetchNotifications();
                                 fetchCryptoNews();
                             }}
-                            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                            className="group relative p-3 rounded-xl bg-gradient-to-br from-blue-500/30 via-indigo-500/20 to-purple-600/30 hover:from-blue-500/50 hover:via-indigo-500/30 hover:to-purple-600/50 border border-blue-400/50 hover:border-indigo-300/70 text-blue-300 hover:text-indigo-200 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/40 hover:scale-110"
                         >
-                            <RefreshCw className="w-5 h-5 text-white" />
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <RefreshCw className="w-5 h-5 relative z-10" />
                         </button>
                     </div>
                 </div>
@@ -173,27 +198,27 @@ export default function NotificationsPage() {
                 <div className="flex gap-3 mb-6">
                     <button
                         onClick={() => setActiveTab('notifications')}
-                        className={`flex-1 px-6 py-4 rounded-xl font-medium transition-all ${activeTab === 'notifications'
-                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        className={`flex-1 px-6 py-4 rounded-xl font-semibold transition-all border ${activeTab === 'notifications'
+                            ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-white shadow-lg shadow-blue-500/30 border-blue-400/50'
+                            : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60 border-slate-700/50 hover:text-white'
                             }`}
                     >
                         <Bell className="w-5 h-5 inline-block mr-2" />
                         Notifications
                         {notifications.filter(n => !n.isRead).length > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                            <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full animate-pulse">
                                 {notifications.filter(n => !n.isRead).length}
                             </span>
                         )}
                     </button>
                     <button
                         onClick={() => setActiveTab('news')}
-                        className={`flex-1 px-6 py-4 rounded-xl font-medium transition-all ${activeTab === 'news'
-                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        className={`flex-1 px-6 py-4 rounded-xl font-semibold transition-all border ${activeTab === 'news'
+                            ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-white shadow-lg shadow-blue-500/30 border-blue-400/50'
+                            : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60 border-slate-700/50 hover:text-white'
                             }`}
                     >
-                        📰 News
+                        📰 Crypto News
                     </button>
                 </div>
 

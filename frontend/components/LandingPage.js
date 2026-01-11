@@ -9,7 +9,7 @@ import {
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
-export default function LandingPage({ onGetStarted }) {
+export default function LandingPage({ onGetStarted, onGuestMode }) {
   const { isSignedIn, isLoaded } = useUser()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -182,8 +182,8 @@ export default function LandingPage({ onGetStarted }) {
                 {/* Geometric background pattern */}
                 <div className="absolute inset-0">
                   {/* Central hexagon */}
-                  <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 group-hover:rotate-[50deg] transition-all duration-500" />
-                  <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 group-hover:-rotate-[50deg] transition-all duration-500" />
+                  <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
+                  <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
                 </div>
 
                 {/* Network nodes */}
@@ -351,7 +351,7 @@ export default function LandingPage({ onGetStarted }) {
                 <SignInButton mode="modal" forceRedirectUrl="/">
                   <button className="group px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center gap-3 shadow-2xl shadow-blue-500/40 hover:shadow-blue-400/60 hover:scale-105 hover:-translate-y-1">
                     <Zap className="w-5 h-5" />
-                    Get Started Free
+                    Sign In & Create Wallet
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </SignInButton>
@@ -365,6 +365,18 @@ export default function LandingPage({ onGetStarted }) {
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
             </div>
+
+            {/* Continue without login - Only show when NOT signed in */}
+            {!isSignedIn && (
+              <button
+                onClick={onGuestMode}
+                className="mt-8 px-10 py-5 bg-gradient-to-r from-purple-600/20 to-pink-600/20 hover:from-purple-600/40 hover:to-pink-600/40 border-2 border-purple-400/50 hover:border-purple-400/80 rounded-2xl font-bold text-lg text-purple-200 hover:text-white transition-all duration-300 flex items-center gap-3 mx-auto group shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:scale-105"
+              >
+                <Globe className="w-5 h-5 text-purple-300 group-hover:text-white" />
+                <span>Try Without Account</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            )}
           </div>
         </div>
       </section>
