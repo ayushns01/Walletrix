@@ -145,8 +145,6 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
 
             const data = await response.json();
 
-            console.log('Multi-sig creation response:', { status: response.status, data });
-
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to create multi-sig wallet');
             }

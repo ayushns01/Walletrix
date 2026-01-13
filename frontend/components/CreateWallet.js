@@ -24,7 +24,6 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
   const requiresPassword = true;
 
   const handleCreateWallet = async () => {
-    console.log('Creating wallet...'); // Debug log
 
     // Always validate password
     if (!password || password.trim() === '') {
@@ -50,9 +49,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
     try {
       setLoading(true);
       toast.loading('🔐 Creating your secure wallet...');
-      console.log('Calling generateWallet...'); // Debug log
       const walletData = await generateWallet(password, walletName || undefined);
-      console.log('Wallet generated:', walletData); // Debug log
       toast.dismiss();
       toast.success('✅ Wallet created successfully!');
       setMnemonic(walletData.mnemonic);

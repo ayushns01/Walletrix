@@ -11,7 +11,7 @@
 
 Walletrix is a **production-ready cryptocurrency wallet** built with modern web technologies. It demonstrates advanced blockchain engineering, enterprise security practices, and full-stack development expertise.
 
-**Live Demo**: [walletrix.vercel.app](https://walletrix.vercel.app) | **Backend**: Deployed on Render
+**Live Demo**: [walletrix.vercel.app](https://walletrix.vercel.app) | **Backend**: Deployed on Render | **Frontend**: Deployed on Vercel    
 
 ---
 
@@ -183,19 +183,20 @@ npm run dev
 Walletrix/
 ├── frontend/                 # Next.js 14 Application
 │   ├── app/                  # App Router pages
-│   ├── components/           # React components (15+)
+│   ├── components/           # React components (21)
 │   └── contexts/             # State management
 │
 ├── backend/                  # Node.js API Server
 │   ├── src/
-│   │   ├── controllers/      # API handlers (8)
+│   │   ├── controllers/      # API handlers (12)
 │   │   ├── services/         # Business logic (23)
 │   │   ├── middleware/       # Security (8)
-│   │   └── routes/           # API routes (10)
+│   │   └── routes/           # API routes (13)
 │   └── prisma/               # Database schema (15 models)
 │
-├── SECURITY_PRACTICES.md     # Security documentation
-├── DATABASE_ARCHITECTURE.md  # Database documentation
+├── docs/                     # Documentation
+│   ├── SECURITY_PRACTICES.md
+│   └── DATABASE_ARCHITECTURE.md
 └── docker-compose.yml        # Container orchestration
 ```
 
@@ -216,13 +217,13 @@ Walletrix/
 | `ActivityLog` | Security audit trail |
 | `ScamAddress` | Known malicious addresses |
 
-See [DATABASE_ARCHITECTURE.md](DATABASE_ARCHITECTURE.md) for full documentation.
+See [DATABASE_ARCHITECTURE.md](docs/DATABASE_ARCHITECTURE.md) for full documentation.
 
 ---
 
 ## 🔒 Security Documentation
 
-See [SECURITY_PRACTICES.md](SECURITY_PRACTICES.md) for comprehensive security documentation covering:
+See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive security documentation covering:
 
 - Argon2id password hashing (PHC winner)
 - AES-256-GCM encryption

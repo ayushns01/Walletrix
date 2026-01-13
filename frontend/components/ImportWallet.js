@@ -20,20 +20,19 @@ export default function ImportWallet({ onComplete }) {
   const requiresPassword = true;
 
   const handleImport = async () => {
-    console.log('Importing wallet...'); // Debug log
-    
+
     if (!mnemonic || mnemonic.trim() === '') {
       toast.error('⚠️ Please enter your 12-word recovery phrase');
       return;
     }
-    
+
     const words = mnemonic.trim().split(/\s+/);
-    
+
     if (words.length !== 12) {
       toast.error(`❌ Recovery phrase must be exactly 12 words. You entered ${words.length} words.`);
       return;
     }
-    
+
     // Check for invalid characters
     if (!/^[a-z\s]+$/.test(mnemonic.toLowerCase())) {
       toast.error('⚠️ Recovery phrase should only contain lowercase letters and spaces');
@@ -45,7 +44,7 @@ export default function ImportWallet({ onComplete }) {
       toast.error('⚠️ Password is required to encrypt your wallet');
       return;
     }
-    
+
     if (password.length < 8) {
       toast.error('⚠️ Password must be at least 8 characters long for security');
       return;

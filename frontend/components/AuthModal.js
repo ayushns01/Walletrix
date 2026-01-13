@@ -25,11 +25,11 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-      
+
       // Get Google auth URL from backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/auth/google`);
       const data = await response.json();
-      
+
       if (data.success && data.url) {
         // Store callback handler for when we return
         if (typeof window !== 'undefined') {
@@ -111,8 +111,6 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
       confirmPassword: ''
     });
   };
-
-  console.log('AuthModal render - isOpen:', isOpen);
 
   if (!isOpen) return null;
 
