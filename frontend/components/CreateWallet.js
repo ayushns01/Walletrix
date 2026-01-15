@@ -284,88 +284,143 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
 
           {/* Step 2: Show Recovery Phrase */}
           {step === 2 && (
-            <div>
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
-                🔒 Recovery Phrase
-              </h2>
-              <p className="text-gray-400 text-center mb-6">
-                Write down these 12 words on paper. Never screenshot or copy digitally.
-              </p>
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-4 border border-amber-500/30">
+                  <span className="text-3xl">🔐</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Your Recovery Phrase
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  Write down these 12 words in order. This is the only way to recover your wallet.
+                </p>
+              </div>
 
-              {/* Critical Security Warnings */}
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+              {/* Critical Security Warning */}
+              <div className="bg-gradient-to-r from-red-500/10 to-red-600/10 border border-red-500/30 rounded-2xl p-4">
                 <div className="flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-red-300">
-                    <p className="font-bold mb-2">⚠️ CRITICAL SECURITY WARNINGS:</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li>Anyone with this phrase can steal your funds</li>
-                      <li>Never share it with anyone, even support staff</li>
-                      <li>Never store it digitally (no screenshots, cloud, etc.)</li>
-                      <li>Check for cameras or people watching</li>
-                      <li>Write it on paper and store in multiple secure locations</li>
+                  <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-red-300 mb-2">Critical Security Warning</p>
+                    <ul className="text-xs text-red-200/80 space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-400 mt-0.5">•</span>
+                        Anyone with this phrase can steal your funds
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-400 mt-0.5">•</span>
+                        Never share it with anyone, including support staff
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-400 mt-0.5">•</span>
+                        Never store digitally - no screenshots or cloud storage
+                      </li>
                     </ul>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-300">
-                  <p className="font-medium mb-1">⚠️ Never share your recovery phrase!</p>
-                  <p className="text-xs">
-                    Anyone with these words can access your funds. Store them securely offline.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-900 rounded-lg p-6 mb-6 relative">
-                <div className="absolute top-2 right-2 z-10">
+              {/* Recovery Phrase Display */}
+              <div className="relative bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
+                {/* Show/Hide Toggle */}
+                <div className="absolute top-3 right-3 z-10">
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors font-medium"
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 ${showPassword
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                      }`}
                   >
-                    {showPassword ? '👁️ Hide' : '👁️‍🗨️ Show'}
+                    {showPassword ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                        Hide
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Reveal
+                      </>
+                    )}
                   </button>
                 </div>
-                <div className={`grid grid-cols-3 gap-3 transition-all duration-200 ${!showPassword ? 'blur-xl select-none pointer-events-none' : ''}`}>
+
+                {/* Words Grid */}
+                <div className={`grid grid-cols-3 gap-3 pt-8 transition-all duration-300 ${!showPassword ? 'blur-lg select-none pointer-events-none' : ''}`}>
                   {mnemonic.split(' ').map((word, index) => (
                     <div
                       key={index}
-                      className="bg-gray-800 rounded-lg p-3 text-center border border-gray-700"
+                      className="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50 hover:border-purple-500/30 transition-colors group"
                     >
-                      <span className="text-gray-500 text-xs">{index + 1}.</span>
-                      <p className="text-white font-medium">{word}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-purple-400">
+                          {index + 1}
+                        </span>
+                        <p className="text-white font-medium text-sm">{word}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Blur Overlay Message */}
                 {!showPassword && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <p className="text-gray-300 text-sm font-medium bg-gray-800 px-4 py-2 rounded-lg">
-                      🔒 Click "Show" to reveal your recovery phrase
-                    </p>
+                    <div className="bg-slate-800/90 backdrop-blur-sm px-6 py-3 rounded-xl border border-slate-600/50 shadow-xl">
+                      <p className="text-slate-200 text-sm font-medium flex items-center gap-2">
+                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Click "Reveal" to show your phrase
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <label className="flex items-start gap-3 mb-6 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={mnemonicConfirmed}
-                  onChange={(e) => setMnemonicConfirmed(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="text-sm text-gray-300">
-                  I have written down my recovery phrase and stored it in a safe place. I understand that I will lose access to my wallet if I lose this phrase.
+              {/* Confirmation Checkbox */}
+              <label className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 cursor-pointer hover:border-purple-500/30 transition-colors">
+                <div className="relative flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={mnemonicConfirmed}
+                    onChange={(e) => setMnemonicConfirmed(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-6 h-6 rounded-lg border-2 transition-all flex items-center justify-center ${mnemonicConfirmed
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 border-green-500'
+                      : 'border-slate-600 bg-slate-800'
+                    }`}>
+                    {mnemonicConfirmed && (
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-slate-300 leading-relaxed">
+                  I have written down my recovery phrase and stored it in a safe place. I understand that losing this phrase means losing access to my wallet forever.
                 </span>
               </label>
 
+              {/* Complete Button */}
               <button
                 onClick={handleComplete}
                 disabled={!mnemonicConfirmed}
-                className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
               >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 Complete Setup
               </button>
             </div>

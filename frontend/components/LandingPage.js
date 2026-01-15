@@ -313,19 +313,20 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           <div className="text-center animate-fade-in">
 
             {/* Main Title */}
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 leading-tight">
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-                Your Gateway to
-              </span>
-              <br />
-              <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                Decentralized Finance
-              </span>
-            </h1>
+            <div className="mb-8">
+              <p className="text-lg md:text-xl text-blue-300/80 mb-2 font-medium tracking-wider uppercase">
+                Welcome to
+              </p>
+              <h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold leading-tight">
+                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+                  Walletrix
+                </span>
+              </h1>
+            </div>
 
             {/* Subtitle */}
             <p className="text-lg md:text-xl text-blue-100/80 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
-              Manage your crypto assets with confidence. Self-custody security with an intuitive interface designed for everyone.
+              Your keys. Your coins. Your control. A multi-chain wallet with enterprise-grade encryption, supporting Ethereum, Bitcoin, Solana, and 7+ EVM networks.
             </p>
 
             {/* CTA Buttons */}
@@ -671,7 +672,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           </div>
 
           <div className="pt-8 border-t border-blue-500/20 text-center text-sm text-blue-200/70">
-            <p>&copy; 2025 Walletrix. All rights reserved. Built with ❤️ for the crypto community.</p>
+            <p>&copy; 2025 Walletrix. All rights reserved.</p>
           </div>
         </div>
       </footer>

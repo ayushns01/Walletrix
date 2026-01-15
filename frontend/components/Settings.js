@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  X, User, Shield, Globe, Bell, Lock, Wallet, Download, 
-  Trash2, Key, Eye, EyeOff, Settings as SettingsIcon, 
+import {
+  X, User, Shield, Globe, Bell, Lock, Wallet, Download,
+  Trash2, Key, Eye, EyeOff, Settings as SettingsIcon,
   HelpCircle, FileText, ExternalLink, ChevronRight, AlertTriangle,
   Users, LogOut, Moon, Sun, Smartphone, Languages, Database, FileDown, Sparkles
 } from 'lucide-react'
@@ -14,10 +14,10 @@ import toast from 'react-hot-toast'
 export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStartTutorial }) {
   const { user: clerkUser } = useUser()
   const { signOut } = useClerk()
-  const { 
-    userWallets, 
-    activeWalletId, 
-    deleteWallet, 
+  const {
+    userWallets,
+    activeWalletId,
+    deleteWallet,
     deleteDatabaseWallet,
     importLocalStorageWallet,
     logout,
@@ -30,7 +30,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
     showWalkthroughOnUnlock,
     setShowWalkthroughOnUnlock
   } = useWallet()
-  
+
   const [activeTab, setActiveTab] = useState('account')
   const [showPrivateKey, setShowPrivateKey] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
@@ -52,7 +52,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
   const handleDeleteWallet = async () => {
     const activeWallet = userWallets.find(w => w.id === activeWalletId)
     if (!activeWallet) return
-    
+
     if (confirm(`Are you sure you want to delete "${activeWallet.name}"? This action cannot be undone. Make sure you have backed up your recovery phrase.`)) {
       try {
         const result = await deleteDatabaseWallet(activeWalletId)
@@ -110,11 +110,10 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-600/30 to-blue-800/30 text-blue-100 border border-blue-500/40'
                       : 'text-blue-300 hover:bg-blue-900/20'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   <span className="font-medium text-xs">{tab.name}</span>
@@ -130,11 +129,10 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                    activeTab === tab.id
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-600/30 to-blue-800/30 text-blue-100 border border-blue-500/40'
                       : 'text-blue-300 hover:bg-blue-900/20'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="w-5 h-5" />
                   <span className="font-medium text-sm">{tab.name}</span>
@@ -150,7 +148,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Account Information</h3>
-                  
+
                   {isAuthenticated && clerkUser ? (
                     <div className="space-y-4">
                       <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
@@ -165,7 +163,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                             <p className="text-xs sm:text-sm text-blue-300 truncate">{clerkUser.primaryEmailAddress?.emailAddress}</p>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4 pt-4 border-t border-blue-500/20">
                           <div>
                             <p className="text-xs text-blue-400 mb-1">Wallets</p>
@@ -203,7 +201,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Security & Privacy</h3>
-                  
+
                   <div className="space-y-4">
                     {/* View Private Keys Section */}
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-red-500/30 bg-red-900/10">
@@ -241,21 +239,19 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                             setAutoLockEnabled(!autoLockEnabled)
                             toast.success(autoLockEnabled ? 'Auto-lock disabled' : 'Auto-lock enabled')
                           }}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            autoLockEnabled ? 'bg-green-500' : 'bg-gray-600'
-                          }`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoLockEnabled ? 'bg-green-500' : 'bg-gray-600'
+                            }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
                           />
                         </button>
                       </div>
                       <p className="text-xs sm:text-sm text-blue-300 ml-6 sm:ml-8 mb-3">
                         Automatically lock wallet after inactivity
                       </p>
-                      
+
                       {autoLockEnabled && (
                         <div className="ml-6 sm:ml-8 space-y-2">
                           <label className="block text-xs sm:text-sm text-blue-200 mb-1">
@@ -292,14 +288,12 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                             setShowWalkthroughOnUnlock(!showWalkthroughOnUnlock)
                             toast.success(showWalkthroughOnUnlock ? '❌ Tutorial disabled' : '✅ Tutorial enabled')
                           }}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            showWalkthroughOnUnlock ? 'bg-purple-500' : 'bg-gray-600'
-                          }`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showWalkthroughOnUnlock ? 'bg-purple-500' : 'bg-gray-600'
+                            }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              showWalkthroughOnUnlock ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showWalkthroughOnUnlock ? 'translate-x-6' : 'translate-x-1'
+                              }`}
                           />
                         </button>
                       </div>
@@ -350,7 +344,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Wallet Management</h3>
-                  
+
                   <div className="space-y-4">
                     {/* Current Wallets */}
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
@@ -358,7 +352,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                         <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                         Your Wallets ({userWallets.length})
                       </h4>
-                      
+
                       {userWallets.map((w) => (
                         <div key={w.id} className="p-3 sm:p-4 bg-blue-900/20 rounded-lg border border-blue-500/20 mb-3">
                           <div className="flex items-center justify-between gap-2">
@@ -431,7 +425,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Network Preferences</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-2 text-sm sm:text-base">Default Network</h4>
@@ -464,7 +458,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Privacy & Data</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <div className="flex items-start justify-between gap-3 mb-2 sm:mb-4">
@@ -510,11 +504,11 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Notifications</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-3 sm:mb-4 text-sm sm:text-base">Push Notifications</h4>
-                      
+
                       {['Transaction Confirmations', 'Price Alerts', 'Security Alerts', 'Network Updates'].map((item) => (
                         <div key={item} className="flex items-center justify-between gap-3 py-2 sm:py-3 border-b border-blue-500/10 last:border-0">
                           <span className="text-blue-200 text-sm sm:text-base flex-1 min-w-0 truncate">{item}</span>
@@ -541,7 +535,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Appearance</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-3 sm:mb-4 text-sm sm:text-base">Theme</h4>
@@ -579,7 +573,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Advanced Settings</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-yellow-500/20 bg-yellow-900/10">
                       <div className="flex items-start gap-2 sm:gap-3">
@@ -611,7 +605,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                       <h4 className="font-semibold text-blue-100 mb-2 text-sm sm:text-base">Tutorial Walkthrough</h4>
                       <p className="text-xs sm:text-sm text-blue-300 mb-3 sm:mb-4">Start the interactive tutorial guide</p>
-                      <button 
+                      <button
                         onClick={() => {
                           onClose();
                           sessionStorage.removeItem('walletrix_walkthrough_shown');
@@ -645,22 +639,22 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">About Walletrix</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20 text-center">
                       <div className="relative inline-block mb-3 sm:mb-4">
                         <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative">
                           {/* Rotating geometric frames */}
-                          <div className="absolute inset-0 border-2 border-blue-400/40 rounded-2xl animate-spin" style={{animationDuration: '10s'}} />
-                          <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-2xl animate-spin" style={{animationDuration: '15s', animationDirection: 'reverse'}} />
-                          
+                          <div className="absolute inset-0 border-2 border-blue-400/40 rounded-2xl animate-spin" style={{ animationDuration: '10s' }} />
+                          <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-2xl animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }} />
+
                           {/* Center circle with wallet */}
                           <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-blue-800/30 rounded-2xl backdrop-blur-sm border border-blue-500/20 flex items-center justify-center">
                             <svg className="w-10 h-10 sm:w-12 sm:h-12 text-blue-300" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                              <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                             </svg>
                           </div>
-                          
+
                           {/* Network nodes at corners */}
                           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" />
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50" />
@@ -730,9 +724,6 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20 text-center">
                       <p className="text-xs sm:text-sm text-blue-300">
                         © 2025 Walletrix. All rights reserved.
-                      </p>
-                      <p className="text-xs text-blue-400 mt-2">
-                        Built with ❤️ for the crypto community
                       </p>
                     </div>
                   </div>
