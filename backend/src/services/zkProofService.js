@@ -3,15 +3,20 @@ import { buildPoseidon } from 'circomlibjs';
 
 /**
  * Zero-Knowledge Proof Service
- * Implements zk-SNARKs for privacy-preserving operations
  * 
- * Use Cases:
- * - Prove sufficient balance without revealing exact amount
- * - Private transaction amounts with Pedersen commitments
- * - Anonymous voting and governance
- * - Compliance verification without data exposure
+ * ⚠️ SIMPLIFIED IMPLEMENTATION
+ * Currently uses Poseidon hash-based commitments for privacy proofs.
+ * This is NOT a full Groth16 zk-SNARK implementation with circuits.
  * 
- * Technology: Groth16 zk-SNARKs with Poseidon hash
+ * Current Features:
+ * - Hash-based balance commitments using Poseidon
+ * - Pedersen-style commitments with blinding factors
+ * - Privacy-preserving amount verification
+ * 
+ * Roadmap:
+ * - [ ] Implement Circom circuits for balance proofs
+ * - [ ] Generate trusted setup (Powers of Tau)
+ * - [ ] Integrate snarkjs fullProve/verify with actual circuits
  */
 
 class ZKProofService {
@@ -262,12 +267,17 @@ class ZKProofService {
         return {
             initialized: this.initialized,
             hashFunction: 'Poseidon',
-            proofSystem: 'Groth16 (simplified)',
-            version: '1.0.0',
+            proofSystem: 'Hash-based commitments (Groth16 circuits planned)',
+            version: '0.2.0-alpha',
             features: [
-                'Balance proofs',
-                'Pedersen commitments',
-                'Privacy-preserving transactions',
+                'Balance commitments (hash-based)',
+                'Pedersen commitments with blinding',
+                'Privacy-preserving amount hiding',
+            ],
+            roadmap: [
+                'Full Groth16 circuit implementation',
+                'Circom circuit compilation',
+                'On-chain verifier contracts',
             ],
         };
     }

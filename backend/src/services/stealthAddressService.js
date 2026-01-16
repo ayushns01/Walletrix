@@ -126,11 +126,8 @@ class StealthAddressService {
             return {
                 stealthAddress,
                 ephemeralPublicKey: ephemeralPubKey,
-                // Don't expose these in production:
-                _debug: {
-                    sharedSecret,
-                    ephemeralPrivateKey: ephemeralPrivKey,
-                },
+                // Ephemeral private key and shared secret are intentionally not exposed
+                // The sender does not need them after generating the stealth address
             };
         } catch (error) {
             throw new Error(`Failed to generate stealth address: ${error.message}`);
@@ -155,7 +152,7 @@ class StealthAddressService {
             const combined = ethers.solidityPacked(["string", "string"], [
                 wallet.publicKey,
                 publicKey
-            ]));
+            ]);
 
             const secret = ethers.keccak256(combined);
             return secret;

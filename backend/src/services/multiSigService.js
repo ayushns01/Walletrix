@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import * as bip39 from 'bip39';
+import crypto from 'crypto';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -161,7 +162,7 @@ class MultiSigService {
 
         // Generate a deterministic address using CREATE2
         // This is a simplified version - in production, use Gnosis Safe SDK
-        const saltNonce = Math.floor(Math.random() * 1000000);
+        const saltNonce = crypto.randomBytes(4).readUInt32BE(0);
 
         // Create a deterministic address based on owners and threshold
         // This simulates what Gnosis Safe would generate

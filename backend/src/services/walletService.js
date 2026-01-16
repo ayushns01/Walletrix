@@ -172,8 +172,9 @@ class WalletService {
           bitcoin: btcAddress,
           solana: solKeypair.publicKey.toString(),
         },
-        // SECURITY: Private keys are never returned
-        // They should only be used server-side for signing
+        // INTERNAL USE ONLY: Private keys for server-side signing operations
+        // WARNING: Never expose these in API responses to clients
+        // These are returned here for internal wallet storage/encryption
         _privateKeys: {
           ethereum: ethWallet.privateKey,
           bitcoin: btcChild.privateKey.toString('hex'),
