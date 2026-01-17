@@ -14,22 +14,17 @@ class WalletController {
         });
       }
 
+      // SECURITY: Private keys are derived from mnemonic client-side
+      // Server NEVER returns private keys in API responses
       res.status(200).json({
         success: true,
         message: 'Wallet generated successfully',
         data: {
           mnemonic: result.mnemonic,
-          ethereum: {
-            address: result.addresses.ethereum,
-            privateKey: result._privateKeys.ethereum,
-          },
-          bitcoin: {
-            address: result.addresses.bitcoin,
-            privateKey: result._privateKeys.bitcoin,
-          },
-          solana: {
-            address: result.addresses.solana,
-            privateKey: result._privateKeys.solana,
+          addresses: {
+            ethereum: result.addresses.ethereum,
+            bitcoin: result.addresses.bitcoin,
+            solana: result.addresses.solana,
           },
         },
         security: {
@@ -38,7 +33,7 @@ class WalletController {
             'Never share your recovery phrase with anyone',
             'Never store it digitally (screenshots, cloud, etc.)',
             'Store in multiple secure physical locations',
-            'Check for cameras or people watching when viewing'
+            'Private keys are derived client-side from your mnemonic'
           ]
         }
       });
@@ -71,22 +66,16 @@ class WalletController {
         });
       }
 
+      // SECURITY: Private keys are derived from mnemonic client-side
+      // Server NEVER returns private keys in API responses
       res.status(200).json({
         success: true,
         message: 'Wallet imported successfully',
         data: {
-          mnemonic: mnemonic.trim(),
-          ethereum: {
-            address: result.addresses.ethereum,
-            privateKey: result._privateKeys.ethereum,
-          },
-          bitcoin: {
-            address: result.addresses.bitcoin,
-            privateKey: result._privateKeys.bitcoin,
-          },
-          solana: {
-            address: result.addresses.solana,
-            privateKey: result._privateKeys.solana,
+          addresses: {
+            ethereum: result.addresses.ethereum,
+            bitcoin: result.addresses.bitcoin,
+            solana: result.addresses.solana,
           },
         },
       });
@@ -303,13 +292,13 @@ class WalletController {
         });
       }
 
+      // SECURITY: Private keys are derived from mnemonic client-side
       res.status(200).json({
         success: true,
         message: 'Solana address generated successfully',
         data: {
           solana: {
             address: result.addresses.solana,
-            privateKey: result._privateKeys.solana,
           },
         },
       });

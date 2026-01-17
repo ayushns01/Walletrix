@@ -1,33 +1,33 @@
-import { groth16 } from 'snarkjs';
 import { buildPoseidon } from 'circomlibjs';
+import crypto from 'crypto';
 
 /**
- * Zero-Knowledge Proof Service
+ * Privacy Commitment Service
  * 
- * ⚠️ SIMPLIFIED IMPLEMENTATION
- * Currently uses Poseidon hash-based commitments for privacy proofs.
- * This is NOT a full Groth16 zk-SNARK implementation with circuits.
+ * Implements hash-based privacy commitments using Poseidon hash.
  * 
- * Current Features:
- * - Hash-based balance commitments using Poseidon
+ * ⚠️ IMPORTANT: This is NOT a zk-SNARK implementation.
+ * No Circom circuits, no Groth16 proofs, no trusted setup.
+ * 
+ * What this service actually provides:
+ * - Poseidon hash-based commitments for privacy
  * - Pedersen-style commitments with blinding factors
- * - Privacy-preserving amount verification
+ * - Privacy-preserving amount verification via hash commitments
  * 
- * Roadmap:
- * - [ ] Implement Circom circuits for balance proofs
- * - [ ] Generate trusted setup (Powers of Tau)
- * - [ ] Integrate snarkjs fullProve/verify with actual circuits
+ * Use cases:
+ * - Hide exact balance while proving it exceeds a threshold (via commitment)
+ * - Create blinded commitments for transaction amounts
  */
 
-class ZKProofService {
+class PrivacyCommitmentService {
     constructor() {
         this.poseidon = null;
         this.initialized = false;
     }
 
     /**
-     * Initialize the ZK proof service
-     * Must be called before using any proof methods
+     * Initialize the privacy commitment service
+     * Must be called before using any methods
      * @returns {Promise<void>}
      */
     async initialize() {
@@ -38,10 +38,10 @@ class ZKProofService {
         try {
             this.poseidon = await buildPoseidon();
             this.initialized = true;
-            console.log('✅ ZK Proof Service initialized');
+            console.log('✅ Privacy Commitment Service initialized');
         } catch (error) {
-            console.error('❌ Failed to initialize ZK Proof Service:', error);
-            throw new Error('ZK Proof Service initialization failed');
+            console.error('❌ Failed to initialize Privacy Commitment Service:', error);
+            throw new Error('Privacy Commitment Service initialization failed');
         }
     }
 
@@ -51,21 +51,20 @@ class ZKProofService {
      */
     _ensureInitialized() {
         if (!this.initialized) {
-            throw new Error('ZK Proof Service not initialized. Call initialize() first.');
+            throw new Error('Privacy Commitment Service not initialized. Call initialize() first.');
         }
     }
 
     /**
-     * Generate proof that user owns sufficient balance without revealing amount
+     * Generate commitment proving balance is above threshold
+     * 
+     * NOTE: This is a hash-based commitment, NOT a zk-SNARK proof.
+     * The prover must reveal the blinding factor for verification.
      * 
      * @param {string|number|bigint} balance - Actual balance (will be converted to BigInt)
      * @param {string|number|bigint} threshold - Minimum required balance
-     * @returns {Promise<Object>} ZK proof object
+     * @returns {Promise<Object>} Commitment object
      * @throws {Error} If balance is below threshold or inputs are invalid
-     * 
-     * @example
-     * const proof = await zkService.proveBalanceAboveThreshold('1000', '500');
-     * // Returns: { proof: { commitment: '...' }, publicSignals: { aboveThreshold: true } }
      */
     async proveBalanceAboveThreshold(balance, threshold) {
         this._ensureInitialized();
@@ -91,8 +90,7 @@ class ZKProofService {
             // Commitment = Hash(balance, blinding)
             const commitment = this.poseidon([balanceNum, blinding]);
 
-            // In production: use actual zk-SNARK circuit
-            // For now: simplified proof using hash-based commitment
+            // This is a hash-based commitment, not a zk-SNARK proof
             const proof = {
                 commitment: this.poseidon.F.toString(commitment),
                 blinding: blinding.toString(),
@@ -151,8 +149,7 @@ class ZKProofService {
                 return false;
             }
 
-            // In production: verify actual zk-SNARK proof using groth16.verify()
-            // For now: verify commitment hash matches
+            // Verify commitment hash matches (hash-based verification)
             return publicSignals.commitmentHash === proof.commitment;
         } catch (error) {
             console.error('❌ Proof verification failed:', error);
@@ -233,7 +230,6 @@ class ZKProofService {
      */
     _generateBlindingFactor() {
         // Generate 32 random bytes (256 bits)
-        const crypto = require('crypto');
         const randomBytes = crypto.randomBytes(32);
 
         // Convert to BigInt
@@ -267,20 +263,20 @@ class ZKProofService {
         return {
             initialized: this.initialized,
             hashFunction: 'Poseidon',
-            proofSystem: 'Hash-based commitments (Groth16 circuits planned)',
-            version: '0.2.0-alpha',
+            proofSystem: 'Hash-based commitments (NOT zk-SNARKs)',
+            version: '1.0.0',
             features: [
-                'Balance commitments (hash-based)',
-                'Pedersen commitments with blinding',
-                'Privacy-preserving amount hiding',
+                'Poseidon hash-based balance commitments',
+                'Pedersen-style commitments with blinding',
+                'Privacy-preserving amount hiding via hashing',
             ],
-            roadmap: [
-                'Full Groth16 circuit implementation',
-                'Circom circuit compilation',
-                'On-chain verifier contracts',
+            limitations: [
+                'Not a true zero-knowledge proof',
+                'Prover must reveal blinding factor for verification',
+                'No on-chain verification without revealing secrets',
             ],
         };
     }
 }
 
-export default new ZKProofService();
+export default new PrivacyCommitmentService();

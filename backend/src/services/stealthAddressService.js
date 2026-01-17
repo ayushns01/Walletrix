@@ -1,19 +1,21 @@
 import { ethers } from 'ethers';
-import crypto from 'crypto';
+import * as secp256k1 from '@noble/secp256k1';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { keccak_256 } from '@noble/hashes/sha3.js';
 
 /**
  * Stealth Address Service
- * Implements stealth addresses for enhanced privacy
+ * Implements stealth addresses for enhanced privacy using proper ECDH
  * 
  * How it works:
  * 1. Recipient publishes meta-address (scan key + spend key)
  * 2. Sender generates ephemeral key for each payment
- * 3. Sender computes stealth address using ECDH
- * 4. Sender sends funds to stealth address
+ * 3. Sender computes shared secret via ECDH (actual ECC point multiplication)
+ * 4. Sender derives one-time stealth address using ECC point addition
  * 5. Recipient scans blockchain to detect payments
  * 6. Recipient derives private key to spend funds
  * 
- * Technology: ECDH key exchange on secp256k1 curve
+ * Technology: ECDH key exchange on secp256k1 curve using @noble/secp256k1
  */
 
 class StealthAddressService {
@@ -28,19 +30,21 @@ class StealthAddressService {
     generateStealthKeys() {
         try {
             // Generate scan key (for detecting payments)
-            const scanWallet = ethers.Wallet.createRandom();
+            const scanPrivateKey = secp256k1.utils.randomSecretKey();
+            const scanPublicKey = secp256k1.getPublicKey(scanPrivateKey, true); // compressed
 
             // Generate spend key (for spending funds)
-            const spendWallet = ethers.Wallet.createRandom();
+            const spendPrivateKey = secp256k1.utils.randomSecretKey();
+            const spendPublicKey = secp256k1.getPublicKey(spendPrivateKey, true); // compressed
 
             return {
-                scanPrivateKey: scanWallet.privateKey,
-                scanPublicKey: scanWallet.publicKey,
-                spendPrivateKey: spendWallet.privateKey,
-                spendPublicKey: spendWallet.publicKey,
+                scanPrivateKey: '0x' + Buffer.from(scanPrivateKey).toString('hex'),
+                scanPublicKey: '0x' + Buffer.from(scanPublicKey).toString('hex'),
+                spendPrivateKey: '0x' + Buffer.from(spendPrivateKey).toString('hex'),
+                spendPublicKey: '0x' + Buffer.from(spendPublicKey).toString('hex'),
                 stealthMetaAddress: this.encodeMetaAddress(
-                    scanWallet.publicKey,
-                    spendWallet.publicKey
+                    '0x' + Buffer.from(scanPublicKey).toString('hex'),
+                    '0x' + Buffer.from(spendPublicKey).toString('hex')
                 ),
             };
         } catch (error) {
@@ -52,8 +56,8 @@ class StealthAddressService {
      * Encode meta-address from scan and spend public keys
      * Format: st:eth:{scanPubKey}{spendPubKey}
      * 
-     * @param {string} scanPubKey - Scan public key (0x...)
-     * @param {string} spendPubKey - Spend public key (0x...)
+     * @param {string} scanPubKey - Scan public key (0x... compressed 33 bytes)
+     * @param {string} spendPubKey - Spend public key (0x... compressed 33 bytes)
      * @returns {string} Encoded meta-address
      */
     encodeMetaAddress(scanPubKey, spendPubKey) {
@@ -83,7 +87,7 @@ class StealthAddressService {
 
             const keys = parts[2];
 
-            // ethers.js uses compressed public keys (66 chars each = 132 total)
+            // Compressed public keys are 33 bytes = 66 hex chars each = 132 total
             if (keys.length !== 132) {
                 throw new Error('Invalid meta-address length');
             }
@@ -113,21 +117,20 @@ class StealthAddressService {
             const { scanPubKey, spendPubKey } = this.decodeMetaAddress(recipientMetaAddress);
 
             // Generate ephemeral key pair
-            const ephemeralWallet = ethers.Wallet.createRandom();
-            const ephemeralPrivKey = ephemeralWallet.privateKey;
-            const ephemeralPubKey = ephemeralWallet.publicKey;
+            const ephemeralPrivateKey = secp256k1.utils.randomSecretKey();
+            const ephemeralPublicKey = secp256k1.getPublicKey(ephemeralPrivateKey, true);
 
-            // Compute shared secret using ECDH
-            const sharedSecret = this._computeSharedSecret(ephemeralPrivKey, scanPubKey);
+            // Compute shared secret using ECDH (actual elliptic curve point multiplication)
+            const sharedSecret = this._computeSharedSecret(ephemeralPrivateKey, scanPubKey);
 
-            // Derive stealth address
+            // Derive stealth address using proper ECC point addition
             const stealthAddress = this._deriveStealthAddress(spendPubKey, sharedSecret);
 
             return {
                 stealthAddress,
-                ephemeralPublicKey: ephemeralPubKey,
-                // Ephemeral private key and shared secret are intentionally not exposed
-                // The sender does not need them after generating the stealth address
+                ephemeralPublicKey: '0x' + Buffer.from(ephemeralPublicKey).toString('hex'),
+                // Ephemeral private key is intentionally not exposed
+                // The sender does not need it after generating the stealth address
             };
         } catch (error) {
             throw new Error(`Failed to generate stealth address: ${error.message}`);
@@ -135,27 +138,31 @@ class StealthAddressService {
     }
 
     /**
-     * Compute ECDH shared secret
+     * Compute ECDH shared secret using actual elliptic curve point multiplication
+     * SharedSecret = Hash(ephemeralPrivKey * scanPubKey)
+     * 
      * @private
-     * @param {string} privateKey - Private key (hex)
-     * @param {string} publicKey - Public key (hex)
-     * @returns {string} Shared secret (hex)
+     * @param {Uint8Array|string} privateKey - Private key (raw bytes or hex)
+     * @param {string} publicKey - Public key (hex with 0x prefix)
+     * @returns {Uint8Array} Shared secret (32 bytes)
      */
     _computeSharedSecret(privateKey, publicKey) {
         try {
-            // Create wallet from private key
-            const wallet = new ethers.Wallet(privateKey);
+            // Convert private key to Uint8Array if string
+            const privKeyBytes = typeof privateKey === 'string'
+                ? this._hexToBytes(privateKey)
+                : privateKey;
 
-            // Compute ECDH shared point
-            // In production, use proper ECC point multiplication
-            // For now, use hash-based approach
-            const combined = ethers.solidityPacked(["string", "string"], [
-                wallet.publicKey,
-                publicKey
-            ]);
+            // Convert public key to Uint8Array
+            const pubKeyBytes = this._hexToBytes(publicKey);
 
-            const secret = ethers.keccak256(combined);
-            return secret;
+            // Perform ECDH: multiply public key point by private key scalar
+            // This is the actual elliptic curve point multiplication
+            const sharedPoint = secp256k1.getSharedSecret(privKeyBytes, pubKeyBytes);
+
+            // Hash the shared point to get the shared secret
+            // Use only the x-coordinate (first 32 bytes after the prefix)
+            return sha256(sharedPoint.slice(1, 33));
         } catch (error) {
             throw new Error(`Failed to compute shared secret: ${error.message}`);
         }
@@ -163,24 +170,41 @@ class StealthAddressService {
 
     /**
      * Derive stealth address from spend key and shared secret
+     * Uses proper ECC point addition: stealthPubKey = spendPubKey + Hash(sharedSecret) * G
+     * 
      * @private
-     * @param {string} spendPubKey - Spend public key
-     * @param {string} sharedSecret - Shared secret from ECDH
-     * @returns {string} Stealth address
+     * @param {string} spendPubKey - Spend public key (hex)
+     * @param {Uint8Array} sharedSecret - Shared secret from ECDH
+     * @returns {string} Stealth Ethereum address
      */
     _deriveStealthAddress(spendPubKey, sharedSecret) {
         try {
-            // Hash shared secret to get private key offset
-            const offset = ethers.keccak256(sharedSecret);
+            // Hash shared secret to get scalar for G multiplication
+            const secretScalar = sha256(sharedSecret);
 
-            // In production: proper ECC point addition
-            // For now: simplified derivation
-            const stealthPrivKey = ethers.keccak256(
-                ethers.solidityPacked(["string", "string"], [spendPubKey, offset])
-            );
+            // Compute offset public key: secretScalar * G (uncompressed)
+            const offsetPubKey = secp256k1.getPublicKey(secretScalar, false);
 
-            const stealthWallet = new ethers.Wallet(stealthPrivKey);
-            return stealthWallet.address;
+            // Get spend public key as Point (expects hex string without 0x)
+            const spendPubKeyHex = spendPubKey.startsWith('0x') ? spendPubKey.slice(2) : spendPubKey;
+            const spendPoint = secp256k1.Point.fromHex(spendPubKeyHex);
+
+            // Get offset point from uncompressed bytes
+            const offsetPubKeyHex = Buffer.from(offsetPubKey).toString('hex');
+            const offsetPoint = secp256k1.Point.fromHex(offsetPubKeyHex);
+
+            // Perform ECC point addition: stealthPubKey = spendPubKey + offsetPubKey
+            const stealthPoint = spendPoint.add(offsetPoint);
+
+            // Convert to uncompressed public key bytes (65 bytes: 0x04 || x || y)
+            const stealthPubKeyBytes = stealthPoint.toBytes(false);
+
+            // Derive Ethereum address from public key
+            // Ethereum address = last 20 bytes of keccak256(pubkey[1:])
+            const pubKeyHash = keccak_256(stealthPubKeyBytes.slice(1));
+            const address = '0x' + Buffer.from(pubKeyHash.slice(-20)).toString('hex');
+
+            return ethers.getAddress(address); // Checksum address
         } catch (error) {
             throw new Error(`Failed to derive stealth address: ${error.message}`);
         }
@@ -188,27 +212,36 @@ class StealthAddressService {
 
     /**
      * Derive private key for stealth address (recipient side)
+     * stealthPrivKey = spendPrivKey + Hash(Hash(scanPrivKey * ephemeralPubKey))
+     * 
      * @param {string} scanPrivateKey - Recipient's scan private key
      * @param {string} spendPrivateKey - Recipient's spend private key
      * @param {string} ephemeralPublicKey - Sender's ephemeral public key
-     * @returns {string} Private key for stealth address
+     * @returns {string} Private key for stealth address (hex with 0x prefix)
      */
     deriveStealthPrivateKey(scanPrivateKey, spendPrivateKey, ephemeralPublicKey) {
         try {
-            // Compute shared secret using scan private key
-            const sharedSecret = this._computeSharedSecret(scanPrivateKey, ephemeralPublicKey);
+            // Compute shared secret using scan private key and ephemeral public key
+            const scanPrivBytes = this._hexToBytes(scanPrivateKey);
+            const sharedSecret = this._computeSharedSecret(scanPrivBytes, ephemeralPublicKey);
 
-            // Derive offset from shared secret
-            const offset = ethers.keccak256(sharedSecret);
+            // Hash shared secret to get scalar offset
+            const secretScalar = sha256(sharedSecret);
 
-            // Derive stealth private key
-            // In production: proper ECC scalar addition
-            const spendWallet = new ethers.Wallet(spendPrivateKey);
-            const stealthPrivKey = ethers.keccak256(
-                ethers.solidityPacked(["string", "string"], [spendWallet.publicKey, offset])
-            );
+            // Convert spend private key to BigInt
+            const spendPrivBytes = this._hexToBytes(spendPrivateKey);
+            const spendPrivBigInt = BigInt('0x' + Buffer.from(spendPrivBytes).toString('hex'));
 
-            return stealthPrivKey;
+            // Convert secret scalar to BigInt
+            const secretBigInt = BigInt('0x' + Buffer.from(secretScalar).toString('hex'));
+
+            // Compute stealth private key: (spendPrivKey + secretScalar) mod n
+            const n = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+            const stealthPrivBigInt = (spendPrivBigInt + secretBigInt) % n;
+
+            // Convert back to hex
+            const stealthPrivHex = stealthPrivBigInt.toString(16).padStart(64, '0');
+            return '0x' + stealthPrivHex;
         } catch (error) {
             throw new Error(`Failed to derive stealth private key: ${error.message}`);
         }
@@ -236,30 +269,37 @@ class StealthAddressService {
         const detectedPayments = [];
 
         try {
+            const scanPrivBytes = this._hexToBytes(scanPrivateKey);
+
             for (const ephPubKey of ephemeralPubKeys) {
                 if (!ephPubKey.publicKey) {
                     continue;
                 }
 
-                // Compute shared secret
-                const sharedSecret = this._computeSharedSecret(
-                    scanPrivateKey,
-                    ephPubKey.publicKey
-                );
+                try {
+                    // Compute shared secret
+                    const sharedSecret = this._computeSharedSecret(
+                        scanPrivBytes,
+                        ephPubKey.publicKey
+                    );
 
-                // Derive stealth address
-                const stealthAddress = this._deriveStealthAddress(
-                    spendPublicKey,
-                    sharedSecret
-                );
+                    // Derive stealth address
+                    const stealthAddress = this._deriveStealthAddress(
+                        spendPublicKey,
+                        sharedSecret
+                    );
 
-                detectedPayments.push({
-                    stealthAddress,
-                    ephemeralPublicKey: ephPubKey.publicKey,
-                    txHash: ephPubKey.txHash || null,
-                    blockNumber: ephPubKey.blockNumber || null,
-                    timestamp: ephPubKey.timestamp || Date.now(),
-                });
+                    detectedPayments.push({
+                        stealthAddress,
+                        ephemeralPublicKey: ephPubKey.publicKey,
+                        txHash: ephPubKey.txHash || null,
+                        blockNumber: ephPubKey.blockNumber || null,
+                        timestamp: ephPubKey.timestamp || Date.now(),
+                    });
+                } catch (e) {
+                    // Skip invalid ephemeral keys
+                    continue;
+                }
             }
 
             return detectedPayments;
@@ -303,20 +343,37 @@ class StealthAddressService {
     }
 
     /**
+     * Convert hex string to Uint8Array
+     * @private
+     * @param {string} hex - Hex string (with or without 0x prefix)
+     * @returns {Uint8Array}
+     */
+    _hexToBytes(hex) {
+        const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+        const bytes = new Uint8Array(cleanHex.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+            bytes[i] = parseInt(cleanHex.substr(i * 2, 2), 16);
+        }
+        return bytes;
+    }
+
+    /**
      * Get service information
      * @returns {Object} Service info
      */
     getServiceInfo() {
         return {
             name: 'Stealth Address Service',
-            version: '1.0.0',
+            version: '2.0.0',
             curve: 'secp256k1',
-            keyExchange: 'ECDH',
+            library: '@noble/secp256k1',
+            keyExchange: 'ECDH (actual elliptic curve point multiplication)',
             features: [
-                'One-time addresses',
-                'Payment privacy',
-                'Blockchain scanning',
-                'Key derivation',
+                'Proper ECDH via secp256k1 scalar multiplication',
+                'ECC point addition for stealth key derivation',
+                'One-time addresses per payment',
+                'Blockchain scanning for payment detection',
+                'Private key derivation for spending',
             ],
         };
     }

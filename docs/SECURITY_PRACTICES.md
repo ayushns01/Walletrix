@@ -88,43 +88,47 @@ Derive unlimited independent child wallets from a single master seed.
 
 ---
 
-### Zero-Knowledge Proofs (zk-SNARKs)
-**File**: `backend/src/services/zkProofService.js`
+### Privacy Commitments (Poseidon Hash)
+**File**: `backend/src/services/privacyCommitmentService.js`
 
-Implements privacy-preserving operations using Groth16 zk-SNARKs.
+Implements hash-based privacy commitments for balance verification.
 
 **Technology Stack**:
-- **Algorithm**: Groth16 zk-SNARKs
-- **Hash Function**: Poseidon (optimized for zk circuits)
-- **Commitments**: Pedersen commitments
+- **Hash Function**: Poseidon (optimized for cryptographic circuits)
+- **Commitments**: Hash-based commitments with blinding factors
 
-**Use Cases**:
-- Prove sufficient balance without revealing exact amount
-- Private transaction amounts
-- Compliance verification without data exposure
+> **Note**: This is a simplified implementation using Poseidon hash commitments.
+> It is NOT a full zk-SNARK implementation. No Circom circuits or Groth16 proofs are used.
+
+**Current Features**:
+- Hash-based balance commitments
+- Pedersen-style commitments with blinding factors
+- Privacy-preserving amount hiding
 
 **Methods**:
-- `proveBalanceAboveThreshold()` - Generate balance proof
-- `verifyBalanceProof()` - Verify submitted proof
+- `proveBalanceAboveThreshold()` - Generate hash-based balance commitment
+- `verifyBalanceProof()` - Verify commitment
 - `createPedersenCommitment()` - Hide transaction amounts
-- `hashPoseidon()` - ZK-optimized hashing
+- `hashPoseidon()` - Poseidon hashing
 
 ---
 
 ### Stealth Addresses
 **File**: `backend/src/services/stealthAddressService.js`
 
-Monero-style privacy for Ethereum using ECDH key exchange.
+Monero-style privacy for Ethereum using proper ECDH key exchange.
 
 **Protocol**:
 1. Recipient publishes meta-address (scan key + spend key)
 2. Sender generates ephemeral key pair
-3. Sender computes shared secret via ECDH
+3. Sender computes shared secret via ECDH (secp256k1 point multiplication)
 4. Sender derives one-time stealth address
 5. Recipient scans blockchain to detect payments
 
-**Features**:
-- ECDH on secp256k1 curve
+**Implementation**:
+- **Library**: @noble/secp256k1 for proper elliptic curve operations
+- **Curve**: secp256k1
+- **Key Exchange**: ECDH via scalar multiplication
 - One-time addresses per payment
 - Blockchain scanning for payment detection
 - Private key derivation for spending

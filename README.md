@@ -49,10 +49,10 @@ Walletrix is a **production-ready cryptocurrency wallet** built with modern web 
 | Feature | Implementation | Standard |
 |---------|---------------|----------|
 | **Password Hashing** | Argon2id (64MB, 3 iterations) | PHC Winner 2015 |
-| **Wallet Encryption** | AES-256-GCM | Military-grade |
+| **Wallet Encryption** | AES-256-GCM | Authenticated Encryption |
 | **Key Derivation** | PBKDF2-SHA256 (600K iterations) | OWASP 2024 |
 | **Secret Sharing** | Shamir's (k-of-n threshold) | Cryptographic |
-| **Privacy Proofs** | Groth16 zk-SNARKs | Zero-Knowledge |
+| **Privacy Commitments** | Poseidon Hash | Hash-based |
 
 ### Authentication & Sessions
 - JWT tokens with 15-min access / 7-day refresh rotation
@@ -91,7 +91,7 @@ JWT • Argon2 • Winston Logger • Helmet.js
 ### Blockchain
 ```
 ethers.js v6 • bitcoinjs-lib v6 • @solana/web3.js
-bip39 • bip32 • shamirs-secret-sharing • snarkjs
+bip39 • bip32 • shamirs-secret-sharing • @noble/secp256k1
 ```
 
 ### DevOps
@@ -228,7 +228,7 @@ See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive securi
 - Argon2id password hashing (PHC winner)
 - AES-256-GCM encryption
 - Shamir's Secret Sharing
-- Zero-Knowledge Proofs (zk-SNARKs)
+- Stealth addresses (ECDH on secp256k1)
 - Multi-signature wallets
 - Rate limiting strategies
 - Security headers

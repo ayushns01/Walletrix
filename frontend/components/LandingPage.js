@@ -25,7 +25,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
   const features = [
     {
       icon: Shield,
-      title: 'Military-Grade Security',
+      title: 'Industry-Standard Security',
       description: 'Argon2id + AES-256-GCM encryption. Same standards protecting banks.'
     },
     {
@@ -51,7 +51,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
     {
       icon: Zap,
       title: 'Privacy First',
-      description: 'zk-SNARKs let you prove ownership without revealing balances.'
+      description: 'Stealth addresses with real ECDH let you receive payments privately.'
     }
   ]
 
@@ -474,7 +474,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           {/* Hero Security Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
             {[
-              { value: '256-bit', label: 'AES-GCM Encryption', sublabel: 'Military-grade' },
+              { value: '256-bit', label: 'AES-GCM Encryption', sublabel: 'Authenticated encryption' },
               { value: '600K', label: 'PBKDF2 Iterations', sublabel: 'OWASP 2024 standard' },
               { value: '64 MB', label: 'Argon2id Memory', sublabel: 'GPU-resistant' },
               { value: '100%', label: 'Non-Custodial', sublabel: 'Your keys only' }
@@ -525,19 +525,19 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               </p>
             </div>
 
-            {/* Zero-Knowledge Proofs */}
+            {/* Privacy Commitments */}
             <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                   <Lock className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Zero-Knowledge Proofs</h3>
-                  <span className="text-xs text-emerald-400 font-medium">Groth16 zk-SNARKs</span>
+                  <h3 className="text-xl font-bold text-white">Stealth Addresses</h3>
+                  <span className="text-xs text-emerald-400 font-medium">ECDH on secp256k1</span>
                 </div>
               </div>
               <p className="text-blue-200/80 text-sm leading-relaxed">
-                Prove you have sufficient balance without revealing the amount. Privacy-preserving cryptography for the modern age.
+                Receive payments to one-time addresses. Real elliptic curve cryptography ensures each payment goes to a unique, unlinkable address.
               </p>
             </div>
 
