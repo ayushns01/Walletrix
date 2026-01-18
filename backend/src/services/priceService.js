@@ -1,15 +1,9 @@
 import axios from 'axios';
 
-/**
- * Price Service
- * Fetches cryptocurrency prices and market data from CoinGecko
- */
-
 class PriceService {
   constructor() {
     this.baseUrl = 'https://api.coingecko.com/api/v3';
-    
-    // Verified CoinGecko coin IDs (removed invalid IDs)
+
     this.cryptoIds = {
       BTC: 'bitcoin',
       ETH: 'ethereum',
@@ -26,11 +20,6 @@ class PriceService {
     };
   }
 
-  /**
-   * Get current price for a cryptocurrency
-   * @param {string} coinId - CoinGecko coin ID (e.g., 'bitcoin', 'ethereum')
-   * @param {string} vsCurrency - Fiat currency (default: 'usd')
-   */
   async getPrice(coinId, vsCurrency = 'usd') {
     try {
       const url = `${this.baseUrl}/simple/price`;
@@ -46,7 +35,7 @@ class PriceService {
       });
 
       const data = response.data[coinId];
-      
+
       if (!data) {
         throw new Error('Cryptocurrency not found');
       }
@@ -70,20 +59,15 @@ class PriceService {
     }
   }
 
-  /**
-   * Get prices for multiple cryptocurrencies
-   * Handles large requests by chunking if needed
-   */
   async getMultiplePrices(coinIds, vsCurrency = 'usd') {
     try {
       const coinsArray = Array.isArray(coinIds) ? coinIds : [coinIds];
-      const chunkSize = 50; // CoinGecko allows up to 50-100 coins per request
-      
-      // If request is small enough, make single request
+      const chunkSize = 50;
+
       if (coinsArray.length <= chunkSize) {
         const url = `${this.baseUrl}/simple/price`;
         const coinIdsString = coinsArray.join(',');
-        
+
         const response = await axios.get(url, {
           params: {
             ids: coinIdsString,
@@ -108,13 +92,12 @@ class PriceService {
           prices,
         };
       }
-      
-      // For larger requests, chunk them
+
       const allPrices = [];
       for (let i = 0; i < coinsArray.length; i += chunkSize) {
         const chunk = coinsArray.slice(i, i + chunkSize);
         const url = `${this.baseUrl}/simple/price`;
-        
+
         const response = await axios.get(url, {
           params: {
             ids: chunk.join(','),
@@ -135,8 +118,7 @@ class PriceService {
         }));
 
         allPrices.push(...prices);
-        
-        // Add small delay between chunks to avoid rate limiting
+
         if (i + chunkSize < coinsArray.length) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
@@ -155,9 +137,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get popular crypto prices
-   */
   async getPopularPrices(vsCurrency = 'usd') {
     try {
       const coinIds = Object.values(this.cryptoIds);
@@ -171,9 +150,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get detailed coin data
-   */
   async getCoinData(coinId) {
     try {
       const url = `${this.baseUrl}/coins/${coinId}`;
@@ -225,9 +201,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get price chart data (historical prices)
-   */
   async getPriceChart(coinId, vsCurrency = 'usd', days = 7) {
     try {
       const url = `${this.baseUrl}/coins/${coinId}/market_chart`;
@@ -260,9 +233,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Search for cryptocurrencies
-   */
   async searchCoins(query) {
     try {
       const url = `${this.baseUrl}/search`;
@@ -292,9 +262,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get trending coins
-   */
   async getTrendingCoins() {
     try {
       const url = `${this.baseUrl}/search/trending`;
@@ -322,9 +289,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get top coins by market cap
-   */
   async getTopCoins(vsCurrency = 'usd', limit = 10) {
     try {
       const url = `${this.baseUrl}/coins/markets`;
@@ -366,9 +330,6 @@ class PriceService {
     }
   }
 
-  /**
-   * Get supported currencies
-   */
   getSupportedCurrencies() {
     return {
       success: true,
@@ -376,9 +337,6 @@ class PriceService {
     };
   }
 
-  /**
-   * Get popular crypto IDs
-   */
   getPopularCryptoIds() {
     return {
       success: true,

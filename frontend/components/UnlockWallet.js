@@ -12,7 +12,7 @@ export default function UnlockWallet({ onDeleteWallet }) {
 
   const handleUnlock = async (e) => {
     e.preventDefault();
-    
+
     if (!password) return;
 
     try {
@@ -30,7 +30,7 @@ export default function UnlockWallet({ onDeleteWallet }) {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-black/40 to-blue-950/30"></div>
       <div className="absolute top-20 left-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-20 right-20 w-48 h-48 bg-blue-600/10 rounded-full blur-2xl"></div>
-      
+
       <div className="max-w-md w-full relative z-10">
         <div className="glass-effect rounded-3xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
           <div className="flex items-center justify-center mb-8">
@@ -38,7 +38,7 @@ export default function UnlockWallet({ onDeleteWallet }) {
               <Lock className="w-12 h-12 text-blue-300" />
             </div>
           </div>
-          
+
           <h2 className="text-3xl font-bold text-blue-100 text-center mb-3 gradient-text">
             Wallet Locked
           </h2>
@@ -74,8 +74,8 @@ export default function UnlockWallet({ onDeleteWallet }) {
                 Restore from recovery phrase
               </a>
             </p>
-            
-            {/* Delete wallet option */}
+
+            {}
             {onDeleteWallet && (
               <div className="pt-4 border-t border-blue-500/20">
                 <button

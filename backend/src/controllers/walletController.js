@@ -14,8 +14,6 @@ class WalletController {
         });
       }
 
-      // SECURITY: Private keys are derived from mnemonic client-side
-      // Server NEVER returns private keys in API responses
       res.status(200).json({
         success: true,
         message: 'Wallet generated successfully',
@@ -66,8 +64,6 @@ class WalletController {
         });
       }
 
-      // SECURITY: Private keys are derived from mnemonic client-side
-      // Server NEVER returns private keys in API responses
       res.status(200).json({
         success: true,
         message: 'Wallet imported successfully',
@@ -292,7 +288,6 @@ class WalletController {
         });
       }
 
-      // SECURITY: Private keys are derived from mnemonic client-side
       res.status(200).json({
         success: true,
         message: 'Solana address generated successfully',

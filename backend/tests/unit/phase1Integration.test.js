@@ -8,7 +8,6 @@ describe('Phase 1 Integration Tests', () => {
 
             expect(response.status).toBe(200);
 
-            // Check for security headers
             expect(response.headers).toHaveProperty('x-content-type-options');
             expect(response.headers['x-content-type-options']).toBe('nosniff');
 
@@ -87,7 +86,6 @@ describe('Phase 1 Integration Tests', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
 
-            // Verify can login with new password
             const loginResponse = await request(app)
                 .post('/api/v1/auth/login')
                 .send({

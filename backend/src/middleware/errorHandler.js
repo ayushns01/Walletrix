@@ -1,55 +1,38 @@
-/**
- * Centralized Error Handling Middleware
- * Provides consistent error responses and logging
- */
-
-/**
- * Standard error codes for the application
- */
 export const ErrorCodes = {
-  // Authentication & Authorization
+
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',
   INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   TOKEN_INVALID: 'TOKEN_INVALID',
-  
-  // Validation
+
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   INVALID_INPUT: 'INVALID_INPUT',
   MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-  
-  // Wallet Operations
+
   WALLET_NOT_FOUND: 'WALLET_NOT_FOUND',
   WALLET_ALREADY_EXISTS: 'WALLET_ALREADY_EXISTS',
   INVALID_MNEMONIC: 'INVALID_MNEMONIC',
   INVALID_PRIVATE_KEY: 'INVALID_PRIVATE_KEY',
   DECRYPTION_FAILED: 'DECRYPTION_FAILED',
-  
-  // Blockchain Operations
+
   INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
   TRANSACTION_FAILED: 'TRANSACTION_FAILED',
   INVALID_ADDRESS: 'INVALID_ADDRESS',
   NETWORK_ERROR: 'NETWORK_ERROR',
   RPC_ERROR: 'RPC_ERROR',
-  
-  // Database
+
   DATABASE_ERROR: 'DATABASE_ERROR',
   RECORD_NOT_FOUND: 'RECORD_NOT_FOUND',
   DUPLICATE_ENTRY: 'DUPLICATE_ENTRY',
-  
-  // Rate Limiting
+
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-  
-  // Server Errors
+
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
   EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR',
 };
 
-/**
- * Custom Application Error class
- */
 export class AppError extends Error {
   constructor(message, statusCode = 500, errorCode = ErrorCodes.INTERNAL_SERVER_ERROR, details = null) {
     super(message);
@@ -61,10 +44,6 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
-
-/**
- * Specific error classes
- */
 
 export class ValidationError extends AppError {
   constructor(message, details = null) {
@@ -114,16 +93,13 @@ export class InsufficientBalanceError extends AppError {
   }
 }
 
-/**
- * Error logging function
- */
 const logError = (error, req) => {
   const timestamp = new Date().toISOString();
   const method = req?.method || 'UNKNOWN';
   const url = req?.originalUrl || req?.url || 'UNKNOWN';
   const userId = req?.userId || req?.user?.id || 'anonymous';
   const ip = req?.ip || 'UNKNOWN';
-  
+
   console.error('\n=== ERROR LOG ===');
   console.error(`Timestamp: ${timestamp}`);
   console.error(`Method: ${method} ${url}`);
@@ -132,42 +108,36 @@ const logError = (error, req) => {
   console.error(`Error Name: ${error.name}`);
   console.error(`Error Code: ${error.errorCode || 'N/A'}`);
   console.error(`Message: ${error.message}`);
-  
+
   if (error.details) {
     console.error(`Details:`, error.details);
   }
-  
+
   if (error.stack && process.env.NODE_ENV === 'development') {
     console.error(`Stack Trace:\n${error.stack}`);
   }
-  
+
   console.error('=================\n');
 };
 
-/**
- * Format error response
- */
 const formatErrorResponse = (error, req) => {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   const response = {
     success: false,
     error: error.message || 'An error occurred',
     errorCode: error.errorCode || ErrorCodes.INTERNAL_SERVER_ERROR,
     timestamp: new Date().toISOString(),
   };
-  
-  // Add details if available
+
   if (error.details) {
     response.details = error.details;
   }
-  
-  // Add stack trace in development
+
   if (isDevelopment && error.stack) {
     response.stack = error.stack.split('\n');
   }
-  
-  // Add request info in development
+
   if (isDevelopment && req) {
     response.request = {
       method: req.method,
@@ -176,21 +146,16 @@ const formatErrorResponse = (error, req) => {
       query: req.query,
     };
   }
-  
+
   return response;
 };
 
-/**
- * Main error handling middleware
- */
 export const errorHandler = (error, req, res, next) => {
-  // Log the error
+
   logError(error, req);
-  
-  // Determine status code
+
   let statusCode = error.statusCode || 500;
-  
-  // Handle specific error types
+
   if (error.name === 'ValidationError') {
     statusCode = 400;
   } else if (error.name === 'UnauthorizedError') {
@@ -206,8 +171,7 @@ export const errorHandler = (error, req, res, next) => {
   } else if (error.name === 'RateLimitError') {
     statusCode = 429;
   }
-  
-  // Prisma-specific errors
+
   if (error.code?.startsWith('P')) {
     statusCode = 400;
     if (error.code === 'P2002') {
@@ -222,34 +186,23 @@ export const errorHandler = (error, req, res, next) => {
       error.errorCode = ErrorCodes.DATABASE_ERROR;
     }
   }
-  
-  // Format and send response
+
   const response = formatErrorResponse(error, req);
   res.status(statusCode).json(response);
 };
 
-/**
- * 404 Not Found handler
- */
 export const notFoundHandler = (req, res, next) => {
   const error = new NotFoundError('Route');
   error.message = `Cannot ${req.method} ${req.originalUrl}`;
   next(error);
 };
 
-/**
- * Async error wrapper
- * Wraps async route handlers to catch errors
- */
 export const asyncHandler = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
-/**
- * Graceful error response helper
- */
 export const sendErrorResponse = (res, statusCode, message, errorCode, details = null) => {
   res.status(statusCode).json({
     success: false,

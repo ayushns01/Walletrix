@@ -1,8 +1,3 @@
-/**
- * Centralized Logging Service
- * Provides structured logging with winston
- */
-
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
@@ -11,10 +6,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Define log directory
 const logDir = path.join(__dirname, '../../logs');
 
-// Define log levels
 const levels = {
   error: 0,
   warn: 1,
@@ -23,7 +16,6 @@ const levels = {
   debug: 4,
 };
 
-// Define log colors
 const colors = {
   error: 'red',
   warn: 'yellow',
@@ -34,14 +26,12 @@ const colors = {
 
 winston.addColors(colors);
 
-// Determine log level based on environment
 const level = () => {
   const env = process.env.NODE_ENV || 'development';
   const isDevelopment = env === 'development';
   return isDevelopment ? 'debug' : 'info';
 };
 
-// Define log format
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
@@ -49,7 +39,6 @@ const logFormat = winston.format.combine(
   winston.format.json()
 );
 
-// Console format for development
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -58,19 +47,16 @@ const consoleFormat = winston.format.combine(
   )
 );
 
-// Create transports
 const transports = [];
 
-// Console transport (always enabled)
 transports.push(
   new winston.transports.Console({
     format: process.env.NODE_ENV === 'production' ? logFormat : consoleFormat,
   })
 );
 
-// File transports (disabled in test environment)
 if (process.env.NODE_ENV !== 'test') {
-  // Error log file
+
   transports.push(
     new DailyRotateFile({
       filename: path.join(logDir, 'error-%DATE%.log'),
@@ -82,7 +68,6 @@ if (process.env.NODE_ENV !== 'test') {
     })
   );
 
-  // Combined log file
   transports.push(
     new DailyRotateFile({
       filename: path.join(logDir, 'combined-%DATE%.log'),
@@ -93,7 +78,6 @@ if (process.env.NODE_ENV !== 'test') {
     })
   );
 
-  // HTTP log file
   transports.push(
     new DailyRotateFile({
       filename: path.join(logDir, 'http-%DATE%.log'),
@@ -106,7 +90,6 @@ if (process.env.NODE_ENV !== 'test') {
   );
 }
 
-// Create logger instance
 const logger = winston.createLogger({
   level: level(),
   levels,
@@ -115,14 +98,11 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-/**
- * Log an API request
- */
 export function logRequest(req, res, responseTime) {
   const { method, originalUrl, ip, headers } = req;
   const userId = req.userId || req.user?.id || 'anonymous';
   const userAgent = headers['user-agent'] || 'unknown';
-  
+
   logger.http('API Request', {
     method,
     url: originalUrl,
@@ -134,9 +114,6 @@ export function logRequest(req, res, responseTime) {
   });
 }
 
-/**
- * Log a blockchain operation
- */
 export function logBlockchain(operation, network, data) {
   logger.info('Blockchain Operation', {
     operation,
@@ -145,9 +122,6 @@ export function logBlockchain(operation, network, data) {
   });
 }
 
-/**
- * Log a wallet operation
- */
 export function logWallet(operation, userId, data) {
   logger.info('Wallet Operation', {
     operation,
@@ -156,9 +130,6 @@ export function logWallet(operation, userId, data) {
   });
 }
 
-/**
- * Log a transaction
- */
 export function logTransaction(type, network, txHash, data) {
   logger.info('Transaction', {
     type,
@@ -168,9 +139,6 @@ export function logTransaction(type, network, txHash, data) {
   });
 }
 
-/**
- * Log authentication events
- */
 export function logAuth(event, userId, data = {}) {
   logger.info('Authentication', {
     event,
@@ -179,9 +147,6 @@ export function logAuth(event, userId, data = {}) {
   });
 }
 
-/**
- * Log security events
- */
 export function logSecurity(event, severity, data) {
   const logLevel = severity === 'critical' ? 'error' : 'warn';
   logger[logLevel]('Security Event', {
@@ -192,9 +157,6 @@ export function logSecurity(event, severity, data) {
   });
 }
 
-/**
- * Log database operations
- */
 export function logDatabase(operation, table, data) {
   logger.debug('Database Operation', {
     operation,
@@ -203,9 +165,6 @@ export function logDatabase(operation, table, data) {
   });
 }
 
-/**
- * Log external API calls
- */
 export function logExternalAPI(service, endpoint, data) {
   logger.debug('External API Call', {
     service,
@@ -214,9 +173,6 @@ export function logExternalAPI(service, endpoint, data) {
   });
 }
 
-/**
- * Log performance metrics
- */
 export function logPerformance(operation, duration, data = {}) {
   const level = duration > 1000 ? 'warn' : 'debug';
   logger[level]('Performance', {
@@ -226,9 +182,6 @@ export function logPerformance(operation, duration, data = {}) {
   });
 }
 
-/**
- * Log error with context
- */
 export function logError(error, context = {}) {
   logger.error('Error', {
     message: error.message,
@@ -240,21 +193,14 @@ export function logError(error, context = {}) {
   });
 }
 
-/**
- * Create a child logger with additional metadata
- */
 export function createChildLogger(metadata) {
   return logger.child(metadata);
 }
 
-/**
- * Morgan stream for HTTP logging
- */
 export const morganStream = {
   write: (message) => {
     logger.http(message.trim());
   },
 };
 
-// Export logger instance
 export default logger;

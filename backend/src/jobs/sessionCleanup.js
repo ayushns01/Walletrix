@@ -1,8 +1,3 @@
-/**
- * Session Cleanup Job
- * Periodically removes expired sessions from the database
- */
-
 import prisma from '../lib/prisma.js';
 import logger from '../services/loggerService.js';
 
@@ -10,13 +5,10 @@ class SessionCleanupJob {
   constructor() {
     this.isRunning = false;
     this.intervalId = null;
-    // Run every 6 hours (in milliseconds)
+
     this.intervalMs = 6 * 60 * 60 * 1000;
   }
 
-  /**
-   * Start the cleanup job
-   */
   start() {
     if (this.isRunning) {
       logger.warn('Session cleanup job is already running');
@@ -28,19 +20,14 @@ class SessionCleanupJob {
     });
 
     this.isRunning = true;
-    
-    // Run immediately on start
+
     this.runCleanup();
 
-    // Schedule periodic runs
     this.intervalId = setInterval(() => {
       this.runCleanup();
     }, this.intervalMs);
   }
 
-  /**
-   * Stop the cleanup job
-   */
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -50,15 +37,12 @@ class SessionCleanupJob {
     logger.info('Session cleanup job stopped');
   }
 
-  /**
-   * Run the cleanup process
-   */
   async runCleanup() {
     const startTime = Date.now();
     logger.info('Running session cleanup...');
 
     try {
-      // Delete expired sessions
+
       const result = await prisma.userSession.deleteMany({
         where: {
           expiresAt: {
@@ -67,7 +51,6 @@ class SessionCleanupJob {
         }
       });
 
-      // Mark inactive old sessions (not used in last 30 days)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const inactiveResult = await prisma.userSession.updateMany({
         where: {
@@ -108,17 +91,11 @@ class SessionCleanupJob {
     }
   }
 
-  /**
-   * Run cleanup manually (for testing or manual triggers)
-   */
   async runManual() {
     logger.info('Manual session cleanup triggered');
     return this.runCleanup();
   }
 
-  /**
-   * Get session statistics
-   */
   async getStats() {
     try {
       const total = await prisma.userSession.count();
@@ -161,6 +138,5 @@ class SessionCleanupJob {
   }
 }
 
-// Export singleton instance
 const sessionCleanupJob = new SessionCleanupJob();
 export default sessionCleanupJob;

@@ -1,12 +1,6 @@
 import { ethers } from 'ethers';
 import ethereumService from './ethereumService.js';
 
-/**
- * Token Service for ERC-20 tokens
- * Handles ERC-20 token operations on Ethereum and compatible chains
- */
-
-// Standard ERC-20 ABI (minimal)
 const ERC20_ABI = [
   'function name() view returns (string)',
   'function symbol() view returns (string)',
@@ -21,7 +15,7 @@ const ERC20_ABI = [
 
 class TokenService {
   constructor() {
-    // Popular token addresses on Ethereum Mainnet
+
     this.popularTokens = {
       USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
       USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
@@ -34,17 +28,11 @@ class TokenService {
     };
   }
 
-  /**
-   * Get token contract instance
-   */
   getTokenContract(tokenAddress, network = 'mainnet') {
     const provider = ethereumService.getProvider(network);
     return new ethers.Contract(tokenAddress, ERC20_ABI, provider);
   }
 
-  /**
-   * Get token metadata (name, symbol, decimals)
-   */
   async getTokenInfo(tokenAddress, network = 'mainnet') {
     try {
       if (!ethers.isAddress(tokenAddress)) {
@@ -79,15 +67,12 @@ class TokenService {
     }
   }
 
-  /**
-   * Get token balance for an address
-   */
   async getTokenBalance(tokenAddress, walletAddress, network = 'mainnet') {
     try {
       if (!ethers.isAddress(tokenAddress)) {
         throw new Error('Invalid token address');
       }
-      
+
       if (!ethers.isAddress(walletAddress)) {
         throw new Error('Invalid wallet address');
       }
@@ -115,9 +100,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Get multiple token balances for an address
-   */
   async getMultipleTokenBalances(walletAddress, tokenAddresses, network = 'mainnet') {
     try {
       if (!ethers.isAddress(walletAddress)) {
@@ -166,9 +148,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Get popular token balances for an address
-   */
   async getPopularTokenBalances(walletAddress, network = 'mainnet') {
     try {
       const tokenAddresses = Object.values(this.popularTokens);
@@ -182,9 +161,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Get token allowance (for spending tokens on behalf of owner)
-   */
   async getTokenAllowance(tokenAddress, ownerAddress, spenderAddress, network = 'mainnet') {
     try {
       if (!ethers.isAddress(tokenAddress)) {
@@ -215,9 +191,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Encode transfer function data for a token transfer
-   */
   encodeTransferData(toAddress, amount, decimals) {
     try {
       const iface = new ethers.Interface(ERC20_ABI);
@@ -239,9 +212,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Encode approve function data
-   */
   encodeApproveData(spenderAddress, amount, decimals) {
     try {
       const iface = new ethers.Interface(ERC20_ABI);
@@ -263,9 +233,6 @@ class TokenService {
     }
   }
 
-  /**
-   * Get list of popular tokens
-   */
   getPopularTokens() {
     return {
       success: true,

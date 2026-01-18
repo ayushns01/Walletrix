@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * Test Recent Transactions API
- * Comprehensive test to verify transaction endpoints are working
- */
 
 import fetch from 'node-fetch';
 import prisma from './src/lib/prisma.js';
@@ -25,7 +21,7 @@ async function testTransactionAPIs() {
   log('cyan', '\n🧪 Testing Recent Transactions API\n' + '='.repeat(50) + '\n');
 
   try {
-    // Step 1: Get a real wallet ID from database
+
     log('blue', '📋 Step 1: Getting wallet from database...');
     const wallet = await prisma.wallet.findFirst({
       where: { isActive: true },
@@ -47,7 +43,6 @@ async function testTransactionAPIs() {
     log('cyan', `   Addresses: ${JSON.stringify(wallet.addresses)}`);
     console.log('');
 
-    // Step 2: Check existing transactions
     log('blue', '📋 Step 2: Checking existing transactions in database...');
     const existingTxs = await prisma.transaction.count({
       where: { walletId: wallet.id }
@@ -55,7 +50,6 @@ async function testTransactionAPIs() {
     log('cyan', `   Found ${existingTxs} transactions in database`);
     console.log('');
 
-    // Step 3: Test GET /transactions/wallet/:walletId endpoint
     log('blue', '📋 Step 3: Testing GET /transactions/wallet/:walletId...');
     const walletTxResponse = await fetch(`${API_URL}/transactions/wallet/${wallet.id}`);
     const walletTxData = await walletTxResponse.json();
@@ -65,7 +59,7 @@ async function testTransactionAPIs() {
       log('cyan', `   Success: ${walletTxData.success}`);
       log('cyan', `   Transactions returned: ${walletTxData.data?.transactions?.length || 0}`);
       log('cyan', `   Total items: ${walletTxData.data?.pagination?.totalItems || 0}`);
-      
+
       if (walletTxData.data?.transactions?.length > 0) {
         log('green', '\n   📊 Recent Transactions:');
         walletTxData.data.transactions.slice(0, 3).forEach((tx, i) => {
@@ -81,7 +75,6 @@ async function testTransactionAPIs() {
     }
     console.log('');
 
-    // Step 4: Test with filters
     log('blue', '📋 Step 4: Testing with filters (limit=5, status=confirmed)...');
     const filteredResponse = await fetch(
       `${API_URL}/transactions/wallet/${wallet.id}?limit=5&status=confirmed&sortBy=timestamp&sortOrder=desc`
@@ -96,7 +89,6 @@ async function testTransactionAPIs() {
     }
     console.log('');
 
-    // Step 5: Test analytics endpoint
     log('blue', '📋 Step 5: Testing GET /transactions/wallet/:walletId/analytics...');
     const analyticsResponse = await fetch(
       `${API_URL}/transactions/wallet/${wallet.id}/analytics?timeframe=30d`
@@ -115,12 +107,11 @@ async function testTransactionAPIs() {
     }
     console.log('');
 
-    // Step 6: Test blockchain transaction fetching (if address exists)
     if (wallet.addresses?.ethereum) {
       log('blue', '📋 Step 6: Testing blockchain transaction fetch...');
       const ethAddress = wallet.addresses.ethereum;
       log('cyan', `   Ethereum address: ${ethAddress}`);
-      
+
       const blockchainResponse = await fetch(
         `${API_URL}/blockchain/ethereum/transactions/${ethAddress}?limit=5`
       );
@@ -129,7 +120,7 @@ async function testTransactionAPIs() {
       if (blockchainResponse.ok) {
         log('green', `✅ Blockchain API working`);
         log('cyan', `   Transactions found: ${blockchainData.transactions?.length || 0}`);
-        
+
         if (blockchainData.transactions?.length > 0) {
           log('green', '   📊 Recent blockchain transactions:');
           blockchainData.transactions.slice(0, 2).forEach((tx, i) => {
@@ -143,10 +134,9 @@ async function testTransactionAPIs() {
       console.log('');
     }
 
-    // Step 7: Summary
     log('cyan', '\n' + '='.repeat(50));
     log('cyan', '📊 SUMMARY\n');
-    
+
     const checks = [
       { name: 'Wallet found in database', status: !!wallet },
       { name: 'GET /transactions/wallet/:id endpoint', status: walletTxResponse.ok },
@@ -179,5 +169,4 @@ async function testTransactionAPIs() {
   }
 }
 
-// Run tests
 testTransactionAPIs();

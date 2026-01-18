@@ -19,10 +19,9 @@ export default function MultiSigDashboard({ wallet, balances, onRefresh, onSend,
         }
     };
 
-    // Calculate total value
     const totalValue = useMemo(() => {
         if (!balances || !balances.balance) return 0;
-        // For now, just show the balance - price calculation can be added later
+
         return parseFloat(balances.balance) || 0;
     }, [balances]);
 
@@ -31,7 +30,7 @@ export default function MultiSigDashboard({ wallet, balances, onRefresh, onSend,
 
     return (
         <div className="space-y-6">
-            {/* Total Balance Card */}
+            {}
             <div className="bg-gradient-to-br from-black via-purple-900 to-purple-950 rounded-3xl p-8 text-white relative overflow-hidden border border-purple-500/30 shadow-2xl shadow-purple-500/30">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-purple-400/10 rounded-full -mr-32 -mt-32 blur-xl"></div>
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 rounded-full -ml-24 -mb-24 blur-lg"></div>
@@ -59,7 +58,7 @@ export default function MultiSigDashboard({ wallet, balances, onRefresh, onSend,
                         {balances?.balance || '0'} {networkSymbol}
                     </h2>
 
-                    {/* Quick Actions */}
+                    {}
                     <div className="grid grid-cols-2 gap-4">
                         <button
                             onClick={onSend}
@@ -79,11 +78,11 @@ export default function MultiSigDashboard({ wallet, balances, onRefresh, onSend,
                 </div>
             </div>
 
-            {/* Assets List */}
+            {}
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-purple-500/20">
                 <h3 className="text-xl font-bold text-white mb-4">Assets</h3>
                 <div className="space-y-3">
-                    {/* Native Asset */}
+                    {}
                     <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800/70 transition-all">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center text-2xl">
@@ -106,7 +105,7 @@ export default function MultiSigDashboard({ wallet, balances, onRefresh, onSend,
                 </div>
             </div>
 
-            {/* Multi-Sig Info */}
+            {}
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-purple-500/20">
                 <h3 className="text-xl font-bold text-white mb-4">Multi-Sig Configuration</h3>
                 <div className="grid grid-cols-2 gap-4">

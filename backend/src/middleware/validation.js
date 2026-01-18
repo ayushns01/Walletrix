@@ -2,14 +2,6 @@ import { body, param, query, validationResult } from 'express-validator';
 import { ethers } from 'ethers';
 import * as bitcoin from 'bitcoinjs-lib';
 
-/**
- * Centralized Validation Middleware
- * Provides reusable validation chains for all API endpoints
- */
-
-/**
- * Middleware to handle validation errors
- */
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -26,17 +18,12 @@ export const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-/**
- * Custom validators
- */
-
-// Ethereum address validator
 const isValidEthereumAddress = (address) => {
   if (!address) return false;
   if (!/^0x[a-fA-F0-9]{40}$/.test(address)) return false;
-  
+
   try {
-    // Check EIP-55 checksum
+
     ethers.getAddress(address);
     return true;
   } catch {
@@ -44,10 +31,9 @@ const isValidEthereumAddress = (address) => {
   }
 };
 
-// Bitcoin address validator
 const isValidBitcoinAddress = (address, network = 'mainnet') => {
   if (!address) return false;
-  
+
   try {
     const networkObj = network === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
     bitcoin.address.toOutputScript(address, networkObj);
@@ -57,52 +43,44 @@ const isValidBitcoinAddress = (address, network = 'mainnet') => {
   }
 };
 
-// Network address validator (multi-chain)
 const isValidNetworkAddress = (address, network) => {
   if (!address || !network) return false;
-  
-  if (network.startsWith('ethereum') || network.startsWith('polygon') || 
+
+  if (network.startsWith('ethereum') || network.startsWith('polygon') ||
       network.startsWith('arbitrum') || network.startsWith('optimism') ||
-      network.startsWith('base') || network.startsWith('bsc') || 
+      network.startsWith('base') || network.startsWith('bsc') ||
       network.startsWith('avalanche')) {
     return isValidEthereumAddress(address);
   }
-  
+
   if (network.startsWith('bitcoin')) {
     const bitcoinNetwork = network.includes('testnet') ? 'testnet' : 'mainnet';
     return isValidBitcoinAddress(address, bitcoinNetwork);
   }
-  
+
   return false;
 };
 
-// Amount validator
 const isValidAmount = (value) => {
   if (!value) return false;
   const num = parseFloat(value);
-  return !isNaN(num) && num > 0 && num < 1e15; // Reasonable upper limit
+  return !isNaN(num) && num > 0 && num < 1e15;
 };
 
-// Mnemonic validator
 const isValidMnemonic = (mnemonic) => {
   if (!mnemonic) return false;
   const words = mnemonic.trim().split(/\s+/);
   return words.length === 12 || words.length === 24;
 };
 
-// Private key validator
 const isValidPrivateKey = (key) => {
   if (!key) return false;
-  // Ethereum private key format
+
   return /^(0x)?[a-fA-F0-9]{64}$/.test(key);
 };
 
-/**
- * Validation Rules
- */
-
 export const validationRules = {
-  // Authentication
+
   register: [
     body('email')
       .isEmail().normalizeEmail()
@@ -140,7 +118,6 @@ export const validationRules = {
       .withMessage('New password must contain uppercase, lowercase, and number')
   ],
 
-  // Wallet operations
   generateWallet: [],
 
   importMnemonic: [
@@ -179,8 +156,8 @@ export const validationRules = {
 
   validateAddress: [
     param('network')
-      .isIn(['ethereum', 'bitcoin', 'ethereum-mainnet', 'ethereum-sepolia', 'ethereum-goerli', 
-             'bitcoin-mainnet', 'bitcoin-testnet', 'polygon-mainnet', 'arbitrum-one', 
+      .isIn(['ethereum', 'bitcoin', 'ethereum-mainnet', 'ethereum-sepolia', 'ethereum-goerli',
+             'bitcoin-mainnet', 'bitcoin-testnet', 'polygon-mainnet', 'arbitrum-one',
              'optimism-mainnet', 'base-mainnet'])
       .withMessage('Invalid network'),
     param('address')
@@ -190,7 +167,6 @@ export const validationRules = {
       .withMessage('Invalid address for the specified network')
   ],
 
-  // Blockchain queries
   getBalance: [
     param('address')
       .notEmpty()
@@ -228,7 +204,6 @@ export const validationRules = {
       .withMessage('Limit must be between 1 and 100')
   ],
 
-  // Token operations
   getTokenInfo: [
     param('tokenAddress')
       .notEmpty()
@@ -264,7 +239,6 @@ export const validationRules = {
       .withMessage('All token addresses must be valid Ethereum addresses')
   ],
 
-  // Transactions
   sendEthereumTransaction: [
     body('privateKey')
       .notEmpty()
@@ -345,7 +319,6 @@ export const validationRules = {
       .withMessage('Fee rate must be between 1 and 1000 sat/vB')
   ],
 
-  // Database wallet operations
   createWallet: [
     body('name')
       .notEmpty()
@@ -381,7 +354,6 @@ export const validationRules = {
       .withMessage('Description must be 500 characters or less')
   ],
 
-  // Price operations
   getPrice: [
     param('coinId')
       .notEmpty()
@@ -413,9 +385,6 @@ export const validationRules = {
   ]
 };
 
-/**
- * Two-Factor Authentication validation rules
- */
 export const validateTwoFactor = {
   verifyTOTP: [
     body('code')

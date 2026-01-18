@@ -1,8 +1,3 @@
-/**
- * Two-Factor Authentication Service
- * Handles TOTP, backup codes, and SMS verification
- */
-
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { randomBytes } from 'crypto';
@@ -12,9 +7,6 @@ import { sendEmail } from './emailService.js';
 
 const prisma = new PrismaClient();
 
-/**
- * 2FA method types
- */
 export const TwoFactorMethod = {
   TOTP: 'totp',
   SMS: 'sms',
@@ -22,9 +14,6 @@ export const TwoFactorMethod = {
   BACKUP_CODE: 'backup_code',
 };
 
-/**
- * Generate TOTP secret for a user
- */
 export async function generateTOTPSecret(userId, userEmail) {
   try {
     const secret = speakeasy.generateSecret({
@@ -33,12 +22,11 @@ export async function generateTOTPSecret(userId, userEmail) {
       length: 32,
     });
 
-    // Store the secret in database (encrypted)
     await prisma.userTwoFactor.upsert({
       where: { userId },
       update: {
         totpSecret: secret.base32,
-        isEnabled: false, // User must verify before enabling
+        isEnabled: false,
         updatedAt: new Date(),
       },
       create: {
@@ -49,7 +37,6 @@ export async function generateTOTPSecret(userId, userEmail) {
       },
     });
 
-    // Generate QR code
     const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
 
     logAuth('TOTP Secret Generated', userId, {
@@ -74,9 +61,6 @@ export async function generateTOTPSecret(userId, userEmail) {
   }
 }
 
-/**
- * Verify TOTP code
- */
 export async function verifyTOTP(userId, code, isSetup = false) {
   try {
     const twoFactor = await prisma.userTwoFactor.findUnique({
@@ -94,13 +78,13 @@ export async function verifyTOTP(userId, code, isSetup = false) {
       secret: twoFactor.totpSecret,
       encoding: 'base32',
       token: code,
-      window: 2, // Allow 1 step before and after for clock drift
+      window: 2,
     });
 
     if (!verified) {
       logSecurity('Invalid TOTP Code Attempt', 'medium', {
         userId,
-        code: code.substring(0, 2) + '****', // Log only first 2 digits
+        code: code.substring(0, 2) + '****',
       });
 
       return {
@@ -109,7 +93,6 @@ export async function verifyTOTP(userId, code, isSetup = false) {
       };
     }
 
-    // If this is setup verification, enable 2FA
     if (isSetup) {
       await prisma.userTwoFactor.update({
         where: { userId },
@@ -142,26 +125,20 @@ export async function verifyTOTP(userId, code, isSetup = false) {
   }
 }
 
-/**
- * Generate backup codes
- */
 export async function generateBackupCodes(userId) {
   try {
     const codes = [];
     const hashedCodes = [];
 
-    // Generate 10 backup codes
     for (let i = 0; i < 10; i++) {
       const code = randomBytes(4).toString('hex').toUpperCase();
       codes.push(code);
-      
-      // Hash the code before storing
+
       const bcrypt = await import('bcryptjs');
       const hashedCode = await bcrypt.default.hash(code, 10);
       hashedCodes.push(hashedCode);
     }
 
-    // Store hashed codes in database
     await prisma.userBackupCode.deleteMany({
       where: { userId },
     });
@@ -194,9 +171,6 @@ export async function generateBackupCodes(userId) {
   }
 }
 
-/**
- * Verify backup code
- */
 export async function verifyBackupCode(userId, code) {
   try {
     const backupCodes = await prisma.userBackupCode.findMany({
@@ -210,12 +184,12 @@ export async function verifyBackupCode(userId, code) {
 
     for (const backupCode of backupCodes) {
       const isValid = await bcrypt.default.compare(code, backupCode.code);
-      
+
       if (isValid) {
-        // Mark code as used
+
         await prisma.userBackupCode.update({
           where: { id: backupCode.id },
-          data: { 
+          data: {
             isUsed: true,
             usedAt: new Date(),
           },
@@ -225,7 +199,6 @@ export async function verifyBackupCode(userId, code) {
           codeId: backupCode.id,
         });
 
-        // Check if running low on codes
         const remainingCodes = await prisma.userBackupCode.count({
           where: {
             userId,
@@ -234,7 +207,7 @@ export async function verifyBackupCode(userId, code) {
         });
 
         if (remainingCodes <= 2) {
-          // Send warning email about low backup codes
+
           const user = await prisma.user.findUnique({
             where: { id: userId },
           });
@@ -272,16 +245,12 @@ export async function verifyBackupCode(userId, code) {
   }
 }
 
-/**
- * Send SMS verification code
- */
 export async function sendSMSVerification(userId, phoneNumber) {
   try {
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store code in database
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
     await prisma.smsVerification.upsert({
       where: { userId },
       update: {
@@ -300,8 +269,6 @@ export async function sendSMSVerification(userId, phoneNumber) {
       },
     });
 
-    // TODO: Integrate with SMS provider (Twilio, AWS SNS, etc.)
-    // For now, log the code in development
     if (process.env.NODE_ENV === 'development') {
       logger.info('SMS Verification Code (Development Only)', {
         userId,
@@ -330,9 +297,6 @@ export async function sendSMSVerification(userId, phoneNumber) {
   }
 }
 
-/**
- * Verify SMS code
- */
 export async function verifySMSCode(userId, code) {
   try {
     const smsVerification = await prisma.smsVerification.findUnique({
@@ -346,7 +310,6 @@ export async function verifySMSCode(userId, code) {
       };
     }
 
-    // Check if code expired
     if (new Date() > smsVerification.expiresAt) {
       return {
         success: false,
@@ -354,7 +317,6 @@ export async function verifySMSCode(userId, code) {
       };
     }
 
-    // Check if code already used
     if (smsVerification.isUsed) {
       return {
         success: false,
@@ -362,7 +324,6 @@ export async function verifySMSCode(userId, code) {
       };
     }
 
-    // Check attempts limit
     if (smsVerification.attempts >= 5) {
       logSecurity('SMS Verification Max Attempts Exceeded', 'high', {
         userId,
@@ -375,7 +336,6 @@ export async function verifySMSCode(userId, code) {
       };
     }
 
-    // Verify code
     if (smsVerification.code !== code) {
       await prisma.smsVerification.update({
         where: { userId },
@@ -395,7 +355,6 @@ export async function verifySMSCode(userId, code) {
       };
     }
 
-    // Mark as used
     await prisma.smsVerification.update({
       where: { userId },
       data: {
@@ -419,9 +378,6 @@ export async function verifySMSCode(userId, code) {
   }
 }
 
-/**
- * Check if user has 2FA enabled
- */
 export async function is2FAEnabled(userId) {
   try {
     const twoFactor = await prisma.userTwoFactor.findUnique({
@@ -446,9 +402,6 @@ export async function is2FAEnabled(userId) {
   }
 }
 
-/**
- * Disable 2FA for user
- */
 export async function disable2FA(userId) {
   try {
     await prisma.userTwoFactor.update({
@@ -460,12 +413,10 @@ export async function disable2FA(userId) {
       },
     });
 
-    // Delete all backup codes
     await prisma.userBackupCode.deleteMany({
       where: { userId },
     });
 
-    // Delete SMS verifications
     await prisma.smsVerification.deleteMany({
       where: { userId },
     });
@@ -485,9 +436,6 @@ export async function disable2FA(userId) {
   }
 }
 
-/**
- * Check if user has valid backup codes
- */
 async function hasValidBackupCodes(userId) {
   try {
     const count = await prisma.userBackupCode.count({
@@ -507,9 +455,6 @@ async function hasValidBackupCodes(userId) {
   }
 }
 
-/**
- * Send backup code warning email
- */
 async function sendBackupCodeWarning(email, remainingCodes) {
   try {
     const subject = 'Walletrix: Running Low on Backup Codes';
@@ -531,9 +476,6 @@ async function sendBackupCodeWarning(email, remainingCodes) {
   }
 }
 
-/**
- * Get 2FA methods available for user
- */
 export async function getAvailable2FAMethods(userId) {
   try {
     const twoFactor = await prisma.userTwoFactor.findUnique({
@@ -546,14 +488,12 @@ export async function getAvailable2FAMethods(userId) {
 
     const methods = [];
 
-    // TOTP is always available
     methods.push({
       method: TwoFactorMethod.TOTP,
       enabled: twoFactor?.isEnabled && twoFactor?.method === TwoFactorMethod.TOTP,
       configured: !!twoFactor?.totpSecret,
     });
 
-    // SMS if phone number is configured
     if (user?.phoneNumber) {
       methods.push({
         method: TwoFactorMethod.SMS,
@@ -562,10 +502,9 @@ export async function getAvailable2FAMethods(userId) {
       });
     }
 
-    // Email is always available
     methods.push({
       method: TwoFactorMethod.EMAIL,
-      enabled: false, // TODO: Implement email 2FA
+      enabled: false,
       configured: !!user?.email,
     });
 

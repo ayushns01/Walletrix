@@ -1,8 +1,3 @@
-/**
- * Test Script for Activity Logging and Session Management
- * Run this after starting the backend server
- */
-
 import fetch from 'node-fetch';
 import prisma from './src/lib/prisma.js';
 
@@ -12,14 +7,13 @@ async function testActivityLogging() {
   console.log('🧪 Testing Activity Logging & Session Management\n');
 
   try {
-    // Test 1: Check initial counts
+
     console.log('📊 Initial Database State:');
     const initialSessions = await prisma.userSession.count();
     const initialLogs = await prisma.activityLog.count();
     console.log(`   Sessions: ${initialSessions}`);
     console.log(`   Activity Logs: ${initialLogs}\n`);
 
-    // Test 2: Attempt login
     console.log('🔐 Testing Login...');
     const loginResponse = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
@@ -31,7 +25,7 @@ async function testActivityLogging() {
     });
 
     const loginData = await loginResponse.json();
-    
+
     if (loginData.success) {
       console.log('   ✅ Login successful');
       console.log(`   User ID: ${loginData.user.id}`);
@@ -40,17 +34,14 @@ async function testActivityLogging() {
     }
     console.log('');
 
-    // Test 3: Wait for database writes
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Test 4: Check updated counts
     console.log('📊 Updated Database State:');
     const finalSessions = await prisma.userSession.count();
     const finalLogs = await prisma.activityLog.count();
     console.log(`   Sessions: ${finalSessions} (${finalSessions - initialSessions > 0 ? '✅ +' + (finalSessions - initialSessions) : '❌ No change'})`);
     console.log(`   Activity Logs: ${finalLogs} (${finalLogs - initialLogs > 0 ? '✅ +' + (finalLogs - initialLogs) : '❌ No change'})\n`);
 
-    // Test 5: Show recent activity logs
     if (finalLogs > initialLogs) {
       console.log('📋 Recent Activity Logs:');
       const recentLogs = await prisma.activityLog.findMany({
@@ -69,7 +60,6 @@ async function testActivityLogging() {
       console.log('');
     }
 
-    // Test 6: Show recent sessions
     if (finalSessions > initialSessions) {
       console.log('🔑 Recent Sessions:');
       const recentSessions = await prisma.userSession.findMany({
@@ -91,11 +81,10 @@ async function testActivityLogging() {
       console.log('');
     }
 
-    // Summary
     console.log('📈 Summary:');
     const sessionCreated = finalSessions > initialSessions;
     const logsCreated = finalLogs > initialLogs;
-    
+
     if (sessionCreated && logsCreated) {
       console.log('   ✅ Activity logging: WORKING');
       console.log('   ✅ Session management: WORKING');
@@ -115,5 +104,4 @@ async function testActivityLogging() {
   }
 }
 
-// Run tests
 testActivityLogging();

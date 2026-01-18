@@ -103,13 +103,13 @@ export default function Walkthrough({ isOpen, onClose }) {
   }
 
   const handleComplete = () => {
-    // Mark as shown for this session
+
     sessionStorage.setItem('walletrix_walkthrough_shown', 'true')
     onClose()
   }
 
   const handleSkip = () => {
-    // Mark as shown for this session
+
     sessionStorage.setItem('walletrix_walkthrough_shown', 'true')
     onClose()
   }
@@ -121,7 +121,6 @@ export default function Walkthrough({ isOpen, onClose }) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         element.classList.add('tour-highlight')
 
-        // Update spotlight position
         const updateSpotlight = () => {
           const rect = element.getBoundingClientRect()
           const x = ((rect.left + rect.width / 2) / window.innerWidth) * 100
@@ -149,10 +148,10 @@ export default function Walkthrough({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Overlay - Very light, mostly transparent to see highlighted elements clearly */}
+      {}
       <div className="fixed inset-0 bg-black/30" style={{ zIndex: 9996 }} />
 
-      {/* Walkthrough Modal - Positioned to not cover highlighted elements */}
+      {}
       <div
         className={`fixed ${currentStepData.position === 'center'
             ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
@@ -163,7 +162,7 @@ export default function Walkthrough({ isOpen, onClose }) {
         style={{ zIndex: 10000 }}
       >
         <div className="glass-effect rounded-2xl p-4 border border-blue-500/40 shadow-2xl shadow-blue-500/30 backdrop-blur-xl bg-gray-900/95">
-          {/* Header */}
+          {}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-lg flex items-center justify-center border border-blue-500/40">
@@ -182,7 +181,7 @@ export default function Walkthrough({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* Progress Bar */}
+          {}
           <div className="w-full h-1.5 bg-blue-900/40 rounded-full mb-4 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 rounded-full"
@@ -190,14 +189,14 @@ export default function Walkthrough({ isOpen, onClose }) {
             />
           </div>
 
-          {/* Content */}
+          {}
           <div className="mb-4">
             <p className="text-blue-200 text-sm whitespace-pre-line leading-relaxed">
               {currentStepData.description}
             </p>
           </div>
 
-          {/* Navigation */}
+          {}
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={handlePrevious}
@@ -234,7 +233,7 @@ export default function Walkthrough({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* Skip Button */}
+          {}
           {currentStep < steps.length - 1 && (
             <button
               onClick={handleSkip}
@@ -246,7 +245,7 @@ export default function Walkthrough({ isOpen, onClose }) {
         </div>
       </div>
 
-      {/* Highlight Spotlight Effect */}
+      {}
       {currentStepData.highlight && (
         <>
           <style jsx global>{`
@@ -258,7 +257,7 @@ export default function Walkthrough({ isOpen, onClose }) {
               backdrop-filter: brightness(1.15) contrast(1.1) saturate(1.1) !important;
               transition: all 0.3s ease !important;
             }
-            
+
             [data-tour="${currentStepData.highlight}"]::before {
               content: '';
               position: absolute;
@@ -271,7 +270,7 @@ export default function Walkthrough({ isOpen, onClose }) {
               box-shadow: 0 0 30px rgba(59, 130, 246, 0.8),
                          inset 0 0 20px rgba(59, 130, 246, 0.3);
             }
-            
+
             [data-tour="${currentStepData.highlight}"]::after {
               content: '';
               position: absolute;
@@ -282,7 +281,7 @@ export default function Walkthrough({ isOpen, onClose }) {
               z-index: -1;
               animation: glow-pulse 2s ease-in-out infinite;
             }
-            
+
             @keyframes pulse-highlight {
               0%, 100% {
                 box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.9),
@@ -297,20 +296,20 @@ export default function Walkthrough({ isOpen, onClose }) {
                            inset 0 0 40px rgba(59, 130, 246, 0.5);
               }
             }
-            
+
             @keyframes border-glow {
               0%, 100% {
                 opacity: 1;
-                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 1)) 
+                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 1))
                        drop-shadow(0 0 20px rgba(96, 165, 250, 0.8));
               }
               50% {
                 opacity: 0.8;
-                filter: drop-shadow(0 0 20px rgba(59, 130, 246, 1.5)) 
+                filter: drop-shadow(0 0 20px rgba(59, 130, 246, 1.5))
                        drop-shadow(0 0 30px rgba(96, 165, 250, 1));
               }
             }
-            
+
             @keyframes glow-pulse {
               0%, 100% {
                 opacity: 0.6;
@@ -323,7 +322,7 @@ export default function Walkthrough({ isOpen, onClose }) {
             }
           `}</style>
 
-          {/* Spotlight mask - larger bright area to cover entire component evenly */}
+          {}
           <div
             className="fixed inset-0 pointer-events-none"
             style={{
@@ -332,7 +331,7 @@ export default function Walkthrough({ isOpen, onClose }) {
             }}
           />
 
-          {/* Animated pointer - subtle and non-intrusive */}
+          {}
           <div
             className="fixed pointer-events-none"
             style={{

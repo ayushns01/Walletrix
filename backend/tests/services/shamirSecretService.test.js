@@ -50,7 +50,6 @@ describe('ShamirSecretService', () => {
         it('should recover secret from any combination of threshold shares', () => {
             const shares = shamirSecretService.splitSecret(testSecret, 5, 3);
 
-            // Test different combinations
             const combo1 = [shares[0].share, shares[1].share, shares[2].share];
             const combo2 = [shares[1].share, shares[3].share, shares[4].share];
             const combo3 = [shares[0].share, shares[2].share, shares[4].share];
@@ -93,7 +92,7 @@ describe('ShamirSecretService', () => {
             expect(recovery).toHaveProperty('totalShares', 5);
             expect(recovery).toHaveProperty('guardianShares');
             expect(recovery.guardianShares).toHaveLength(5);
-            expect(recovery.threshold).toBe(3); // 60% of 5
+            expect(recovery.threshold).toBe(3);
         });
 
         it('should assign shares to guardians', async () => {

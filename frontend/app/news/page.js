@@ -12,7 +12,6 @@ export default function NewsPage() {
     const [loading, setLoading] = useState(false);
     const [activeCategory, setActiveCategory] = useState('ETH');
 
-    // Fetch crypto news
     const fetchCryptoNews = async (category) => {
         try {
             setLoading(true);
@@ -24,7 +23,7 @@ export default function NewsPage() {
             const data = await response.json();
 
             if (data.Data) {
-                setNews(data.Data.slice(0, 20)); // Get top 20 articles
+                setNews(data.Data.slice(0, 20));
             }
         } catch (error) {
             console.error('Failed to fetch crypto news:', error);
@@ -34,12 +33,10 @@ export default function NewsPage() {
         }
     };
 
-    // Fetch news on mount and when category changes
     useEffect(() => {
         fetchCryptoNews(activeCategory);
     }, [activeCategory]);
 
-    // Update category when network changes
     useEffect(() => {
         if (selectedNetwork) {
             const [chain] = selectedNetwork.split('-');
@@ -77,7 +74,7 @@ export default function NewsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 p-6">
             <div className="max-w-6xl mx-auto">
-                {/* Header */}
+                {}
                 <div className="mb-8">
                     <button
                         onClick={() => router.back()}
@@ -102,7 +99,7 @@ export default function NewsPage() {
                     </div>
                 </div>
 
-                {/* Category Tabs */}
+                {}
                 <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
                     {categories.map((category) => (
                         <button
@@ -119,7 +116,7 @@ export default function NewsPage() {
                     ))}
                 </div>
 
-                {/* News Grid */}
+                {}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
@@ -138,7 +135,7 @@ export default function NewsPage() {
                                 rel="noopener noreferrer"
                                 className="group bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500/50 transition-all hover:shadow-xl hover:shadow-purple-500/20"
                             >
-                                {/* Image */}
+                                {}
                                 {article.imageurl && (
                                     <div className="relative h-48 overflow-hidden bg-gray-800">
                                         <img
@@ -152,7 +149,7 @@ export default function NewsPage() {
                                     </div>
                                 )}
 
-                                {/* Content */}
+                                {}
                                 <div className="p-5">
                                     <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-purple-400 transition-colors">
                                         {article.title}

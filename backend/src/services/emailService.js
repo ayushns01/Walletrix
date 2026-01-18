@@ -1,28 +1,19 @@
-/**
- * Email Service
- * Handles sending emails for 2FA, notifications, etc.
- */
-
 import nodemailer from 'nodemailer';
 import logger from './loggerService.js';
 
 let transporter = null;
 
-/**
- * Initialize email transporter
- */
 function initializeEmailService() {
   const emailConfig = {
     host: process.env.SMTP_HOST || 'localhost',
     port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   };
 
-  // Use ethereal email for development/testing
   if (process.env.NODE_ENV === 'development' && !process.env.SMTP_HOST) {
     logger.info('Using development email service (logs only)');
     return null;
@@ -44,9 +35,6 @@ function initializeEmailService() {
   return transporter;
 }
 
-/**
- * Send email
- */
 export async function sendEmail(to, subject, html, text = null) {
   try {
     if (!transporter && process.env.NODE_ENV !== 'development') {
@@ -61,10 +49,9 @@ export async function sendEmail(to, subject, html, text = null) {
       to,
       subject,
       html,
-      text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+      text: text || html.replace(/<[^>]*>/g, ''),
     };
 
-    // In development, just log the email
     if (process.env.NODE_ENV === 'development' && !transporter) {
       logger.info('Email (Development Mode)', {
         to,
@@ -97,16 +84,13 @@ export async function sendEmail(to, subject, html, text = null) {
   }
 }
 
-/**
- * Send 2FA setup email
- */
 export async function send2FASetupEmail(email, method) {
   const subject = 'Walletrix: Two-Factor Authentication Enabled';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333;">Two-Factor Authentication Enabled</h2>
       <p>Two-factor authentication has been successfully enabled on your Walletrix account using <strong>${method.toUpperCase()}</strong>.</p>
-      
+
       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #28a745;">✓ Your account is now more secure</h3>
         <p>You'll be prompted for a verification code when signing in from a new device.</p>
@@ -131,16 +115,13 @@ export async function send2FASetupEmail(email, method) {
   return await sendEmail(email, subject, html);
 }
 
-/**
- * Send backup codes email
- */
 export async function sendBackupCodesEmail(email, codes) {
   const subject = 'Walletrix: Your Backup Codes';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333;">Your Backup Codes</h2>
       <p>Here are your backup codes for Walletrix two-factor authentication:</p>
-      
+
       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace;">
         ${codes.map(code => `<div style="padding: 5px 0; font-size: 16px; font-weight: bold;">${code}</div>`).join('')}
       </div>
@@ -167,16 +148,13 @@ export async function sendBackupCodesEmail(email, codes) {
   return await sendEmail(email, subject, html);
 }
 
-/**
- * Send security alert email
- */
 export async function sendSecurityAlertEmail(email, event, details) {
   const subject = `Walletrix: Security Alert - ${event}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #dc3545;">🔒 Security Alert</h2>
       <p>We detected a security event on your Walletrix account:</p>
-      
+
       <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #721c24;">${event}</h3>
         <p style="margin-bottom: 0;">${details}</p>
@@ -202,7 +180,6 @@ export async function sendSecurityAlertEmail(email, event, details) {
   return await sendEmail(email, subject, html);
 }
 
-// Initialize email service on startup
 initializeEmailService();
 
 export default {

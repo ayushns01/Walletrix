@@ -4,25 +4,16 @@ import ethereumService from './ethereumService.js';
 import bitcoinService from './bitcoinService.js';
 import prisma from '../lib/prisma.js';
 
-/**
- * Transaction Security Service
- * Handles transaction validation, simulation, and risk assessment
- */
-
 class TransactionSecurityService {
-  /**
-   * Validate and assess transaction before sending
-   * @param {Object} params - Transaction parameters
-   * @returns {Object} - Validation result with risk assessment
-   */
+
   async validateTransaction(params) {
     const { from, to, amount, asset, network, walletId } = params;
-    
+
     const validations = {
       valid: true,
       errors: [],
       warnings: [],
-      riskLevel: 'low', // low, medium, high, critical
+      riskLevel: 'low',
       checks: {
         addressValid: false,
         balanceSufficient: false,
@@ -33,17 +24,16 @@ class TransactionSecurityService {
     };
 
     try {
-      // 1. Address validation
+
       const addressValidation = await this.validateAddress(to, asset, network);
       validations.checks.addressValid = addressValidation.valid;
-      
+
       if (!addressValidation.valid) {
         validations.valid = false;
         validations.errors.push(addressValidation.error);
         return validations;
       }
 
-      // Check for known scam addresses
       if (addressValidation.isScam) {
         validations.valid = false;
         validations.riskLevel = 'critical';
@@ -56,10 +46,9 @@ class TransactionSecurityService {
         validations.warnings.push('⚠️ This address has been flagged as suspicious');
       }
 
-      // 2. Balance verification
       const balanceCheck = await this.verifyBalance(from, amount, asset, network);
       validations.checks.balanceSufficient = balanceCheck.sufficient;
-      
+
       if (!balanceCheck.sufficient) {
         validations.valid = false;
         validations.errors.push(balanceCheck.error || `Insufficient balance. Available: ${balanceCheck.available}, Required: ${balanceCheck.required}`);
@@ -70,10 +59,9 @@ class TransactionSecurityService {
         validations.warnings.push(balanceCheck.warning);
       }
 
-      // 3. Amount validation
       const amountValidation = await this.validateAmount(amount, asset, walletId);
       validations.checks.amountReasonable = amountValidation.reasonable;
-      
+
       if (amountValidation.isUnusual) {
         validations.warnings.push(amountValidation.warning);
         if (amountValidation.severity === 'high') {
@@ -81,10 +69,9 @@ class TransactionSecurityService {
         }
       }
 
-      // 4. Recipient verification
       const recipientCheck = await this.checkRecipient(to, walletId, network);
       validations.checks.recipientVerified = recipientCheck.known;
-      
+
       if (!recipientCheck.known) {
         validations.warnings.push('⚠️ First time sending to this address');
         if (validations.riskLevel === 'low') {
@@ -92,17 +79,15 @@ class TransactionSecurityService {
         }
       }
 
-      // Check for address poisoning
       if (recipientCheck.similarToRecent) {
         validations.riskLevel = 'high';
         validations.warnings.push('⚠️ WARNING: This address looks similar to one you recently used. Verify carefully!');
       }
 
-      // 5. Gas/Fee estimation (Ethereum only)
       if (asset !== 'BTC') {
         const gasEstimate = await this.estimateGas(from, to, amount, asset, network);
         validations.checks.gasEstimated = gasEstimate.success;
-        
+
         if (gasEstimate.success) {
           validations.gasEstimate = {
             gasLimit: gasEstimate.gasLimit,
@@ -111,17 +96,15 @@ class TransactionSecurityService {
             totalCostUSD: gasEstimate.totalCostUSD,
           };
 
-          // Warn if gas price is unusually high
           if (gasEstimate.unusuallyHigh) {
             validations.warnings.push('⚠️ Gas fees are unusually high right now');
           }
         }
       }
 
-      // 6. Transaction simulation (Ethereum)
       if (asset !== 'BTC') {
         const simulation = await this.simulateTransaction(from, to, amount, asset, network);
-        
+
         if (!simulation.success) {
           validations.valid = false;
           validations.errors.push(`Transaction would fail: ${simulation.reason}`);
@@ -133,7 +116,6 @@ class TransactionSecurityService {
         }
       }
 
-      // Determine final risk level
       if (validations.warnings.length > 2) {
         validations.riskLevel = validations.riskLevel === 'low' ? 'medium' : 'high';
       }
@@ -152,19 +134,16 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Validate address format and check reputation
-   */
   async validateAddress(address, asset, network) {
     try {
       let isValid = false;
       let isContract = false;
 
       if (asset === 'BTC') {
-        // Bitcoin address validation
+
         try {
-          const btcNetwork = network === 'mainnet' 
-            ? bitcoin.networks.bitcoin 
+          const btcNetwork = network === 'mainnet'
+            ? bitcoin.networks.bitcoin
             : bitcoin.networks.testnet;
           bitcoin.address.toOutputScript(address, btcNetwork);
           isValid = true;
@@ -172,11 +151,11 @@ class TransactionSecurityService {
           isValid = false;
         }
       } else {
-        // Ethereum address validation
+
         isValid = ethers.isAddress(address);
-        
+
         if (isValid) {
-          // Check if it's a contract
+
           try {
             const provider = ethereumService.getProvider(network);
             const code = await provider.getCode(address);
@@ -194,7 +173,6 @@ class TransactionSecurityService {
         };
       }
 
-      // Check against known scam database
       const reputation = await this.checkAddressReputation(address);
 
       return {
@@ -214,9 +192,6 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Verify sufficient balance including gas fees
-   */
   async verifyBalance(from, amount, asset, network) {
     try {
       let available = 0;
@@ -226,38 +201,36 @@ class TransactionSecurityService {
         const btcBalance = await bitcoinService.getBalance(from, network);
         if (btcBalance.success) {
           available = parseFloat(btcBalance.data?.balance || btcBalance.balance?.btc || 0);
-          // Add estimated BTC fee
-          required += 0.0001; // Rough estimate
+
+          required += 0.0001;
         }
       } else if (asset === 'ETH') {
         const provider = ethereumService.getProvider(network);
         const balance = await provider.getBalance(from);
         available = parseFloat(ethers.formatEther(balance));
-        
-        // Estimate gas cost
+
         const feeData = await provider.getFeeData();
         const gasCost = parseFloat(ethers.formatEther(
           (feeData.maxFeePerGas || feeData.gasPrice) * BigInt(21000)
         ));
         required += gasCost;
       } else {
-        // ERC-20 token - check both token balance and ETH for gas
-        // (Implementation would go here)
-        return { 
+
+        return {
           sufficient: true,
           warning: '⚠️ Token balance verification not yet implemented. Please verify manually.'
         };
       }
 
       const sufficient = available >= required;
-      const warningThreshold = required * 1.1; // Warn if less than 10% buffer
+      const warningThreshold = required * 1.1;
 
       return {
         sufficient,
         available,
         required,
         warningNeeded: available < warningThreshold && sufficient,
-        warning: available < warningThreshold 
+        warning: available < warningThreshold
           ? '⚠️ Balance is close to minimum required (including fees)'
           : null
       };
@@ -273,14 +246,10 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Validate amount and check if it's unusual
-   */
   async validateAmount(amount, asset, walletId) {
     try {
       const numAmount = parseFloat(amount);
 
-      // Basic validation
       if (numAmount <= 0) {
         return {
           reasonable: false,
@@ -288,7 +257,6 @@ class TransactionSecurityService {
         };
       }
 
-      // Check for dust amounts
       if (asset === 'BTC' && numAmount < 0.00001) {
         return {
           reasonable: true,
@@ -298,9 +266,8 @@ class TransactionSecurityService {
         };
       }
 
-      // Get user's transaction history
       const avgAmount = await this.getAverageTransactionAmount(walletId, asset);
-      
+
       if (avgAmount && numAmount > avgAmount * 10) {
         return {
           reasonable: true,
@@ -333,12 +300,9 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Check recipient address against user's history
-   */
   async checkRecipient(address, walletId, network) {
     try {
-      // Get the wallet to find userId
+
       let userId = null;
       if (walletId) {
         const wallet = await prisma.wallet.findUnique({
@@ -348,7 +312,6 @@ class TransactionSecurityService {
         userId = wallet?.userId;
       }
 
-      // Check if address is in user's address book
       if (userId) {
         const inAddressBook = await prisma.addressBook.findFirst({
           where: {
@@ -367,7 +330,6 @@ class TransactionSecurityService {
         }
       }
 
-      // Check recent transactions for this address
       const recentTx = await prisma.transaction.findFirst({
         where: {
           walletId,
@@ -387,19 +349,18 @@ class TransactionSecurityService {
         };
       }
 
-      // Check for similar addresses (address poisoning attack)
       const recentAddresses = await prisma.transaction.findMany({
         where: {
           walletId,
           timestamp: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           }
         },
         select: { toAddress: true },
         take: 20
       });
 
-      const similarToRecent = recentAddresses.some(tx => 
+      const similarToRecent = recentAddresses.some(tx =>
         tx.toAddress && this.isAddressSimilar(address, tx.toAddress)
       );
 
@@ -417,36 +378,28 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Check if two addresses are suspiciously similar (address poisoning)
-   */
   isAddressSimilar(addr1, addr2) {
     if (!addr1 || !addr2 || addr1 === addr2) return false;
-    
+
     const a1 = addr1.toLowerCase();
     const a2 = addr2.toLowerCase();
 
-    // Check if first 6 and last 4 characters match
     const firstMatch = a1.substring(0, 6) === a2.substring(0, 6);
     const lastMatch = a1.substring(a1.length - 4) === a2.substring(a2.length - 4);
 
     return firstMatch && lastMatch;
   }
 
-  /**
-   * Estimate gas for transaction
-   */
   async estimateGas(from, to, amount, asset, network) {
     try {
       const provider = ethereumService.getProvider(network);
       const feeData = await provider.getFeeData();
 
-      let gasLimit = 21000; // Default for ETH transfer
+      let gasLimit = 21000;
 
       if (asset !== 'ETH') {
-        // Estimate gas for token transfer
-        // (Would need token contract interface)
-        gasLimit = 65000; // Typical for ERC-20
+
+        gasLimit = 65000;
       }
 
       const gasPriceGwei = parseFloat(ethers.formatUnits(feeData.maxFeePerGas || feeData.gasPrice, 'gwei'));
@@ -454,7 +407,6 @@ class TransactionSecurityService {
         (feeData.maxFeePerGas || feeData.gasPrice) * BigInt(gasLimit)
       ));
 
-      // Check if gas price is unusually high (>100 gwei)
       const unusuallyHigh = gasPriceGwei > 100;
 
       return {
@@ -462,7 +414,7 @@ class TransactionSecurityService {
         gasLimit,
         gasPrice: gasPriceGwei,
         totalCost: gasCostEth,
-        totalCostUSD: null, // Would need price oracle
+        totalCostUSD: null,
         unusuallyHigh
       };
 
@@ -475,14 +427,10 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Simulate transaction to check if it will succeed
-   */
   async simulateTransaction(from, to, amount, asset, network) {
     try {
       const provider = ethereumService.getProvider(network);
 
-      // Simulate ETH transfer
       if (asset === 'ETH') {
         await provider.call({
           from,
@@ -498,8 +446,7 @@ class TransactionSecurityService {
 
     } catch (error) {
       console.error('Transaction simulation failed:', error);
-      
-      // Parse error to provide helpful message
+
       let reason = 'Unknown error';
       if (error.message.includes('insufficient funds')) {
         reason = 'Insufficient funds';
@@ -515,12 +462,9 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Check address reputation against known scam database
-   */
   async checkAddressReputation(address) {
     try {
-      // Check against known scam addresses in database
+
       const scamAddress = await prisma.scamAddress.findUnique({
         where: { address: address.toLowerCase() }
       });
@@ -534,7 +478,6 @@ class TransactionSecurityService {
         };
       }
 
-      // Check suspicious addresses
       const suspicious = await prisma.suspiciousAddress.findUnique({
         where: { address: address.toLowerCase() }
       });
@@ -548,7 +491,6 @@ class TransactionSecurityService {
         };
       }
 
-      // No issues found
       return {
         isScam: false,
         isSuspicious: false,
@@ -565,9 +507,6 @@ class TransactionSecurityService {
     }
   }
 
-  /**
-   * Get average transaction amount for user
-   */
   async getAverageTransactionAmount(walletId, asset) {
     try {
       const transactions = await prisma.transaction.findMany({

@@ -1,15 +1,7 @@
 import priceService from '../services/priceService.js';
 
-/**
- * Price Controller
- * Handles cryptocurrency price and market data HTTP requests
- */
-
 class PriceController {
-  /**
-   * Get price for a cryptocurrency
-   * GET /api/v1/prices/:coinId
-   */
+
   async getPrice(req, res) {
     try {
       const { coinId } = req.params;
@@ -31,11 +23,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get multiple prices
-   * POST /api/v1/prices/multiple
-   * Body: { coinIds[], currency? }
-   */
   async getMultiplePrices(req, res) {
     try {
       const { coinIds, currency = 'usd' } = req.body;
@@ -63,10 +50,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get popular crypto prices
-   * GET /api/v1/prices/popular
-   */
   async getPopularPrices(req, res) {
     try {
       const { currency = 'usd' } = req.query;
@@ -87,10 +70,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get detailed coin data
-   * GET /api/v1/prices/coin/:coinId
-   */
   async getCoinData(req, res) {
     try {
       const { coinId } = req.params;
@@ -111,10 +90,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get price chart data
-   * GET /api/v1/prices/chart/:coinId
-   */
   async getPriceChart(req, res) {
     try {
       const { coinId } = req.params;
@@ -136,10 +111,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Search for cryptocurrencies
-   * GET /api/v1/prices/search
-   */
   async searchCoins(req, res) {
     try {
       const { q } = req.query;
@@ -167,10 +138,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get trending coins
-   * GET /api/v1/prices/trending
-   */
   async getTrendingCoins(req, res) {
     try {
       const result = await priceService.getTrendingCoins();
@@ -189,10 +156,6 @@ class PriceController {
     }
   }
 
-  /**
-   * Get top coins by market cap
-   * GET /api/v1/prices/top
-   */
   async getTopCoins(req, res) {
     try {
       const { currency = 'usd', limit = 10 } = req.query;

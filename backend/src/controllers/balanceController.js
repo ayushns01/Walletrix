@@ -2,16 +2,11 @@ import ethereumService from '../services/ethereumService.js';
 import bitcoinService from '../services/bitcoinService.js';
 import prisma from '../lib/prisma.js';
 
-/**
- * Get balance for a multi-sig wallet address
- * Uses blockchain RPC providers for reliable balance fetching
- */
 const getBalance = async (req, res) => {
     try {
         const { id } = req.params;
-        const { network } = req.query; // ethereum, sepolia, or bitcoin
+        const { network } = req.query;
 
-        // Get wallet from database using Prisma
         const multiSigWallet = await prisma.multiSigWallet.findUnique({
             where: { id },
         });
@@ -26,12 +21,10 @@ const getBalance = async (req, res) => {
         const address = multiSigWallet.address;
         const effectiveNetwork = (network || multiSigWallet.network).toLowerCase();
 
-
-
         let result;
 
         if (effectiveNetwork === 'ethereum' || effectiveNetwork === 'sepolia') {
-            // Use ethereumService (same as regular wallets)
+
             result = await ethereumService.getBalance(address, effectiveNetwork === 'sepolia' ? 'sepolia' : 'mainnet');
 
             if (result.success) {
@@ -50,7 +43,7 @@ const getBalance = async (req, res) => {
                 });
             }
         } else if (effectiveNetwork === 'bitcoin') {
-            // Use bitcoinService
+
             result = await bitcoinService.getBalance(address, 'mainnet');
 
             if (result.success) {
@@ -85,4 +78,3 @@ const getBalance = async (req, res) => {
 };
 
 export default { getBalance };
-

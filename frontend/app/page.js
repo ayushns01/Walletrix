@@ -47,7 +47,7 @@ export default function Home() {
     setShowWalkthroughOnUnlock
   } = useWallet()
 
-  const [view, setView] = useState('landing') // landing, welcome, create, import, multisig-detail
+  const [view, setView] = useState('landing')
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
@@ -66,59 +66,54 @@ export default function Home() {
     return false
   })
 
-  // Persist guest mode to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('walletrix_guest_mode', guestMode.toString())
     }
   }, [guestMode])
 
-  // Auto-unlock wallet for Clerk users
   useEffect(() => {
     if (clerkUser && wallet && isLocked) {
-      // Use Clerk user ID as password for auto-unlock
+
       unlockWallet(clerkUser.id).catch(console.error);
     }
   }, [clerkUser, wallet, isLocked]);
 
-  // Show walkthrough when wallet is unlocked (if enabled in settings)
   useEffect(() => {
     if (typeof window !== 'undefined' && wallet && !isLocked && showWalkthroughOnUnlock) {
-      // Check if we should show walkthrough after reload
+
       const shouldShowAfterReload = window.localStorage.getItem('walletrix_show_walkthrough_on_load');
       if (shouldShowAfterReload === 'true') {
         window.localStorage.removeItem('walletrix_show_walkthrough_on_load');
         setTimeout(() => {
           setShowWalkthrough(true);
-        }, 1200); // Reduced delay for smoother experience
+        }, 1200);
       } else {
-        // Show walkthrough every time wallet is unlocked (not just after creation)
+
         const hasShownThisSession = window.sessionStorage.getItem('walletrix_walkthrough_shown');
         if (!hasShownThisSession) {
           window.sessionStorage.setItem('walletrix_walkthrough_shown', 'true');
           setTimeout(() => {
             setShowWalkthrough(true);
-          }, 800); // Reduced delay to prevent blink
+          }, 800);
         }
       }
     }
   }, [wallet, isLocked, showWalkthroughOnUnlock]);
 
-  // Clear session flag when wallet locks
   useEffect(() => {
     if (isLocked) {
       sessionStorage.removeItem('walletrix_walkthrough_shown');
     }
   }, [isLocked]);
 
-  // Fetch multi-sig wallets
   useEffect(() => {
     const fetchMultiSigWallets = async () => {
       if (!clerkUser || !isSignedIn) return;
 
       setLoadingMultiSig(true);
       try {
-        // Use getToken from useAuth hook (already defined at component level)
+
         const token = await getToken();
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/user/${clerkUser.id}`, {
@@ -142,29 +137,27 @@ export default function Home() {
     fetchMultiSigWallets();
   }, [clerkUser, isSignedIn, getToken]);
 
-  // Handle wallet creation/import completion
   const handleWalletCreated = async () => {
     if (isAuthenticated) {
-      // For authenticated users, mark to show walkthrough after reload
+
       if (typeof window !== 'undefined' && showWalkthroughOnUnlock) {
         window.localStorage.setItem('walletrix_show_walkthrough_on_load', 'true');
       }
-      // Trigger a refresh by clearing and reloading
+
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
     } else {
-      // For non-authenticated users, show walkthrough directly
+
       setView('welcome');
       if (showWalkthroughOnUnlock) {
         setTimeout(() => {
           setShowWalkthrough(true);
-        }, 1500); // Small delay for smooth transition
+        }, 1500);
       }
     }
   };
 
-  // Handle quick send/receive
   const handleQuickAction = (action, asset) => {
     setSelectedAsset(asset)
     if (action === 'send') {
@@ -174,7 +167,6 @@ export default function Home() {
     }
   }
 
-  // Show landing page if no wallet and view is 'landing' and not in guest mode
   if (!wallet && view === 'landing' && !guestMode) {
     return (
       <LandingPage
@@ -187,7 +179,6 @@ export default function Home() {
     )
   }
 
-  // Show unlock screen if wallet exists but is locked
   if (wallet && isLocked) {
     return (
       <UnlockWallet
@@ -196,13 +187,12 @@ export default function Home() {
     )
   }
 
-  // Show wallet setup screens or wallet list for authenticated users
   if (!wallet) {
     return (
       <main className="min-h-screen bg-black text-white overflow-x-hidden relative">
-        {/* Animated Background - Same as Landing Page with subtle blur */}
+        {}
         <div className="animated-bg" style={{ filter: 'blur(1px)' }}>
-          {/* Distant Stars Layer */}
+          {}
           <div className="stars">
             {[...Array(150)].map((_, i) => {
               const duration = 15 + (i * 0.2) % 20;
@@ -221,7 +211,7 @@ export default function Home() {
             })}
           </div>
 
-          {/* Bright Stars */}
+          {}
           <div className="stars">
             {[...Array(40)].map((_, i) => {
               const duration = 12 + (i * 0.5) % 18;
@@ -240,7 +230,7 @@ export default function Home() {
             })}
           </div>
 
-          {/* Nebula Clouds */}
+          {}
           {[...Array(4)].map((_, i) => {
             const colors = [
               'radial-gradient(circle, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3) 40%, transparent 70%)',
@@ -272,7 +262,7 @@ export default function Home() {
             );
           })}
 
-          {/* Distant Galaxies */}
+          {}
           {[...Array(3)].map((_, i) => {
             const rotateDuration = 60 + (i * 13.3) % 40;
             const driftDuration = 50 + (i * 9.7) % 30;
@@ -305,28 +295,28 @@ export default function Home() {
             <div className="max-w-lg mx-auto text-center py-12">
               <div className="bg-gradient-to-b from-slate-800/90 to-slate-900/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-blue-500/20 shadow-2xl shadow-blue-500/10">
 
-                {/* Logo - Same as Landing Page */}
+                {}
                 <div className="flex items-center gap-4 justify-center mb-8 group cursor-pointer">
                   <div className="relative w-16 h-16">
-                    {/* Geometric background pattern */}
+                    {}
                     <div className="absolute inset-0">
-                      {/* Central hexagon */}
+                      {}
                       <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
                       <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
                     </div>
 
-                    {/* Network nodes */}
+                    {}
                     <div className="absolute top-0 left-1/2 w-2 h-2 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                     <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                     <div className="absolute left-0 top-1/2 w-2 h-2 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
                     <div className="absolute right-0 top-1/2 w-2 h-2 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
 
-                    {/* Central wallet icon */}
+                    {}
                     <div className="relative z-10 flex items-center justify-center h-full">
                       <Wallet className="w-8 h-8 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
                     </div>
 
-                    {/* Rotating glow */}
+                    {}
                     <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
                   </div>
                   <div className="text-left">
@@ -342,7 +332,7 @@ export default function Home() {
                   Your secure, non-custodial cryptocurrency wallet. Full control of your Bitcoin, Ethereum, and more.
                 </p>
 
-                {/* Authentication Banner - Only shown when signed out and NOT in guest mode */}
+                {}
                 {!guestMode && (
                   <SignedOut>
                     <div className="mb-8 p-5 bg-gradient-to-r from-blue-900/40 to-cyan-900/40 rounded-2xl border border-blue-500/30">
@@ -362,7 +352,7 @@ export default function Home() {
                   </SignedOut>
                 )}
 
-                {/* Guest Mode Info Banner */}
+                {}
                 {guestMode && (
                   <div className="mb-8 p-5 bg-gradient-to-r from-amber-900/30 to-orange-900/30 rounded-2xl border border-amber-500/30">
                     <h3 className="text-lg font-semibold text-amber-200 mb-2">👋 Guest Mode</h3>

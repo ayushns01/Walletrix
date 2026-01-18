@@ -2,26 +2,21 @@ import { clerkClient } from '@clerk/clerk-sdk-node';
 import logger from '../services/loggerService.js';
 import { prisma } from '../lib/prisma.js';
 
-/**
- * Ensure user exists in database
- * Creates or updates user record based on Clerk data
- */
 async function ensureUserExists(clerkUser) {
   try {
     const email = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress;
-    
+
     if (!email) {
       logger.warn('Clerk user has no email address', { userId: clerkUser.id });
       return null;
     }
-    
-    // Try to find existing user
+
     let user = await prisma.user.findUnique({
       where: { id: clerkUser.id }
     });
 
     if (!user) {
-      // Create new user
+
       user = await prisma.user.create({
         data: {
           id: clerkUser.id,
@@ -34,20 +29,20 @@ async function ensureUserExists(clerkUser) {
           lastLoginAt: new Date(),
         }
       });
-      
+
       logger.info('Created new user from Clerk', { userId: clerkUser.id, email });
     } else {
-      // Update existing user's last login
+
       await prisma.user.update({
         where: { id: clerkUser.id },
         data: {
           lastLoginAt: new Date(),
           profilePicture: clerkUser.imageUrl || clerkUser.profileImageUrl,
           displayName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || email,
-          email: email, // Update email in case it changed
+          email: email,
         }
       });
-      
+
       logger.info('Updated existing user from Clerk', { userId: clerkUser.id, email });
     }
 
@@ -58,14 +53,10 @@ async function ensureUserExists(clerkUser) {
   }
 }
 
-/**
- * Clerk authentication middleware
- * Verifies Clerk session tokens
- */
 export const authenticateClerk = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -74,12 +65,12 @@ export const authenticateClerk = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
+    const token = authHeader.substring(7);
+
     try {
-      // Verify Clerk JWT token
+
       const payload = await clerkClient.verifyToken(token);
-      
+
       if (!payload || !payload.sub) {
         return res.status(401).json({
           success: false,
@@ -88,9 +79,8 @@ export const authenticateClerk = async (req, res, next) => {
         });
       }
 
-      // Get user from Clerk using the sub (subject) claim which is the user ID
       const user = await clerkClient.users.getUser(payload.sub);
-      
+
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -99,15 +89,13 @@ export const authenticateClerk = async (req, res, next) => {
         });
       }
 
-      // Ensure user exists in database
       try {
         await ensureUserExists(user);
       } catch (dbError) {
         logger.error('Failed to create/update user in database:', dbError);
-        // Continue anyway - the user is authenticated by Clerk
+
       }
 
-      // Attach user info to request
       req.user = {
         id: user.id,
         email: user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress,
@@ -117,8 +105,7 @@ export const authenticateClerk = async (req, res, next) => {
         profileImageUrl: user.profileImageUrl,
         clerkUserId: user.id,
       };
-      
-      // Use Clerk user ID as userId for database operations
+
       req.userId = user.id;
 
       logger.info('User authenticated via Clerk', {
@@ -145,28 +132,24 @@ export const authenticateClerk = async (req, res, next) => {
   }
 };
 
-/**
- * Optional authentication middleware
- * Allows both authenticated and unauthenticated requests
- */
 export const optionalAuthClerk = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // No token provided, continue without authentication
+
       req.user = null;
       return next();
     }
 
     const token = authHeader.substring(7);
-    
+
     try {
       const session = await clerkClient.sessions.verifySession(token);
-      
+
       if (session) {
         const user = await clerkClient.users.getUser(session.userId);
-        
+
         if (user) {
           req.user = {
             id: user.id,
@@ -181,10 +164,10 @@ export const optionalAuthClerk = async (req, res, next) => {
         }
       }
     } catch (error) {
-      // Token verification failed, continue without authentication
+
       logger.warn('Optional auth token invalid:', error.message);
     }
-    
+
     next();
   } catch (error) {
     logger.error('Optional auth middleware error:', error);
@@ -192,10 +175,6 @@ export const optionalAuthClerk = async (req, res, next) => {
   }
 };
 
-/**
- * Verify wallet access middleware
- * Works with Clerk authentication
- */
 export const verifyWalletAccess = async (req, res, next) => {
   try {
     const { walletId } = req.params;
@@ -215,7 +194,6 @@ export const verifyWalletAccess = async (req, res, next) => {
       });
     }
 
-    // This will be checked in the wallet service itself
     req.walletId = walletId;
     next();
   } catch (error) {
@@ -227,5 +205,4 @@ export const verifyWalletAccess = async (req, res, next) => {
   }
 };
 
-// Keep the old JWT authentication for backward compatibility
 export { authenticate } from './auth.js';

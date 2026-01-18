@@ -206,7 +206,7 @@ class EthereumService {
         const errorMessage = response.data.message || 'Failed to fetch transactions';
 
         if (Array.isArray(response.data.result) && response.data.result.length > 0) {
-          // Process transactions despite non-success status
+
         } else {
           return {
             success: true,

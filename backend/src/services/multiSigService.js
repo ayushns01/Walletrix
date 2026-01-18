@@ -7,27 +7,10 @@ import crypto from 'crypto';
 
 const bip32 = BIP32Factory(ecc);
 
-/**
- * Multi-Signature Wallet Service
- * Implements M-of-N multisig for Bitcoin and Ethereum
- * 
- * Use cases:
- * - Corporate wallets requiring multiple approvals
- * - Shared wallets between partners
- * - Enhanced security for high-value assets
- * - Escrow services
- */
-
 class MultiSigService {
-    /**
-     * Create Bitcoin P2SH (Pay-to-Script-Hash) multisig address
-     * @param {Array<string>} publicKeys - Array of public keys (hex format)
-     * @param {number} requiredSignatures - M in M-of-N (threshold)
-     * @param {string} network - 'mainnet' or 'testnet'
-     * @returns {Object} - Multisig address details
-     */
+
     createBitcoinMultisig(publicKeys, requiredSignatures, network = 'mainnet') {
-        // Validation
+
         if (!publicKeys || !Array.isArray(publicKeys) || publicKeys.length < 2) {
             throw new Error('At least 2 public keys required');
         }
@@ -45,21 +28,18 @@ class MultiSigService {
                 ? bitcoin.networks.bitcoin
                 : bitcoin.networks.testnet;
 
-            // Convert hex public keys to buffers
             const pubkeys = publicKeys.map(pk => {
-                // Remove 0x prefix if present
+
                 const cleanPk = pk.startsWith('0x') ? pk.slice(2) : pk;
                 return Buffer.from(cleanPk, 'hex');
             });
 
-            // Create P2MS (Pay-to-Multisig) script
             const p2ms = bitcoin.payments.p2ms({
                 m: requiredSignatures,
                 pubkeys,
                 network: btcNetwork,
             });
 
-            // Wrap in P2SH for backward compatibility
             const p2sh = bitcoin.payments.p2sh({
                 redeem: p2ms,
                 network: btcNetwork,
@@ -80,13 +60,6 @@ class MultiSigService {
         }
     }
 
-    /**
-     * Create Bitcoin P2WSH (Pay-to-Witness-Script-Hash) SegWit multisig
-     * @param {Array<string>} publicKeys - Array of public keys (hex)
-     * @param {number} requiredSignatures - M in M-of-N
-     * @param {string} network - 'mainnet' or 'testnet'
-     * @returns {Object} - SegWit multisig details
-     */
     createBitcoinSegWitMultisig(publicKeys, requiredSignatures, network = 'mainnet') {
         if (!publicKeys || !Array.isArray(publicKeys) || publicKeys.length < 2) {
             throw new Error('At least 2 public keys required');
@@ -106,14 +79,12 @@ class MultiSigService {
                 return Buffer.from(cleanPk, 'hex');
             });
 
-            // Create P2MS script
             const p2ms = bitcoin.payments.p2ms({
                 m: requiredSignatures,
                 pubkeys,
                 network: btcNetwork,
             });
 
-            // Wrap in P2WSH (SegWit)
             const p2wsh = bitcoin.payments.p2wsh({
                 redeem: p2ms,
                 network: btcNetwork,
@@ -134,13 +105,6 @@ class MultiSigService {
         }
     }
 
-    /**
-     * Create Ethereum Gnosis Safe multisig configuration with deterministic address
-     * Generates a predicted address using CREATE2 (no deployment needed)
-     * @param {Array<string>} owners - Array of owner addresses
-     * @param {number} threshold - Required signatures
-     * @returns {Object} - Gnosis Safe configuration with predicted address
-     */
     createEthereumMultisig(owners, threshold) {
         if (!owners || !Array.isArray(owners) || owners.length < 1) {
             throw new Error('At least 1 owner required');
@@ -150,22 +114,16 @@ class MultiSigService {
             throw new Error('Invalid threshold');
         }
 
-        // Validate Ethereum addresses
         owners.forEach((owner, index) => {
             if (!ethers.isAddress(owner)) {
                 throw new Error(`Invalid Ethereum address at index ${index}: ${owner}`);
             }
         });
 
-        // Checksum addresses
         const checksummedOwners = owners.map(addr => ethers.getAddress(addr));
 
-        // Generate a deterministic address using CREATE2
-        // This is a simplified version - in production, use Gnosis Safe SDK
         const saltNonce = crypto.randomBytes(4).readUInt32BE(0);
 
-        // Create a deterministic address based on owners and threshold
-        // This simulates what Gnosis Safe would generate
         const initDataHash = ethers.keccak256(
             ethers.AbiCoder.defaultAbiCoder().encode(
                 ['address[]', 'uint256', 'uint256'],
@@ -173,11 +131,8 @@ class MultiSigService {
             )
         );
 
-        // Gnosis Safe Factory address (mainnet)
         const safeFactoryAddress = '0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2';
 
-        // Generate CREATE2 address
-        // Note: This is a simplified version. Real deployment would use Gnosis Safe SDK
         const predictedAddress = ethers.getCreate2Address(
             safeFactoryAddress,
             ethers.keccak256(ethers.toUtf8Bytes(saltNonce.toString())),
@@ -185,7 +140,7 @@ class MultiSigService {
         );
 
         return {
-            address: predictedAddress, // ✅ Now returns actual address instead of undefined
+            address: predictedAddress,
             type: 'gnosis-safe',
             owners: checksummedOwners,
             threshold,
@@ -205,20 +160,11 @@ class MultiSigService {
         };
     }
 
-    /**
-     * Generate HD multisig setup from multiple mnemonics
-     * @param {Array<string>} mnemonics - Array of mnemonics from co-signers
-     * @param {number} threshold - Required signatures
-     * @param {string} network - Network type
-     * @param {string} derivationPath - BIP-48 path (default: m/48'/0'/0'/2'/0/0)
-     * @returns {Object} - HD multisig setup
-     */
     createHDMultisig(mnemonics, threshold, network = 'mainnet', derivationPath = "m/48'/0'/0'/2'/0/0") {
         if (!mnemonics || !Array.isArray(mnemonics) || mnemonics.length < 2) {
             throw new Error('At least 2 mnemonics required');
         }
 
-        // Validate all mnemonics
         mnemonics.forEach((mnemonic, index) => {
             if (!bip39.validateMnemonic(mnemonic)) {
                 throw new Error(`Invalid mnemonic at index ${index}`);
@@ -226,7 +172,7 @@ class MultiSigService {
         });
 
         try {
-            // Derive public keys from each mnemonic
+
             const publicKeys = mnemonics.map(mnemonic => {
                 const seed = bip39.mnemonicToSeedSync(mnemonic);
                 const root = bip32.fromSeed(seed);
@@ -234,7 +180,6 @@ class MultiSigService {
                 return child.publicKey.toString('hex');
             });
 
-            // Create multisig address
             const multisig = this.createBitcoinSegWitMultisig(publicKeys, threshold, network);
 
             return {
@@ -249,11 +194,6 @@ class MultiSigService {
         }
     }
 
-    /**
-     * Validate multisig configuration
-     * @param {Object} config - Multisig configuration
-     * @returns {Object} - Validation result
-     */
     validateMultisigConfig(config) {
         const errors = [];
         const warnings = [];
@@ -287,11 +227,6 @@ class MultiSigService {
         };
     }
 
-    /**
-     * Get recommended threshold for given number of signers
-     * @param {number} totalSigners - Total number of signers
-     * @returns {Object} - Threshold recommendations
-     */
     getThresholdRecommendation(totalSigners) {
         const recommendations = {
             2: { min: 2, recommended: 2, max: 2 },
@@ -313,11 +248,6 @@ class MultiSigService {
         };
     }
 
-    /**
-     * Generate multisig setup instructions
-     * @param {Object} multisigConfig - Multisig configuration
-     * @returns {string} - Setup instructions
-     */
     generateSetupInstructions(multisigConfig) {
         return `
 MULTI-SIGNATURE WALLET SETUP

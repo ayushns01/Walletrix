@@ -1,10 +1,5 @@
 import axios from 'axios';
 
-/**
- * Bitcoin Service
- * Handles Bitcoin blockchain interactions using BlockCypher API
- */
-
 class BitcoinService {
   constructor() {
     this.networks = {
@@ -14,20 +9,14 @@ class BitcoinService {
     this.baseUrl = 'https://api.blockcypher.com/v1/btc';
   }
 
-  /**
-   * Get Bitcoin balance for an address
-   * @param {string} address - Bitcoin address
-   * @param {string} network - Network (mainnet or testnet)
-   */
   async getBalance(address, network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}/addrs/${address}/balance`;
-      
+
       const response = await axios.get(url);
       const data = response.data;
 
-      // Convert from satoshis to BTC
       const balanceBTC = data.balance / 100000000;
       const unconfirmedBalanceBTC = data.unconfirmed_balance / 100000000;
 
@@ -56,14 +45,11 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Get transaction history for a Bitcoin address
-   */
   async getTransactionHistory(address, network = 'mainnet', limit = 50) {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}/addrs/${address}/full?limit=${limit}`;
-      
+
       const response = await axios.get(url);
       const data = response.data;
 
@@ -102,14 +88,11 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Get transaction details by hash
-   */
   async getTransaction(txHash, network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}/txs/${txHash}`;
-      
+
       const response = await axios.get(url);
       const tx = response.data;
 
@@ -145,14 +128,11 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Get UTXO (Unspent Transaction Outputs) for an address
-   */
   async getUTXOs(address, network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}/addrs/${address}?unspentOnly=true`;
-      
+
       const response = await axios.get(url);
       const data = response.data;
 
@@ -183,14 +163,11 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Broadcast a signed transaction
-   */
   async sendTransaction(signedTxHex, network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}/txs/push`;
-      
+
       const response = await axios.post(url, {
         tx: signedTxHex,
       });
@@ -209,14 +186,11 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Get current network fee estimates
-   */
   async getFeeEstimate(network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}`;
-      
+
       const response = await axios.get(url);
       const data = response.data;
 
@@ -243,16 +217,13 @@ class BitcoinService {
     }
   }
 
-  /**
-   * Get current block height
-   */
   async getBlockHeight(network = 'mainnet') {
     try {
       const networkName = this.networks[network] || this.networks.mainnet;
       const url = `${this.baseUrl}/${networkName}`;
-      
+
       const response = await axios.get(url);
-      
+
       return {
         success: true,
         network,

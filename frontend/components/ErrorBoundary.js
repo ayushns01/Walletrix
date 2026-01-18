@@ -2,14 +2,10 @@
 
 import React from 'react';
 
-/**
- * Global Error Boundary
- * Catches errors in the component tree and displays fallback UI
- */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { 
+    this.state = {
       hasError: false,
       error: null,
       errorInfo: null,
@@ -17,25 +13,22 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
+
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to console in development
+
     if (process.env.NODE_ENV === 'development') {
       console.error('Error caught by boundary:', error);
       console.error('Error info:', errorInfo);
     }
 
-    // Store error details in state
     this.setState({
       error,
       errorInfo,
     });
 
-    // You can also log to an error reporting service here
-    // logErrorToService(error, errorInfo);
   }
 
   handleReset = () => {
@@ -124,9 +117,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-/**
- * Async Error Boundary for Suspense boundaries
- */
 export function AsyncErrorBoundary({ children, fallback }) {
   return (
     <ErrorBoundary>
@@ -137,9 +127,6 @@ export function AsyncErrorBoundary({ children, fallback }) {
   );
 }
 
-/**
- * Loading fallback component
- */
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -151,9 +138,6 @@ function LoadingFallback() {
   );
 }
 
-/**
- * Feature-specific error boundary with custom fallback
- */
 export function FeatureErrorBoundary({ children, feature = 'feature' }) {
   return (
     <ErrorBoundary

@@ -16,7 +16,6 @@ export function WalletProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('ethereum-mainnet');
 
-  // Load wallet from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedWallet = window.localStorage.getItem('walletrix_wallet');
@@ -24,7 +23,7 @@ export function WalletProvider({ children }) {
         try {
           const parsed = JSON.parse(savedWallet);
           setWallet(parsed);
-          setIsLocked(true); // Wallet is locked by default
+          setIsLocked(true);
         } catch (error) {
           console.error('Error loading wallet:', error);
         }
@@ -32,7 +31,6 @@ export function WalletProvider({ children }) {
     }
   }, []);
 
-  // Load selected network from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedNetwork = window.localStorage.getItem('walletrix_network');
@@ -42,14 +40,12 @@ export function WalletProvider({ children }) {
     }
   }, []);
 
-  // Save selected network to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && selectedNetwork) {
       window.localStorage.setItem('walletrix_network', selectedNetwork);
     }
   }, [selectedNetwork]);
 
-  // Fetch balances when wallet is unlocked or network changes
   useEffect(() => {
     if (wallet && !isLocked) {
       fetchBalances();
@@ -59,14 +55,13 @@ export function WalletProvider({ children }) {
     }
   }, [wallet, isLocked, selectedNetwork]);
 
-  // Generate new wallet
   const generateWallet = async (password) => {
     try {
       setLoading(true);
       const response = await walletAPI.generateWallet();
 
       if (response.success) {
-        // Encrypt and save wallet
+
         const encryptedResponse = await walletAPI.encryptData(
           JSON.stringify(response.data),
           password
@@ -96,14 +91,13 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Import wallet from mnemonic
   const importWallet = async (mnemonic, password) => {
     try {
       setLoading(true);
       const response = await walletAPI.importFromMnemonic(mnemonic);
 
       if (response.success) {
-        // Encrypt and save wallet
+
         const encryptedResponse = await walletAPI.encryptData(
           JSON.stringify(response.data),
           password
@@ -133,7 +127,6 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Unlock wallet
   const unlockWallet = async (password) => {
     try {
       setLoading(true);
@@ -158,15 +151,13 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Lock wallet
   const lockWallet = () => {
     setIsLocked(true);
     toast.success('Wallet locked');
   };
 
-  // Get network info from selected network
   const getNetworkInfo = () => {
-    // Handle multi-chain network parsing
+
     const parts = selectedNetwork.split('-');
 
     if (parts.length >= 2) {
@@ -175,18 +166,15 @@ export function WalletProvider({ children }) {
       return { chain, network };
     }
 
-    // Fallback for legacy format
     return { chain: 'ethereum', network: 'mainnet' };
   };
 
-  // Fetch balances
   const fetchBalances = async () => {
     if (!wallet) return;
 
     try {
       const { chain, network } = getNetworkInfo();
 
-      // Initialize balance object
       const newBalances = {
         ethereum: '0',
         bitcoin: '0',
@@ -200,8 +188,8 @@ export function WalletProvider({ children }) {
       };
 
       if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
-        // Handle EVM-compatible chains
-        const address = wallet.ethereum?.address; // All EVM chains use the same address format
+
+        const address = wallet.ethereum?.address;
         if (address) {
           if (ethBalance.success) {
             const balance = ethBalance.balance?.eth || ethBalance.data?.balance || '0';
@@ -216,10 +204,10 @@ export function WalletProvider({ children }) {
           newBalances.bitcoin = balance;
         }
       } else if (chain === 'solana') {
-        // Handle Solana balance (when implemented)
+
         const address = wallet.solana?.address;
         if (address) {
-          // Solana balance fetching to be implemented
+
           newBalances.solana = '0';
         }
       }
@@ -227,7 +215,7 @@ export function WalletProvider({ children }) {
       setBalances(newBalances);
     } catch (error) {
       console.error('Error fetching balances:', error);
-      // Set all to zero on error
+
       setBalances({
         ethereum: '0',
         bitcoin: '0',
@@ -242,21 +230,19 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Fetch token balances
   const fetchTokenBalances = async () => {
     if (!wallet) return;
 
     try {
       const { chain, network } = getNetworkInfo();
 
-      // Only fetch tokens for Ethereum networks
       if (chain === 'ethereum') {
         const response = await tokenAPI.getPopularTokenBalances(wallet.ethereum.address, network);
 
         if (response && response.success && response.tokens) {
           setTokens(response.tokens);
         } else {
-          // Silently handle errors or missing data
+
           setTokens([]);
         }
       } else {
@@ -264,12 +250,11 @@ export function WalletProvider({ children }) {
       }
     } catch (error) {
       console.error('Error fetching token balances:', error);
-      // Don't show error to user, just set empty tokens
+
       setTokens([]);
     }
   };
 
-  // Fetch prices
   const fetchPrices = async () => {
     try {
       const response = await priceAPI.getPopularPrices('usd');
@@ -277,7 +262,7 @@ export function WalletProvider({ children }) {
       if (response.success && response.prices) {
         const priceMap = {};
         response.prices.forEach(coin => {
-          // Map the coin data to the expected format
+
           if (coin.coin === 'ethereum') {
             priceMap.ethereum = {
               current_price: coin.price,
@@ -303,7 +288,6 @@ export function WalletProvider({ children }) {
     }
   };
 
-  // Fetch transactions
   const fetchTransactions = async () => {
     if (!wallet) return;
 
@@ -311,18 +295,18 @@ export function WalletProvider({ children }) {
       const { chain, network } = getNetworkInfo();
 
       if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
-        // For EVM chains, extract the correct network parameter for the backend
+
         let networkParam;
 
         if (chain === 'ethereum') {
-          // For ethereum networks, use just the network part (e.g., 'sepolia', 'mainnet', 'goerli')
+
           networkParam = network;
         } else {
-          // For other EVM chains, use the full selectedNetwork (e.g., 'polygon-mainnet', 'bsc-mainnet')
+
           networkParam = selectedNetwork;
         }
 
-        const address = wallet.ethereum?.address; // All EVM chains use the same address format
+        const address = wallet.ethereum?.address;
 
         if (address) {
           const ethTxs = await blockchainAPI.getEthereumTransactions(address, 1, 10, networkParam);
@@ -340,7 +324,6 @@ export function WalletProvider({ children }) {
       } else if (chain === 'bitcoin') {
         const btcTxs = await blockchainAPI.getBitcoinTransactions(wallet.bitcoin.address, network);
 
-
         if (btcTxs.success && btcTxs.transactions) {
           const allTxs = btcTxs.transactions.map(tx => ({
             ...tx,
@@ -355,12 +338,11 @@ export function WalletProvider({ children }) {
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      // Don't show error to user, just set empty transactions
+
       setTransactions([]);
     }
   };
 
-  // Delete wallet
   const deleteWallet = () => {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('walletrix_wallet');
@@ -373,7 +355,6 @@ export function WalletProvider({ children }) {
     toast.success('Wallet deleted');
   };
 
-  // Refresh all data
   const refreshData = async () => {
     if (!isLocked && wallet) {
       await Promise.all([

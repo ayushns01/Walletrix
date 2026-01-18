@@ -1,12 +1,6 @@
-/**
- * Authentication Routes Integration Tests
- * End-to-end testing of authentication endpoints
- */
-
 import request from 'supertest';
 import app from '../../src/index.js';
 
-// Mock external dependencies
 jest.mock('../../src/lib/prisma.js');
 jest.mock('../../src/services/emailService.js');
 jest.mock('../../src/services/sessionService.js');
@@ -65,16 +59,15 @@ describe('Authentication Routes', () => {
     });
 
     test('should respect rate limiting', async () => {
-      // This would need to be configured based on actual rate limits
-      const promises = Array(6).fill().map(() => 
+
+      const promises = Array(6).fill().map(() =>
         request(app)
           .post('/api/v1/auth/register')
           .send(testUser)
       );
 
       const responses = await Promise.all(promises);
-      
-      // At least one should be rate limited
+
       const rateLimited = responses.some(res => res.status === 429);
       expect(rateLimited).toBe(true);
     });
@@ -139,7 +132,7 @@ describe('Authentication Routes', () => {
     let authToken;
 
     beforeEach(async () => {
-      // Get auth token by logging in
+
       const loginResponse = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -286,13 +279,12 @@ describe('Authentication Routes', () => {
     });
 
     test('should invalidate token after logout', async () => {
-      // Logout first
+
       await request(app)
         .post('/api/v1/auth/logout')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      // Try to access protected route
       const response = await request(app)
         .get('/api/v1/auth/profile')
         .set('Authorization', `Bearer ${authToken}`)
@@ -313,8 +305,7 @@ describe('Authentication Routes', () => {
 
   describe('Error Handling', () => {
     test('should handle internal server errors gracefully', async () => {
-      // This would require mocking a service to throw an error
-      // Implementation depends on how errors are handled in your services
+
     });
 
     test('should return consistent error format', async () => {

@@ -1,23 +1,15 @@
 import notificationService from '../services/notificationService.js';
 import logger from '../services/loggerService.js';
 
-/**
- * Notification Controller
- * Handles notification-related API requests
- */
-
 class NotificationController {
-    /**
-     * Get user's notifications
-     * GET /api/v1/notifications
-     */
+
     async getNotifications(req, res) {
         try {
             const userId = req.user.id;
-            const { walletId, limit, unreadOnly } = req.query; // NEW: Accept walletId
+            const { walletId, limit, unreadOnly } = req.query;
 
             const notifications = await notificationService.getUserNotifications(userId, {
-                walletId, // NEW: Pass walletId
+                walletId,
                 limit: limit ? parseInt(limit) : 50,
                 unreadOnly: unreadOnly === 'true'
             });
@@ -39,15 +31,11 @@ class NotificationController {
         }
     }
 
-    /**
-     * Get unread notification count
-     * GET /api/v1/notifications/unread-count
-     */
     async getUnreadCount(req, res) {
         try {
             const userId = req.user.id;
-            const { walletId } = req.query; // NEW: Accept walletId
-            const count = await notificationService.getUnreadCount(userId, walletId); // NEW: Pass walletId
+            const { walletId } = req.query;
+            const count = await notificationService.getUnreadCount(userId, walletId);
 
             res.status(200).json({
                 success: true,
@@ -66,10 +54,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Mark notification as read
-     * PUT /api/v1/notifications/:id/read
-     */
     async markAsRead(req, res) {
         try {
             const { id } = req.params;
@@ -94,10 +78,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Mark all notifications as read
-     * PUT /api/v1/notifications/read-all
-     */
     async markAllAsRead(req, res) {
         try {
             const userId = req.user.id;

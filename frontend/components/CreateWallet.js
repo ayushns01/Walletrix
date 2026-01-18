@@ -10,8 +10,8 @@ import CreateMultiSigWallet from './CreateMultiSigWallet';
 export default function CreateWallet({ onComplete, onMultiSigCreated }) {
   const { generateWallet, isAuthenticated } = useWallet();
   const { user: clerkUser } = useUser();
-  const [walletType, setWalletType] = useState(null); // 'regular' or 'multisig'
-  const [step, setStep] = useState(0); // Start at 0 for type selection
+  const [walletType, setWalletType] = useState(null);
+  const [step, setStep] = useState(0);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,12 +20,10 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
   const [loading, setLoading] = useState(false);
   const [walletName, setWalletName] = useState('');
 
-  // Always require password for wallet encryption
   const requiresPassword = true;
 
   const handleCreateWallet = async () => {
 
-    // Always validate password
     if (!password || password.trim() === '') {
       toast.error('⚠️ Password is required');
       return;
@@ -38,7 +36,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
 
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       toast.error('⚠️ Password should contain uppercase, lowercase, and numbers for better security');
-      // Warning only, don't block
+
     }
 
     if (password !== confirmPassword) {
@@ -80,7 +78,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
 
   return (
     <div className="max-w-lg mx-auto">
-      {/* Show Multi-Sig Modal if selected */}
+      {}
       {walletType === 'multisig' ? (
         <CreateMultiSigWallet
           onClose={() => {
@@ -89,7 +87,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
           }}
           onSuccess={(createdWallet) => {
             toast.success('✅ Multi-Sig wallet created successfully!');
-            // Pass the created wallet to parent for navigation
+
             if (onMultiSigCreated) {
               onMultiSigCreated(createdWallet);
             } else {
@@ -99,7 +97,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
         />
       ) : (
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/20">
-          {/* Step 0: Select Wallet Type */}
+          {}
           {step === 0 && (
             <div>
               <div className="flex items-center justify-center mb-6">
@@ -113,7 +111,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
               </p>
 
               <div className="space-y-4">
-                {/* Regular Wallet Option */}
+                {}
                 <button
                   onClick={() => {
                     setWalletType('regular');
@@ -147,7 +145,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                   </div>
                 </button>
 
-                {/* Multi-Sig Wallet Option */}
+                {}
                 <button
                   onClick={() => {
                     setWalletType('multisig');
@@ -195,7 +193,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
             </div>
           )}
 
-          {/* Step 1: Set Password or Wallet Name */}
+          {}
           {step === 1 && (
             <div>
               <div className="flex items-center justify-center mb-6">
@@ -209,7 +207,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
               </p>
 
               <div className="space-y-4">
-                {/* Wallet Name (optional) */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Wallet Name (Optional)
@@ -223,7 +221,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                   />
                 </div>
 
-                {/* Password fields */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Password
@@ -282,10 +280,10 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
             </div>
           )}
 
-          {/* Step 2: Show Recovery Phrase */}
+          {}
           {step === 2 && (
             <div className="space-y-5">
-              {/* Header */}
+              {}
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-4 border border-amber-500/30">
                   <span className="text-3xl">🔐</span>
@@ -298,7 +296,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                 </p>
               </div>
 
-              {/* Critical Security Warning */}
+              {}
               <div className="bg-gradient-to-r from-red-500/10 to-red-600/10 border border-red-500/30 rounded-2xl p-4">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -324,9 +322,9 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                 </div>
               </div>
 
-              {/* Recovery Phrase Display */}
+              {}
               <div className="relative bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50">
-                {/* Show/Hide Toggle */}
+                {}
                 <div className="absolute top-3 right-3 z-10">
                   <button
                     type="button"
@@ -355,7 +353,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                   </button>
                 </div>
 
-                {/* Words Grid */}
+                {}
                 <div className={`grid grid-cols-3 gap-3 pt-8 transition-all duration-300 ${!showPassword ? 'blur-lg select-none pointer-events-none' : ''}`}>
                   {mnemonic.split(' ').map((word, index) => (
                     <div
@@ -372,7 +370,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                   ))}
                 </div>
 
-                {/* Blur Overlay Message */}
+                {}
                 {!showPassword && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="bg-slate-800/90 backdrop-blur-sm px-6 py-3 rounded-xl border border-slate-600/50 shadow-xl">
@@ -387,7 +385,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                 )}
               </div>
 
-              {/* Confirmation Checkbox */}
+              {}
               <label className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 cursor-pointer hover:border-purple-500/30 transition-colors">
                 <div className="relative flex items-center justify-center flex-shrink-0 mt-0.5">
                   <input
@@ -412,7 +410,7 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
                 </span>
               </label>
 
-              {/* Complete Button */}
+              {}
               <button
                 onClick={handleComplete}
                 disabled={!mnemonicConfirmed}

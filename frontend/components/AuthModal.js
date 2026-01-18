@@ -26,15 +26,14 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
     try {
       setLoading(true);
 
-      // Get Google auth URL from backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/auth/google`);
       const data = await response.json();
 
       if (data.success && data.url) {
-        // Store callback handler for when we return
+
         if (typeof window !== 'undefined') {
           window.localStorage.setItem('authCallback', 'google');
-          // Redirect to Google OAuth
+
           window.location.href = data.url;
         }
       } else {
@@ -53,7 +52,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
 
     try {
       if (!isLogin) {
-        // Registration validation
+
         if (formData.password !== formData.confirmPassword) {
           toast.error('Passwords do not match');
           setLoading(false);
@@ -82,13 +81,13 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
       const data = await response.json();
 
       if (data.success) {
-        // Store token in localStorage
+
         if (typeof window !== 'undefined') {
           localStorage.setItem('walletrix_auth_token', data.token);
           localStorage.setItem('walletrix_user', JSON.stringify(data.user));
         }
         toast.success(isLogin ? 'Login successful!' : 'Registration successful!');
-        // Call the authentication callback
+
         onAuthenticated(data.user, data.token);
         onClose();
       } else {
@@ -117,7 +116,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-8 w-full max-w-md relative">
-        {/* Back button */}
+        {}
         <button
           onClick={() => {
             onClose();
@@ -130,7 +129,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           Back
         </button>
 
-        {/* Close button */}
+        {}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
@@ -138,7 +137,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           ✕
         </button>
 
-        {/* Header */}
+        {}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
             {isLogin ? <LogIn className="w-8 h-8 text-white" /> : <UserPlus className="w-8 h-8 text-white" />}
@@ -151,9 +150,9 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           </p>
         </div>
 
-        {/* Form */}
+        {}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name field (registration only) */}
+          {}
           {!isLogin && (
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -171,7 +170,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
             </div>
           )}
 
-          {/* Email field */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">
               Email Address
@@ -190,7 +189,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
             </div>
           </div>
 
-          {/* Password field */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">
               Password
@@ -216,7 +215,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
             </div>
           </div>
 
-          {/* Confirm password field (registration only) */}
+          {}
           {!isLogin && (
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -237,7 +236,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
             </div>
           )}
 
-          {/* Submit button */}
+          {}
           <button
             type="submit"
             disabled={loading}
@@ -247,7 +246,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           </button>
         </form>
 
-        {/* Divider */}
+        {}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-700"></div>
@@ -257,7 +256,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           </div>
         </div>
 
-        {/* Google OAuth button */}
+        {}
         <button
           type="button"
           onClick={handleGoogleLogin}
@@ -285,7 +284,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }) {
           Sign {isLogin ? 'in' : 'up'} with Google
         </button>
 
-        {/* Switch mode */}
+        {}
         <div className="text-center mt-6">
           <p className="text-gray-400">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}

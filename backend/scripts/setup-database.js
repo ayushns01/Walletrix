@@ -7,12 +7,12 @@ const execAsync = promisify(exec);
 
 async function setupDatabase() {
   console.log('🔄 Setting up database...');
-  
+
   if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL environment variable not found');
     process.exit(1);
   }
-  
+
   try {
     console.log('📦 Generating Prisma client...');
     await execAsync('npx prisma generate');
@@ -25,8 +25,7 @@ async function setupDatabase() {
     console.log('🎉 Database setup completed successfully!');
   } catch (error) {
     console.error('❌ Database setup failed:', error.message);
-    
-    // Try alternative approach
+
     try {
       console.log('🔄 Trying alternative migration approach...');
       await execAsync('npx prisma migrate deploy');

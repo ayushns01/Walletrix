@@ -17,7 +17,6 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(false);
     const [newsLoading, setNewsLoading] = useState(false);
 
-    // Fetch notifications
     const fetchNotifications = async () => {
         try {
             setLoading(true);
@@ -42,7 +41,6 @@ export default function NotificationsPage() {
         }
     };
 
-    // Fetch crypto news
     const fetchCryptoNews = async () => {
         try {
             setNewsLoading(true);
@@ -70,7 +68,6 @@ export default function NotificationsPage() {
         }
     };
 
-    // Mark as read
     const markAsRead = async (notificationId) => {
         try {
             const token = await getToken();
@@ -89,7 +86,6 @@ export default function NotificationsPage() {
         }
     };
 
-    // Mark all as read
     const markAllAsRead = async () => {
         try {
             const token = await getToken();
@@ -142,7 +138,7 @@ export default function NotificationsPage() {
     return (
         <div className="min-h-screen bg-black text-white p-6">
             <div className="max-w-4xl mx-auto">
-                {/* Header */}
+                {}
                 <div className="mb-8">
                     <button
                         onClick={() => router.back()}
@@ -154,26 +150,26 @@ export default function NotificationsPage() {
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            {/* Logo - Same as Landing Page */}
+                            {}
                             <div className="relative w-14 h-14 group cursor-pointer">
-                                {/* Geometric background pattern */}
+                                {}
                                 <div className="absolute inset-0">
                                     <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
                                     <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
                                 </div>
 
-                                {/* Network nodes */}
+                                {}
                                 <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2" />
                                 <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2" />
                                 <div className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2" />
                                 <div className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2" />
 
-                                {/* Central bell icon */}
+                                {}
                                 <div className="relative z-10 flex items-center justify-center h-full">
                                     <Bell className="w-6 h-6 text-blue-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
                                 </div>
 
-                                {/* Rotating glow */}
+                                {}
                                 <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
                             </div>
                             <div>
@@ -194,7 +190,7 @@ export default function NotificationsPage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
+                {}
                 <div className="flex gap-3 mb-6">
                     <button
                         onClick={() => setActiveTab('notifications')}
@@ -222,10 +218,10 @@ export default function NotificationsPage() {
                     </button>
                 </div>
 
-                {/* Content */}
+                {}
                 {activeTab === 'notifications' ? (
                     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-purple-500/30 overflow-hidden">
-                        {/* Header */}
+                        {}
                         {notifications.some(n => !n.isRead) && (
                             <div className="p-4 border-b border-gray-700/50 flex justify-end">
                                 <button
@@ -237,7 +233,7 @@ export default function NotificationsPage() {
                             </div>
                         )}
 
-                        {/* Notifications List */}
+                        {}
                         <div className="divide-y divide-gray-700/50">
                             {loading ? (
                                 <div className="p-12 text-center">
@@ -291,7 +287,7 @@ export default function NotificationsPage() {
                         </div>
                     </div>
                 ) : (
-                    // News Tab
+
                     <div>
                         {newsLoading ? (
                             <div className="p-12 text-center">

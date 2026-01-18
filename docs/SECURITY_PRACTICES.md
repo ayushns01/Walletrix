@@ -138,7 +138,7 @@ Monero-style privacy for Ethereum using proper ECDH key exchange.
 ## � Multi-Signature Wallets
 **File**: `backend/src/services/multiSigService.js`
 
-Enterprise-grade M-of-N signature schemes.
+M-of-N signature schemes for shared wallet control.
 
 ### Bitcoin Multi-Sig
 | Type | Description |

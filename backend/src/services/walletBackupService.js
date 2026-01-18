@@ -5,19 +5,12 @@ import archiver from 'archiver';
 import { Readable } from 'stream';
 import walletService from './walletService.js';
 
-/**
- * Wallet Backup & Export Service
- * Handles secure wallet backups, exports, and imports with multiple formats
- */
 class WalletBackupService {
   constructor() {
     this.supportedFormats = ['json', 'csv', 'encrypted', 'mnemonic'];
     this.encryptionAlgorithm = 'aes-256-gcm';
   }
 
-  /**
-   * Create a comprehensive wallet backup
-   */
   async createWalletBackup(walletId, userId, options = {}) {
     try {
       const {
@@ -28,7 +21,6 @@ class WalletBackupService {
         compression = true
       } = options;
 
-      // Validate format
       if (!this.supportedFormats.includes(format)) {
         return {
           success: false,
@@ -36,7 +28,6 @@ class WalletBackupService {
         };
       }
 
-      // Get wallet data
       const walletData = await this._getWalletData(walletId, userId, {
         includeTransactions,
         includeMetadata
@@ -46,7 +37,6 @@ class WalletBackupService {
         return walletData;
       }
 
-      // Generate backup based on format
       let backupData;
       let filename;
       let mimeType;
@@ -68,7 +58,6 @@ class WalletBackupService {
           return { success: false, error: 'Invalid format specified' };
       }
 
-      // Apply compression if requested
       if (compression && format !== 'mnemonic') {
         const compressed = await this._compressBackup(backupData, filename);
         backupData = compressed.data;
@@ -96,9 +85,6 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Import wallet from backup
-   */
   async importWalletFromBackup(backupData, userId, options = {}) {
     try {
       const {
@@ -107,13 +93,11 @@ class WalletBackupService {
         validateOnly = false
       } = options;
 
-      // Detect backup format
       const format = await this._detectBackupFormat(backupData);
       if (!format.success) {
         return format;
       }
 
-      // Parse backup data
       let parsedData;
       switch (format.format) {
         case 'json':
@@ -133,13 +117,11 @@ class WalletBackupService {
         return parsedData;
       }
 
-      // Validate backup data integrity
       const validation = await this._validateBackupData(parsedData.data);
       if (!validation.success) {
         return validation;
       }
 
-      // If validation only, return success
       if (validateOnly) {
         return {
           success: true,
@@ -154,7 +136,6 @@ class WalletBackupService {
         };
       }
 
-      // Check for existing wallet conflicts
       const conflict = await this._checkWalletConflicts(parsedData.data.wallet, userId);
       if (conflict.exists && !overwrite) {
         return {
@@ -165,7 +146,6 @@ class WalletBackupService {
         };
       }
 
-      // Import wallet
       const importResult = await this._importWallet(parsedData.data, userId, { overwrite });
       return importResult;
 
@@ -178,9 +158,6 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Export wallet addresses for external use
-   */
   async exportWalletAddresses(walletId, userId, format = 'json') {
     try {
       const wallet = await walletService.getWalletById(walletId, userId);
@@ -250,9 +227,6 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Create wallet recovery phrase export
-   */
   async exportMnemonicPhrase(walletId, userId, password) {
     try {
       if (!password) {
@@ -267,13 +241,11 @@ class WalletBackupService {
         return wallet;
       }
 
-      // Decrypt mnemonic (this would need to be implemented in walletService)
       const mnemonic = await walletService.decryptMnemonic(walletId, userId);
       if (!mnemonic.success) {
         return mnemonic;
       }
 
-      // Create secure mnemonic export
       const exportData = {
         type: 'mnemonic_export',
         wallet: {
@@ -292,9 +264,8 @@ class WalletBackupService {
         exportedAt: new Date().toISOString()
       };
 
-      // Encrypt with password if provided
       const encrypted = await this._encryptData(JSON.stringify(exportData), password);
-      
+
       return {
         success: true,
         data: encrypted.data,
@@ -313,14 +284,10 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Get wallet data for backup
-   */
   async _getWalletData(walletId, userId, options) {
     try {
       const { includeTransactions, includeMetadata } = options;
 
-      // Get wallet details
       const wallet = await walletService.getWalletById(walletId, userId);
       if (!wallet.success) {
         return wallet;
@@ -349,13 +316,10 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Create JSON backup
-   */
   async _createJsonBackup(data, password) {
     const jsonData = JSON.stringify(data, null, 2);
     let backupData = jsonData;
-    
+
     if (password) {
       const encrypted = await this._encryptData(jsonData, password);
       backupData = encrypted.data;
@@ -368,19 +332,16 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Create CSV backup (transactions only)
-   */
   async _createCsvBackup(data) {
     const transactions = data.transactions || [];
-    
+
     const csvHeaders = [
-      'Date', 'Network', 'Transaction Hash', 'From', 'To', 
+      'Date', 'Network', 'Transaction Hash', 'From', 'To',
       'Amount', 'Token', 'Status', 'Type', 'USD Value'
     ];
 
     const csvRows = [csvHeaders.join(',')];
-    
+
     transactions.forEach(tx => {
       const row = [
         new Date(tx.timestamp).toISOString(),
@@ -394,7 +355,7 @@ class WalletBackupService {
         tx.isIncoming ? 'Incoming' : 'Outgoing',
         tx.usdValueAtTime || ''
       ].map(field => `"${String(field).replace(/"/g, '""')}"`);
-      
+
       csvRows.push(row.join(','));
     });
 
@@ -405,9 +366,6 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Create encrypted backup
-   */
   async _createEncryptedBackup(data, password) {
     if (!password) {
       throw new Error('Password is required for encrypted backup');
@@ -423,9 +381,6 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Create mnemonic-only backup
-   */
   async _createMnemonicBackup(data, password) {
     const mnemonicData = {
       type: 'mnemonic_backup',
@@ -433,12 +388,12 @@ class WalletBackupService {
         name: data.wallet.name,
         derivationPath: data.wallet.derivationPath
       },
-      mnemonic: data.wallet.encryptedMnemonic, // Would need to decrypt this
+      mnemonic: data.wallet.encryptedMnemonic,
       createdAt: new Date().toISOString()
     };
 
     let backupData = JSON.stringify(mnemonicData, null, 2);
-    
+
     if (password) {
       const encrypted = await this._encryptData(backupData, password);
       backupData = encrypted.data;
@@ -451,9 +406,6 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Compress backup data
-   */
   async _compressBackup(data, originalFilename) {
     return new Promise((resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
@@ -474,19 +426,16 @@ class WalletBackupService {
     });
   }
 
-  /**
-   * Encrypt data with password
-   */
   async _encryptData(data, password) {
     const key = crypto.scryptSync(password, 'salt', 32);
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipher(this.encryptionAlgorithm, key);
-    
+
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     const authTag = cipher.getAuthTag();
-    
+
     const result = {
       iv: iv.toString('hex'),
       authTag: authTag.toString('hex'),
@@ -498,14 +447,11 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Detect backup format from data
-   */
   async _detectBackupFormat(data) {
     try {
-      // Try to parse as JSON first
+
       const parsed = JSON.parse(data);
-      
+
       if (parsed.type === 'wallet_backup') {
         return { success: true, format: 'json' };
       } else if (parsed.type === 'mnemonic_backup' || parsed.type === 'mnemonic_export') {
@@ -513,11 +459,11 @@ class WalletBackupService {
       } else if (parsed.iv && parsed.authTag && parsed.encrypted) {
         return { success: true, format: 'encrypted' };
       }
-      
+
       return { success: false, error: 'Unknown backup format' };
-      
+
     } catch (error) {
-      // Check if it's base64 encoded encrypted data
+
       try {
         const decoded = Buffer.from(data, 'base64').toString();
         const parsed = JSON.parse(decoded);
@@ -525,24 +471,20 @@ class WalletBackupService {
           return { success: true, format: 'encrypted' };
         }
       } catch (e) {
-        // Not base64 encoded
+
       }
-      
+
       return { success: false, error: 'Invalid backup format' };
     }
   }
 
-  /**
-   * Validate backup data integrity
-   */
   async _validateBackupData(data) {
     try {
-      // Check required fields
+
       if (!data.wallet || !data.wallet.addresses) {
         return { success: false, error: 'Invalid wallet data in backup' };
       }
 
-      // Validate addresses format
       const addresses = data.wallet.addresses;
       for (const [network, address] of Object.entries(addresses)) {
         if (!address || typeof address !== 'string') {
@@ -550,7 +492,6 @@ class WalletBackupService {
         }
       }
 
-      // Validate transactions if present
       if (data.transactions) {
         for (const tx of data.transactions) {
           if (!tx.txHash || !tx.network || !tx.fromAddress || !tx.toAddress) {
@@ -570,14 +511,11 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Check for wallet conflicts during import
-   */
   async _checkWalletConflicts(walletData, userId) {
     try {
-      // Check if wallet with same addresses already exists
+
       const existingWallet = await walletService.findWalletByAddresses(walletData.addresses, userId);
-      
+
       return {
         exists: existingWallet.success,
         wallet: existingWallet.success ? existingWallet.data : null
@@ -589,14 +527,10 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Import wallet from parsed backup data
-   */
   async _importWallet(backupData, userId, options) {
     try {
       const { overwrite } = options;
-      
-      // Import wallet
+
       const importResult = await walletService.importWallet({
         ...backupData.wallet,
         userId
@@ -606,10 +540,8 @@ class WalletBackupService {
         return importResult;
       }
 
-      // Import transactions if present
       if (backupData.transactions && backupData.transactions.length > 0) {
-        // This would need to be implemented in transaction service
-        // await transactionService.importTransactions(importResult.walletId, backupData.transactions);
+
       }
 
       return {
@@ -632,11 +564,8 @@ class WalletBackupService {
     }
   }
 
-  /**
-   * Get wallet metadata for backup
-   */
   async _getWalletMetadata(walletId) {
-    // This would implement additional metadata collection
+
     return {
       settings: {},
       preferences: {},
@@ -644,12 +573,8 @@ class WalletBackupService {
     };
   }
 
-  /**
-   * Get wallet transactions for backup
-   */
   async _getWalletTransactions(walletId) {
-    // This would get transactions from the transaction service
-    // For now, return empty array
+
     return [];
   }
 }

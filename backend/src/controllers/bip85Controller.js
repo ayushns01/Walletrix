@@ -3,22 +3,13 @@ import walletService from '../services/walletService.js';
 import prisma from '../lib/prisma.js';
 import logger from '../services/loggerService.js';
 
-/**
- * BIP-85 Controller
- * Handles deterministic entropy derivation for child wallets
- */
-
 class BIP85Controller {
-    /**
-     * Derive child wallet from master using BIP-85
-     * POST /api/v1/wallet/bip85/derive
-     */
+
     async deriveChildWallet(req, res) {
         try {
             const { walletId, password, index = 0, wordCount = 12, label } = req.body;
             const userId = req.user.userId;
 
-            // Validate input
             if (!walletId || !password) {
                 return res.status(400).json({
                     success: false,
@@ -33,7 +24,6 @@ class BIP85Controller {
                 });
             }
 
-            // Get parent wallet
             const parentWallet = await prisma.wallet.findFirst({
                 where: {
                     id: walletId,
@@ -49,7 +39,6 @@ class BIP85Controller {
                 });
             }
 
-            // Check if child with this index already exists
             const existingChild = await prisma.bIP85ChildWallet.findUnique({
                 where: {
                     parentWalletId_childIndex: {
@@ -66,7 +55,6 @@ class BIP85Controller {
                 });
             }
 
-            // Decrypt parent mnemonic
             const decryptResult = await walletService.decryptWallet(
                 parentWallet.encryptedMnemonic,
                 password
@@ -81,14 +69,12 @@ class BIP85Controller {
 
             const masterMnemonic = decryptResult.mnemonic;
 
-            // Derive child mnemonic using BIP-85
             const childMnemonic = bip85Service.deriveChildMnemonic(
                 masterMnemonic,
                 index,
                 wordCount
             );
 
-            // Generate addresses for child wallet
             const ethereumWallet = walletService.generateEthereumWallet(childMnemonic);
             const bitcoinWallet = walletService.generateBitcoinWallet(childMnemonic);
 
@@ -97,10 +83,8 @@ class BIP85Controller {
                 bitcoin: bitcoinWallet.address
             };
 
-            // Encrypt child mnemonic
             const encryptedChild = await walletService.encryptWallet(childMnemonic, password);
 
-            // Store in database
             const childWallet = await prisma.bIP85ChildWallet.create({
                 data: {
                     parentWalletId: walletId,
@@ -146,16 +130,11 @@ class BIP85Controller {
         }
     }
 
-    /**
-     * Get all child wallets for a parent
-     * GET /api/v1/wallet/bip85/children/:walletId
-     */
     async getChildWallets(req, res) {
         try {
             const { walletId } = req.params;
             const userId = req.user.userId;
 
-            // Verify parent wallet ownership
             const parentWallet = await prisma.wallet.findFirst({
                 where: {
                     id: walletId,
@@ -171,7 +150,6 @@ class BIP85Controller {
                 });
             }
 
-            // Get all child wallets
             const children = await prisma.bIP85ChildWallet.findMany({
                 where: {
                     parentWalletId: walletId,
@@ -209,16 +187,11 @@ class BIP85Controller {
         }
     }
 
-    /**
-     * Delete/deactivate child wallet
-     * DELETE /api/v1/wallet/bip85/child/:childId
-     */
     async deleteChildWallet(req, res) {
         try {
             const { childId } = req.params;
             const userId = req.user.userId;
 
-            // Get child wallet and verify ownership through parent
             const childWallet = await prisma.bIP85ChildWallet.findUnique({
                 where: { id: childId },
                 include: {
@@ -240,7 +213,6 @@ class BIP85Controller {
                 });
             }
 
-            // Soft delete (deactivate)
             await prisma.bIP85ChildWallet.update({
                 where: { id: childId },
                 data: { isActive: false }
@@ -268,10 +240,6 @@ class BIP85Controller {
         }
     }
 
-    /**
-     * Get child wallet mnemonic (requires password)
-     * POST /api/v1/wallet/bip85/child/:childId/mnemonic
-     */
     async getChildMnemonic(req, res) {
         try {
             const { childId } = req.params;
@@ -285,7 +253,6 @@ class BIP85Controller {
                 });
             }
 
-            // Get child wallet and verify ownership
             const childWallet = await prisma.bIP85ChildWallet.findUnique({
                 where: { id: childId },
                 include: {
@@ -307,7 +274,6 @@ class BIP85Controller {
                 });
             }
 
-            // Decrypt child mnemonic
             const decryptResult = await walletService.decryptWallet(
                 childWallet.encryptedMnemonic,
                 password

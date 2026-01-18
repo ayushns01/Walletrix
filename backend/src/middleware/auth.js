@@ -2,14 +2,10 @@ import authService from '../services/authService.js';
 import sessionService from '../services/sessionService.js';
 import logger from '../services/loggerService.js';
 
-/**
- * Enhanced authentication middleware
- * Verifies JWT token using the new session service
- */
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -18,7 +14,7 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
     const result = sessionService.verifyAccessToken(token);
 
     if (!result.success) {
@@ -29,7 +25,6 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Get user data
     const userResult = await authService.getUserById(result.payload.userId);
     if (!userResult.success) {
       return res.status(401).json({
@@ -39,7 +34,6 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Check if user is active
     if (!userResult.user.isActive) {
       return res.status(401).json({
         success: false,
@@ -48,7 +42,6 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Add user to request object
     req.user = userResult.user;
     req.userId = result.payload.userId;
     req.tokenPayload = result.payload;
@@ -68,19 +61,12 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-/**
- * Enhanced authentication middleware (alias for compatibility)
- */
 export const authenticateToken = authenticate;
 
-/**
- * Optional authentication middleware
- * Adds user info if token is present, but doesn't require it
- */
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const result = sessionService.verifyAccessToken(token);
@@ -97,15 +83,11 @@ export const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // In optional auth, we continue even if there's an error
+
     next();
   }
 };
 
-/**
- * Wallet access middleware
- * Verifies user has access to the specified wallet
- */
 export const verifyWalletAccess = async (req, res, next) => {
   try {
     const { walletId } = req.params;
@@ -125,7 +107,6 @@ export const verifyWalletAccess = async (req, res, next) => {
       });
     }
 
-    // This will be checked in the wallet service itself
     req.walletId = walletId;
     next();
   } catch (error) {

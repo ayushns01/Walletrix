@@ -5,31 +5,10 @@ import crypto from 'crypto';
 
 const bip32 = BIP32Factory(ecc);
 
-/**
- * BIP-85 Service - Deterministic Entropy From BIP32 Keychains
- * 
- * Allows deriving multiple independent mnemonics from a single master seed
- * This is useful for:
- * - Creating separate wallets for different purposes (personal, business, savings)
- * - Generating child wallets without exposing the master seed
- * - Deterministic wallet generation for backup purposes
- * 
- * Derivation Path: m/83696968'/39'/0'/{language}'/0'/{words}'/index'
- * 
- * Reference: https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki
- */
-
 class BIP85Service {
-    /**
-     * Derive child mnemonic from master mnemonic using BIP-85
-     * @param {string} masterMnemonic - Master mnemonic phrase (12, 18, or 24 words)
-     * @param {number} index - Child index (0-2^31-1)
-     * @param {number} wordCount - Words in derived mnemonic (12, 18, or 24)
-     * @param {number} language - Language code (0 = English)
-     * @returns {string} - Derived mnemonic phrase
-     */
+
     deriveChildMnemonic(masterMnemonic, index = 0, wordCount = 12, language = 0) {
-        // Validation
+
         if (!bip39.validateMnemonic(masterMnemonic)) {
             throw new Error('Invalid master mnemonic');
         }
@@ -47,31 +26,23 @@ class BIP85Service {
         }
 
         try {
-            // Convert mnemonic to seed
+
             const seed = bip39.mnemonicToSeedSync(masterMnemonic);
             const root = bip32.fromSeed(seed);
 
-            // Calculate entropy bits needed
             const entropyBits = wordCount === 12 ? 128 : wordCount === 18 ? 192 : 256;
             const entropyBytes = entropyBits / 8;
 
-            // Calculate words path component
-            // 12 words = 0, 18 words = 1, 24 words = 2
             const wordsPath = (wordCount - 12) / 6;
 
-            // BIP-85 derivation path
-            // m/83696968'/39'/0'/{language}'/0'/{words}'/index'
             const BIP85_PURPOSE = 83696968;
             const APPLICATION_BIP39 = 39;
             const path = `m/${BIP85_PURPOSE}'/${APPLICATION_BIP39}'/0'/${language}'/0'/${wordsPath}'/${index}'`;
 
-            // Derive child key
             const child = root.derivePath(path);
 
-            // Extract entropy from private key
             const entropy = child.privateKey.slice(0, entropyBytes);
 
-            // Convert entropy to mnemonic
             const derivedMnemonic = bip39.entropyToMnemonic(entropy);
 
             return derivedMnemonic;
@@ -81,13 +52,6 @@ class BIP85Service {
         }
     }
 
-    /**
-     * Derive multiple child wallets from master mnemonic
-     * @param {string} masterMnemonic - Master mnemonic
-     * @param {number} count - Number of child wallets to derive
-     * @param {number} wordCount - Words per child mnemonic
-     * @returns {Array<Object>} - Array of derived wallets
-     */
     deriveMultipleWallets(masterMnemonic, count = 3, wordCount = 12) {
         if (!bip39.validateMnemonic(masterMnemonic)) {
             throw new Error('Invalid master mnemonic');
@@ -118,12 +82,6 @@ class BIP85Service {
         return wallets;
     }
 
-    /**
-     * Create hierarchical wallet structure
-     * @param {string} masterMnemonic - Master mnemonic
-     * @param {Object} structure - Wallet structure definition
-     * @returns {Object} - Hierarchical wallet structure
-     */
     createWalletHierarchy(masterMnemonic, structure = {}) {
         const defaultStructure = {
             personal: { index: 0, wordCount: 12 },
@@ -157,14 +115,6 @@ class BIP85Service {
         return hierarchy;
     }
 
-    /**
-     * Validate BIP-85 derivation
-     * @param {string} masterMnemonic - Master mnemonic
-     * @param {string} derivedMnemonic - Derived mnemonic to validate
-     * @param {number} index - Expected index
-     * @param {number} wordCount - Expected word count
-     * @returns {boolean} - True if derivation is valid
-     */
     validateDerivation(masterMnemonic, derivedMnemonic, index, wordCount) {
         try {
             const expectedMnemonic = this.deriveChildMnemonic(
@@ -178,13 +128,6 @@ class BIP85Service {
         }
     }
 
-    /**
-     * Get derivation info without exposing the mnemonic
-     * @param {number} index - Child index
-     * @param {number} wordCount - Word count
-     * @param {number} language - Language code
-     * @returns {Object} - Derivation information
-     */
     getDerivationInfo(index, wordCount = 12, language = 0) {
         const wordsPath = (wordCount - 12) / 6;
         const path = `m/83696968'/39'/0'/${language}'/0'/${wordsPath}'/${index}'`;
@@ -199,12 +142,6 @@ class BIP85Service {
         };
     }
 
-    /**
-     * Generate recovery instructions for BIP-85 wallets
-     * @param {string} masterMnemonic - Master mnemonic (for display purposes only)
-     * @param {Array<Object>} derivedWallets - List of derived wallets
-     * @returns {string} - Recovery instructions
-     */
     generateRecoveryInstructions(derivedWallets) {
         return `
 BIP-85 WALLET RECOVERY INSTRUCTIONS

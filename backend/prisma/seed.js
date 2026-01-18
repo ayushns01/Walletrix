@@ -1,16 +1,8 @@
-/**
- * Database Seeding Script
- * Seeds the database with initial data for development
- */
-
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-/**
- * Supported networks configuration
- */
 const networks = [
   {
     name: 'Ethereum',
@@ -114,9 +106,6 @@ const networks = [
   },
 ];
 
-/**
- * Popular ERC-20 tokens
- */
 const tokens = [
   {
     name: 'USD Coin',
@@ -168,12 +157,9 @@ const tokens = [
   },
 ];
 
-/**
- * Test user for development
- */
 async function seedTestUser() {
   const hashedPassword = await bcrypt.hash('testpassword123', 12);
-  
+
   const testUser = await prisma.user.upsert({
     where: { email: 'test@walletrix.com' },
     update: {},
@@ -188,15 +174,12 @@ async function seedTestUser() {
   return testUser;
 }
 
-/**
- * Seed networks
- */
 async function seedNetworks() {
   console.log('🌐 Seeding networks...');
-  
+
   for (const network of networks) {
     await prisma.network.upsert({
-      where: { 
+      where: {
         name_chainId: {
           name: network.name,
           chainId: network.chainId,
@@ -206,19 +189,16 @@ async function seedNetworks() {
       create: network,
     });
   }
-  
+
   console.log(`✅ Seeded ${networks.length} networks`);
 }
 
-/**
- * Seed tokens
- */
 async function seedTokens() {
   console.log('🪙 Seeding tokens...');
-  
+
   for (const token of tokens) {
     await prisma.token.upsert({
-      where: { 
+      where: {
         address_network: {
           address: token.address,
           network: token.network,
@@ -228,18 +208,15 @@ async function seedTokens() {
       create: token,
     });
   }
-  
+
   console.log(`✅ Seeded ${tokens.length} tokens`);
 }
 
-/**
- * Main seed function
- */
 async function main() {
   console.log('🌱 Starting database seed...\n');
 
   try {
-    // Clear existing data in development
+
     if (process.env.NODE_ENV === 'development') {
       console.log('🗑️  Clearing existing seed data...');
       await prisma.transaction.deleteMany({});
@@ -252,11 +229,9 @@ async function main() {
       console.log('✅ Cleared existing data\n');
     }
 
-    // Seed data
     await seedNetworks();
     await seedTokens();
-    
-    // Only create test user in development
+
     if (process.env.NODE_ENV === 'development') {
       await seedTestUser();
     }
@@ -273,7 +248,6 @@ async function main() {
   }
 }
 
-// Run the seed function
 main()
   .catch((error) => {
     console.error('❌ Seed failed:', error);

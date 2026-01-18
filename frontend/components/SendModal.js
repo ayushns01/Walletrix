@@ -13,11 +13,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [gasPrice, setGasPrice] = useState(null);
-  const [step, setStep] = useState(1); // 1: form, 2: confirmation
+  const [step, setStep] = useState(1);
   const [addressHistory, setAddressHistory] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Smooth modal animation
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => setShowModal(true), 10);
@@ -26,7 +25,6 @@ export default function SendModal({ isOpen, onClose, asset }) {
     }
   }, [isOpen]);
 
-  // Fetch gas price for Ethereum
   const fetchGas = async () => {
     if (asset && asset.symbol !== 'BTC') {
       try {
@@ -52,28 +50,23 @@ export default function SendModal({ isOpen, onClose, asset }) {
     }
   }, [isOpen]);
 
-  // Early return AFTER all hooks are declared
   if (!isOpen) return null;
 
-  // Check if we have the wallet address for current asset
   const hasWalletAddress = asset?.symbol === 'BTC'
     ? !!wallet?.bitcoin?.address
     : asset?.symbol === 'SOL'
       ? !!wallet?.solana?.address
       : !!wallet?.ethereum?.address;
 
-  // Check if address was used before (simple check - could be enhanced with actual history from database)
   const checkAddressHistory = async () => {
-    // For now, just return a placeholder
-    // In a real app, you'd query your transaction history database
+
     setAddressHistory({
-      previouslySent: false, // Set to true if found in history
+      previouslySent: false,
       lastSentAmount: null,
       lastSentDate: null
     });
   };
 
-  // Continue to confirmation screen
   const handleContinue = async () => {
     if (!recipient) {
       toast.error('⚠️ Please enter a recipient address');
@@ -101,7 +94,6 @@ export default function SendModal({ isOpen, onClose, asset }) {
       return;
     }
 
-    // Validate balance
     const amountFloat = parseFloat(amount);
     const currentBalance = parseFloat(asset?.balance || 0);
 
@@ -115,10 +107,8 @@ export default function SendModal({ isOpen, onClose, asset }) {
       return;
     }
 
-    // Check address history
     await checkAddressHistory();
 
-    // Move to confirmation screen
     setStep(2);
   };
 
@@ -132,7 +122,6 @@ export default function SendModal({ isOpen, onClose, asset }) {
       setLoading(true);
       toast.loading('🔐 Verifying password...');
 
-      // Decrypt wallet to get private key
       const decrypted = await walletAPI.decryptData(wallet.encryptedData || wallet.encrypted, password);
 
       if (!decrypted.success) {
@@ -249,9 +238,9 @@ export default function SendModal({ isOpen, onClose, asset }) {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" style={{ zIndex: 9999 }}>
       <div className={`bg-slate-900/95 backdrop-blur-xl rounded-3xl max-w-md w-full border border-blue-500/30 shadow-2xl shadow-blue-500/20 transform transition-all duration-300 overflow-hidden ${showModal ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'}`}>
-        {/* Header with Gradient Background */}
+        {}
         <div className="relative overflow-hidden">
-          {/* Animated gradient background */}
+          {}
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-cyan-500/20 to-blue-600/20" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/90" />
 
@@ -268,7 +257,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
                 </button>
               )}
               <div className="relative">
-                {/* Asset icon with glow effect */}
+                {}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-2xl blur-xl opacity-50" />
                 <div className="relative w-14 h-14 bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
                   {asset?.icon || asset?.symbol?.[0]}
@@ -289,7 +278,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
             </button>
           </div>
 
-          {/* Step Indicator */}
+          {}
           <div className="relative px-6 pb-4">
             <div className="flex items-center gap-2">
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${step === 1 ? 'bg-blue-500/30 text-blue-300 border border-blue-400/50' : 'bg-green-500/20 text-green-400 border border-green-400/50'}`}>
@@ -309,10 +298,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
           </div>
         </div>
 
-        {/* Step 1: Form */}
+        {}
         {step === 1 && (
           <div className="p-6 space-y-5">
-            {/* Balance Display */}
+            {}
             <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-2xl p-4 border border-blue-500/20">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-400">Available Balance</span>
@@ -325,7 +314,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             </div>
 
-            {/* Recipient Address */}
+            {}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                 <span className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -347,7 +336,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             </div>
 
-            {/* Amount */}
+            {}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -386,7 +375,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               )}
             </div>
 
-            {/* Password */}
+            {}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
                 <span className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -406,7 +395,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             </div>
 
-            {/* Gas Info */}
+            {}
             {gasPrice && asset?.symbol !== 'BTC' && (
               <div className="flex items-center justify-between px-4 py-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
                 <span className="text-sm text-slate-400">Estimated Network Fee</span>
@@ -416,7 +405,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={onClose}
@@ -438,10 +427,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
           </div>
         )}
 
-        {/* Step 2: Confirmation Screen */}
+        {}
         {step === 2 && (
           <div className="p-6 space-y-5">
-            {/* Transaction Summary Card */}
+            {}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/50 rounded-2xl p-5 border border-slate-700/50 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -450,7 +439,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
                 <h4 className="font-semibold text-white">Transaction Summary</h4>
               </div>
 
-              {/* From/To Section */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl">
                   <div className="flex items-center gap-2">
@@ -492,7 +481,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
                 </div>
               </div>
 
-              {/* Amount Section */}
+              {}
               <div className="border-t border-slate-700/50 pt-4">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Amount</span>
@@ -507,7 +496,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
                 </div>
               </div>
 
-              {/* Network Fee */}
+              {}
               {gasPrice && asset?.symbol !== 'BTC' && (
                 <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
                   <span className="text-sm text-slate-400">Network Fee</span>
@@ -518,7 +507,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               )}
             </div>
 
-            {/* Address History Check */}
+            {}
             {addressHistory && (
               <div className={`rounded-2xl p-4 border ${addressHistory.previouslySent ? 'bg-green-500/10 border-green-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
                 <div className="flex items-center gap-3">
@@ -544,7 +533,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             )}
 
-            {/* Warning */}
+            {}
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex gap-3">
               <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-amber-400" />
@@ -555,7 +544,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setStep(1)}

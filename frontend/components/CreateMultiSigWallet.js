@@ -9,14 +9,13 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
     const [error, setError] = useState('');
     const [step, setStep] = useState(1);
 
-    // Form state
     const [formData, setFormData] = useState({
         name: '',
         network: 'ethereum',
         type: 'gnosis-safe',
         requiredSignatures: 2,
-        owners: ['', '', ''], // Start with 3 owners
-        publicKeys: ['', '', ''], // For Bitcoin
+        owners: ['', '', ''],
+        publicKeys: ['', '', ''],
     });
 
     const handleInputChange = (field, value) => {
@@ -87,7 +86,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                 setError('Required signatures cannot exceed total owners');
                 return false;
             }
-            // Validate Ethereum addresses
+
             const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
             for (const owner of validOwners) {
                 if (!ethAddressRegex.test(owner)) {
@@ -149,7 +148,6 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                 throw new Error(data.error || 'Failed to create multi-sig wallet');
             }
 
-            // Pass the created wallet to the success callback
             onSuccess?.(data.multiSigWallet);
             onClose?.();
         } catch (err) {
@@ -167,7 +165,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-purple-500/20">
-                {/* Header */}
+                {}
                 <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-t-2xl">
                     <div className="flex justify-between items-center">
                         <div>
@@ -188,7 +186,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Wallet Name */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Wallet Name *
@@ -203,7 +201,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         />
                     </div>
 
-                    {/* Network Selection */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-3">
                             Network *
@@ -217,8 +215,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         </div>
                     </div>
 
-
-                    {/* Signers */}
+                    {}
                     <div>
                         <div className="flex justify-between items-center mb-3">
                             <label className="block text-sm font-medium text-gray-300">
@@ -287,7 +284,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         </div>
                     </div>
 
-                    {/* Required Signatures */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Required Signatures: {formData.requiredSignatures} of {totalSigners}
@@ -306,7 +303,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         </div>
                     </div>
 
-                    {/* Info Box */}
+                    {}
                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                         <div className="flex gap-3">
                             <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,7 +319,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         </div>
                     </div>
 
-                    {/* Error Message */}
+                    {}
                     {error && (
                         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                             <div className="flex gap-3">
@@ -334,7 +331,7 @@ export default function CreateMultiSigWallet({ onClose, onSuccess }) {
                         </div>
                     )}
 
-                    {/* Actions */}
+                    {}
                     <div className="flex gap-3 pt-4">
                         <button
                             type="button"

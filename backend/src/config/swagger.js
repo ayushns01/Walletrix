@@ -1,8 +1,3 @@
-/**
- * OpenAPI/Swagger Configuration
- * Comprehensive API documentation for Walletrix
- */
-
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
@@ -20,7 +15,7 @@ A comprehensive REST API for cryptocurrency wallet operations supporting multipl
 ## Features
 
 - 🔐 **Authentication**: JWT-based auth with 2FA support
-- 💰 **Multi-Network**: Support for 8+ blockchain networks  
+- 💰 **Multi-Network**: Support for 8+ blockchain networks
 - 🏦 **Wallet Management**: Create, import, encrypt wallets
 - 💸 **Transactions**: Send, receive, monitor transactions
 - 📊 **Prices**: Real-time cryptocurrency price data
@@ -52,7 +47,7 @@ A comprehensive REST API for cryptocurrency wallet operations supporting multipl
 ## Rate Limits
 
 - **Authentication**: 5 attempts per 15 minutes
-- **Wallet Generation**: 10 per hour  
+- **Wallet Generation**: 10 per hour
 - **Transactions**: 10 per minute
 - **Blockchain Queries**: 60 per minute
 - **Price Data**: 100 per minute
@@ -66,7 +61,7 @@ All errors follow this format:
   "error": "Human readable error message",
   "errorCode": "MACHINE_READABLE_CODE",
   "timestamp": "2025-11-12T10:30:00.000Z",
-  "details": {} // Optional additional context
+  "details": {}
 }
 \`\`\`
       `,
@@ -520,8 +515,8 @@ All errors follow this format:
     ]
   },
   apis: [
-    './src/routes/*.js', // Path to the API files
-    './docs/swagger/*.yaml' // Additional YAML documentation
+    './src/routes/*.js',
+    './docs/swagger/*.yaml'
   ],
 };
 
@@ -529,7 +524,6 @@ const specs = swaggerJsdoc(options);
 
 export { specs };
 
-// Swagger UI configuration
 export const swaggerConfig = {
   explorer: true,
   swaggerOptions: {

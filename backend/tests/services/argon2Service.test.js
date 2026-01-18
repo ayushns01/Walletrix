@@ -129,7 +129,6 @@ describe('Argon2Service', () => {
             const endTime = Date.now();
             const duration = endTime - startTime;
 
-            // Should complete in less than 1 second
             expect(duration).toBeLessThan(1000);
         });
     });

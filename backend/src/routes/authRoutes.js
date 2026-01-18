@@ -8,86 +8,12 @@ import sessionRoutes from './sessionRoutes.js';
 
 const router = express.Router();
 
-/**
- * @swagger
- * /auth/register:
- *   post:
- *     tags: [Authentication]
- *     summary: Register new user account
- *     description: |
- *       Create a new user account with email and password. Password must meet complexity requirements.
- *       
- *       **Rate Limit**: 5 attempts per 15 minutes per IP
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *                 description: Valid email address
- *               password:
- *                 type: string
- *                 format: password
- *                 minLength: 8
- *                 example: SecurePass123!
- *                 description: Minimum 8 characters with uppercase, lowercase, number and symbol
- *               name:
- *                 type: string
- *                 maxLength: 100
- *                 example: John Doe
- *                 description: Optional display name
- *     responses:
- *       '201':
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: User registered successfully
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *                 token:
- *                   type: string
- *                   description: JWT access token
- *       '400':
- *         $ref: '#/components/responses/ValidationError'
- *       '409':
- *         description: Email already exists
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/Error'
- *                 - properties:
- *                     errorCode:
- *                       const: USER_EXISTS
- *             example:
- *               success: false
- *               error: Email already registered
- *               errorCode: USER_EXISTS
- *               timestamp: 2025-11-12T10:30:00.000Z
- *       '429':
- *         $ref: '#/components/responses/RateLimitError'
- */
 router.post('/register', validationRules.register, handleValidationErrors, async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.get('user-agent');
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -124,90 +50,6 @@ router.post('/register', validationRules.register, handleValidationErrors, async
   }
 });
 
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     tags: [Authentication]
- *     summary: User login
- *     description: |
- *       Authenticate user with email and password. Returns JWT tokens for session management.
- *       
- *       **Rate Limit**: 5 attempts per 15 minutes per IP
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: SecurePass123!
- *               totpCode:
- *                 type: string
- *                 pattern: '^[0-9]{6}$'
- *                 example: '123456'
- *                 description: 6-digit TOTP code (required if 2FA enabled)
- *     responses:
- *       '200':
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Login successful
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *                 token:
- *                   type: string
- *                   description: JWT access token
- *                 requiresTwoFactor:
- *                   type: boolean
- *                   example: false
- *                   description: True if 2FA is enabled but not provided
- *       '400':
- *         $ref: '#/components/responses/ValidationError'
- *       '401':
- *         description: Invalid credentials or 2FA required
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/Error'
- *                 - properties:
- *                     errorCode:
- *                       enum: [INVALID_CREDENTIALS, INVALID_2FA_CODE, 2FA_REQUIRED]
- *             examples:
- *               invalid_credentials:
- *                 summary: Wrong email or password
- *                 value:
- *                   success: false
- *                   error: Invalid email or password
- *                   errorCode: INVALID_CREDENTIALS
- *                   timestamp: 2025-11-12T10:30:00.000Z
- *               2fa_required:
- *                 summary: 2FA code required
- *                 value:
- *                   success: false
- *                   error: Two-factor authentication code required
- *                   errorCode: 2FA_REQUIRED
- *                   timestamp: 2025-11-12T10:30:00.000Z
- *       '429':
- *         $ref: '#/components/responses/RateLimitError'
- */
 router.post('/login', validationRules.login, handleValidationErrors, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -243,31 +85,6 @@ router.post('/login', validationRules.login, handleValidationErrors, async (req,
   }
 });
 
-/**
- * @swagger
- * /auth/profile:
- *   get:
- *     tags: [Authentication]
- *     summary: Get user profile
- *     description: Retrieve current user's profile information
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: User profile retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *       '401':
- *         $ref: '#/components/responses/UnauthorizedError'
- */
 router.get('/profile', authenticate, async (req, res) => {
   try {
     res.json({
@@ -283,9 +100,6 @@ router.get('/profile', authenticate, async (req, res) => {
   }
 });
 
-/**
- * Update user preferences
- */
 router.put('/preferences', authenticate, async (req, res) => {
   try {
     const { preferences } = req.body;
@@ -311,9 +125,6 @@ router.put('/preferences', authenticate, async (req, res) => {
   }
 });
 
-/**
- * Change password
- */
 router.put('/change-password', authenticate, validationRules.changePassword, handleValidationErrors, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -352,9 +163,6 @@ router.put('/change-password', authenticate, validationRules.changePassword, han
   }
 });
 
-/**
- * Import wallet from localStorage
- */
 router.post('/import-wallet', authenticate, async (req, res) => {
   try {
     const { walletData, walletName } = req.body;
@@ -368,8 +176,8 @@ router.post('/import-wallet', authenticate, async (req, res) => {
     }
 
     const result = await databaseWalletService.importFromLocalStorage(
-      userId, 
-      walletData, 
+      userId,
+      walletData,
       walletName || 'Imported Wallet'
     );
 
@@ -391,9 +199,6 @@ router.post('/import-wallet', authenticate, async (req, res) => {
   }
 });
 
-/**
- * Verify token (for client-side token validation)
- */
 router.post('/verify-token', async (req, res) => {
   try {
     const { token } = req.body;
@@ -434,10 +239,8 @@ router.post('/verify-token', async (req, res) => {
   }
 });
 
-// Two-Factor Authentication routes
 router.use('/2fa', twoFactorRoutes);
 
-// Session Management routes  
 router.use('/session', sessionRoutes);
 
 export default router;

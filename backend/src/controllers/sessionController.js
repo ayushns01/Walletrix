@@ -1,16 +1,8 @@
-/**
- * Session Management Controller
- * Handles session-related HTTP requests
- */
-
 import sessionService from '../services/sessionService.js';
 import logger, { logAuth, logSecurity } from '../services/loggerService.js';
 
 class SessionController {
-  /**
-   * Refresh access token
-   * POST /api/v1/auth/session/refresh
-   */
+
   async refreshToken(req, res) {
     try {
       const { refreshToken } = req.body;
@@ -25,7 +17,7 @@ class SessionController {
       const result = await sessionService.refreshAccessToken(refreshToken);
 
       if (!result.success) {
-        // Log potential security issue
+
         if (result.code === 'TOKEN_EXPIRED' || result.code === 'TOKEN_INVALID') {
           logSecurity('Invalid Refresh Token Attempt', 'medium', {
             ip: req.ip,
@@ -53,18 +45,13 @@ class SessionController {
     }
   }
 
-  /**
-   * Get current session info
-   * GET /api/v1/auth/session/current
-   */
   async getCurrentSession(req, res) {
     try {
       const userId = req.userId;
       const token = req.get('Authorization')?.replace('Bearer ', '');
 
-      // Verify the current token
       const tokenResult = sessionService.verifyAccessToken(token);
-      
+
       if (!tokenResult.success) {
         return res.status(401).json(tokenResult);
       }
@@ -93,10 +80,6 @@ class SessionController {
     }
   }
 
-  /**
-   * Get all user sessions
-   * GET /api/v1/auth/session/list
-   */
   async getUserSessions(req, res) {
     try {
       const userId = req.userId;
@@ -123,16 +106,11 @@ class SessionController {
     }
   }
 
-  /**
-   * Invalidate specific session
-   * DELETE /api/v1/auth/session/:tokenId
-   */
   async invalidateSession(req, res) {
     try {
       const userId = req.userId;
       const { tokenId } = req.params;
 
-      // Verify the session belongs to the user
       const userSessions = sessionService.getUserSessions(userId);
       const sessionExists = userSessions.sessions?.some(s => s.tokenId === tokenId);
 
@@ -168,21 +146,14 @@ class SessionController {
     }
   }
 
-  /**
-   * Invalidate all other sessions (keep current)
-   * POST /api/v1/auth/session/invalidate-others
-   */
   async invalidateOtherSessions(req, res) {
     try {
       const userId = req.userId;
       const currentToken = req.get('Authorization')?.replace('Bearer ', '');
 
-      // Get current token's refresh token ID (if available)
       const userSessions = sessionService.getUserSessions(userId);
       let currentTokenId = null;
 
-      // For simplicity, we'll invalidate all sessions
-      // In a real implementation, you'd track which refresh token corresponds to the current access token
       const result = sessionService.invalidateAllUserSessions(userId);
 
       if (!result.success) {
@@ -207,23 +178,17 @@ class SessionController {
     }
   }
 
-  /**
-   * Invalidate all sessions (logout from all devices)
-   * POST /api/v1/auth/session/invalidate-all
-   */
   async invalidateAllSessions(req, res) {
     try {
       const userId = req.userId;
       const currentToken = req.get('Authorization')?.replace('Bearer ', '');
 
-      // Invalidate all refresh tokens
       const result = sessionService.invalidateAllUserSessions(userId);
 
       if (!result.success) {
         return res.status(500).json(result);
       }
 
-      // Blacklist current access token for immediate invalidation
       if (currentToken) {
         sessionService.blacklistAccessToken(currentToken);
       }
@@ -246,10 +211,6 @@ class SessionController {
     }
   }
 
-  /**
-   * Get session statistics (development only)
-   * GET /api/v1/auth/session/stats
-   */
   async getSessionStats(req, res) {
     try {
       const stats = sessionService.getSessionStatistics();

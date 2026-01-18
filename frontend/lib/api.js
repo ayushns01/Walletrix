@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Wallet API
 export const walletAPI = {
   generateWallet: async () => {
     const response = await api.post('/api/v1/wallet/generate');
@@ -48,7 +46,6 @@ export const walletAPI = {
   },
 };
 
-// Blockchain API
 export const blockchainAPI = {
   getEthereumBalance: async (address, network = 'mainnet') => {
     const response = await api.get(`/api/v1/blockchain/ethereum/balance/${address}?network=${network}`);
@@ -76,7 +73,6 @@ export const blockchainAPI = {
   },
 };
 
-// Token API
 export const tokenAPI = {
   getTokenInfo: async (tokenAddress) => {
     const response = await api.get(`/api/v1/tokens/info/${tokenAddress}`);
@@ -104,7 +100,6 @@ export const tokenAPI = {
   },
 };
 
-// Price API
 export const priceAPI = {
   getPrice: async (coinId, currency = 'usd') => {
     const response = await api.get(`/api/v1/prices/${coinId}?currency=${currency}`);
@@ -147,9 +142,6 @@ export const priceAPI = {
   },
 };
 
-
-
-// Address Book API
 export const addressBookAPI = {
   getAddressBook: async (walletId) => {
     const response = await api.get(`/api/v1/address-book/${walletId}`);
@@ -199,7 +191,6 @@ export const addressBookAPI = {
   },
 };
 
-// Database Wallet API
 export const databaseWalletAPI = {
   deleteDatabaseWallet: async (walletId, token) => {
     const response = await api.delete(`/api/v1/database-wallets/${walletId}`, {
@@ -211,24 +202,22 @@ export const databaseWalletAPI = {
   },
 };
 
-// Transaction API - Sends transactions directly using Web3/ethers
 export const transactionAPI = {
   sendEthereumTransaction: async (privateKey, to, amount, options = {}) => {
-    // Import ethers directly for transaction signing
+
     const { ethers } = await import('ethers');
-    
+
     try {
       const network = options.network || 'mainnet';
-      const rpcUrl = network === 'mainnet' 
+      const rpcUrl = network === 'mainnet'
         ? 'https://eth.llamarpc.com'
         : 'https://ethereum-sepolia-rpc.publicnode.com';
-      
+
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const wallet = new ethers.Wallet(privateKey, provider);
-      
-      // Get current gas price
+
       const feeData = await provider.getFeeData();
-      
+
       const tx = {
         to,
         value: ethers.parseEther(amount.toString()),
@@ -236,10 +225,10 @@ export const transactionAPI = {
         maxFeePerGas: feeData.maxFeePerGas,
         maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
       };
-      
+
       const transaction = await wallet.sendTransaction(tx);
       await transaction.wait();
-      
+
       return {
         success: true,
         transactionHash: transaction.hash,
@@ -261,25 +250,24 @@ export const transactionAPI = {
 
   sendTokenTransaction: async (privateKey, tokenAddress, to, amount, options = {}) => {
     const { ethers } = await import('ethers');
-    
+
     try {
       const network = options.network || 'mainnet';
       const decimals = options.decimals || 18;
-      const rpcUrl = network === 'mainnet' 
+      const rpcUrl = network === 'mainnet'
         ? 'https://eth.llamarpc.com'
         : 'https://ethereum-sepolia-rpc.publicnode.com';
-      
+
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const wallet = new ethers.Wallet(privateKey, provider);
-      
-      // ERC20 ABI for transfer
+
       const abi = ['function transfer(address to, uint256 amount) returns (bool)'];
       const contract = new ethers.Contract(tokenAddress, abi, wallet);
-      
+
       const amountWei = ethers.parseUnits(amount.toString(), decimals);
       const transaction = await contract.transfer(to, amountWei);
       await transaction.wait();
-      
+
       return {
         success: true,
         transactionHash: transaction.hash,
@@ -301,8 +289,7 @@ export const transactionAPI = {
   },
 
   sendBitcoinTransaction: async (privateKey, to, amount, fee = null, walletId = null) => {
-    // Bitcoin transactions need to be handled by backend
-    // For now, return an error - this would need proper UTXO handling
+
     return {
       success: false,
       error: 'Bitcoin transactions not yet implemented in frontend. Please use backend API.',
@@ -312,10 +299,10 @@ export const transactionAPI = {
   sendSolanaTransaction: async (privateKey, to, amount, options = {}) => {
     try {
       const { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction } = await import('@solana/web3.js');
-      
+
       const network = options.network || 'mainnet-beta';
       let rpcUrl;
-      
+
       if (network === 'mainnet-beta' || network === 'mainnet') {
         rpcUrl = 'https://api.mainnet-beta.solana.com';
       } else if (network === 'devnet') {
@@ -325,16 +312,15 @@ export const transactionAPI = {
       } else {
         rpcUrl = 'https://api.mainnet-beta.solana.com';
       }
-      
+
       const connection = new Connection(rpcUrl, 'confirmed');
-      
-      // Convert private key hex string to Uint8Array
+
       const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'hex'));
       const fromKeypair = Keypair.fromSecretKey(privateKeyBytes);
-      
+
       const toPublicKey = new PublicKey(to);
       const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
-      
+
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: fromKeypair.publicKey,
@@ -342,13 +328,13 @@ export const transactionAPI = {
           lamports,
         })
       );
-      
+
       const signature = await sendAndConfirmTransaction(
         connection,
         transaction,
         [fromKeypair]
       );
-      
+
       return {
         success: true,
         transactionHash: signature,

@@ -2,16 +2,8 @@ import ethereumService from '../services/ethereumService.js';
 import bitcoinService from '../services/bitcoinService.js';
 import solanaService from '../services/solanaService.js';
 
-/**
- * Blockchain Controller
- * Handles blockchain-related HTTP requests
- */
-
 class BlockchainController {
-  /**
-   * Get Ethereum balance
-   * GET /api/v1/blockchain/ethereum/balance/:address
-   */
+
   async getEthereumBalance(req, res) {
     try {
       const { address } = req.params;
@@ -33,10 +25,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Bitcoin balance
-   * GET /api/v1/blockchain/bitcoin/balance/:address
-   */
   async getBitcoinBalance(req, res) {
     try {
       const { address } = req.params;
@@ -58,10 +46,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Solana balance
-   * GET /api/v1/blockchain/solana/balance/:address
-   */
   async getSolanaBalance(req, res) {
     try {
       const { address } = req.params;
@@ -83,10 +67,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Ethereum transaction history
-   * GET /api/v1/blockchain/ethereum/transactions/:address
-   */
   async getEthereumTransactions(req, res) {
     try {
       const { address } = req.params;
@@ -108,10 +88,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Bitcoin transaction history
-   * GET /api/v1/blockchain/bitcoin/transactions/:address
-   */
   async getBitcoinTransactions(req, res) {
     try {
       const { address } = req.params;
@@ -133,10 +109,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Ethereum gas price
-   * GET /api/v1/blockchain/ethereum/gas-price
-   */
   async getGasPrice(req, res) {
     try {
       const { network = 'mainnet' } = req.query;
@@ -157,10 +129,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get Bitcoin fee estimate
-   * GET /api/v1/blockchain/bitcoin/fee-estimate
-   */
   async getBitcoinFeeEstimate(req, res) {
     try {
       const { network = 'mainnet' } = req.query;
@@ -181,10 +149,6 @@ class BlockchainController {
     }
   }
 
-  /**
-   * Get transaction details
-   * GET /api/v1/blockchain/:chain/transaction/:txHash
-   */
   async getTransaction(req, res) {
     try {
       const { chain, txHash } = req.params;

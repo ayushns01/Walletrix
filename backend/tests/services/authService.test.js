@@ -1,12 +1,6 @@
-/**
- * Authentication Service Unit Tests
- * Comprehensive testing for user registration, login, and authentication
- */
-
 import authService from '../authService.js';
 import prisma from '../lib/prisma.js';
 
-// Mock Prisma client
 jest.mock('../lib/prisma.js', () => ({
   user: {
     findUnique: jest.fn(),
@@ -15,19 +9,16 @@ jest.mock('../lib/prisma.js', () => ({
   },
 }));
 
-// Mock bcryptjs
 jest.mock('bcryptjs', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),
   compare: jest.fn(),
 }));
 
-// Mock jsonwebtoken
 jest.mock('jsonwebtoken', () => ({
   sign: jest.fn().mockReturnValue('mock_jwt_token'),
   verify: jest.fn().mockReturnValue({ userId: 'user123' }),
 }));
 
-// Mock session service
 jest.mock('../sessionService.js', () => ({
   createSession: jest.fn().mockResolvedValue({
     accessToken: 'mock_access_token',
@@ -53,10 +44,8 @@ describe('AuthService', () => {
         name: 'Test User'
       };
 
-      // Mock user doesn't exist
       prisma.user.findUnique.mockResolvedValue(null);
-      
-      // Mock user creation
+
       const mockUser = {
         id: 'user123',
         email: userData.email,
@@ -75,7 +64,7 @@ describe('AuthService', () => {
       expect(result.user).not.toHaveProperty('passwordHash');
       expect(result.tokens).toHaveProperty('accessToken');
       expect(result.tokens).toHaveProperty('refreshToken');
-      
+
       expect(bcrypt.hash).toHaveBeenCalledWith(userData.password, 12);
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
@@ -92,7 +81,6 @@ describe('AuthService', () => {
         password: 'SecurePass123!'
       };
 
-      // Mock user exists
       prisma.user.findUnique.mockResolvedValue({
         id: 'existing_user',
         email: userData.email
@@ -302,7 +290,7 @@ describe('AuthService', () => {
 
     test('should fail with inactive user', async () => {
       jwt.verify.mockReturnValue({ userId: 'user123' });
-      
+
       const mockUser = {
         id: 'user123',
         email: 'test@example.com',
@@ -339,7 +327,7 @@ describe('AuthService', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('Password changed successfully');
-      
+
       expect(bcrypt.compare).toHaveBeenCalledWith(currentPassword, 'old_hashed_password');
       expect(bcrypt.hash).toHaveBeenCalledWith(newPassword, 12);
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -388,7 +376,7 @@ describe('AuthService', () => {
       const mockPayload = { userId: 'user123', type: 'refresh' };
 
       jwt.verify.mockReturnValue(mockPayload);
-      
+
       const mockUser = {
         id: 'user123',
         email: 'test@example.com',

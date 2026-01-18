@@ -1,8 +1,3 @@
-/**
- * Two-Factor Authentication Controller
- * Handles 2FA HTTP requests and responses
- */
-
 import twoFactorService from '../services/twoFactorService.js';
 import { sendBackupCodesEmail, send2FASetupEmail } from '../services/emailService.js';
 import { PrismaClient } from '@prisma/client';
@@ -12,10 +7,7 @@ import logger, { logAuth, logSecurity } from '../services/loggerService.js';
 const prisma = new PrismaClient();
 
 class TwoFactorController {
-  /**
-   * Get 2FA status
-   * GET /api/v1/auth/2fa/status
-   */
+
   async get2FAStatus(req, res) {
     try {
       const userId = req.userId;
@@ -41,10 +33,6 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Get available 2FA methods
-   * GET /api/v1/auth/2fa/methods
-   */
   async getAvailable2FAMethods(req, res) {
     try {
       const userId = req.userId;
@@ -67,15 +55,10 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Setup TOTP
-   * POST /api/v1/auth/2fa/totp/setup
-   */
   async setupTOTP(req, res) {
     try {
       const userId = req.userId;
-      
-      // Get user email for QR code
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true },
@@ -112,10 +95,6 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Verify TOTP and enable 2FA
-   * POST /api/v1/auth/2fa/totp/verify
-   */
   async verifyTOTP(req, res) {
     try {
       const userId = req.userId;
@@ -127,7 +106,6 @@ class TwoFactorController {
         return res.status(400).json(result);
       }
 
-      // Send confirmation email
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true },
@@ -153,15 +131,10 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Generate backup codes
-   * POST /api/v1/auth/2fa/backup-codes/generate
-   */
   async generateBackupCodes(req, res) {
     try {
       const userId = req.userId;
 
-      // Check if 2FA is enabled
       const twoFactorStatus = await twoFactorService.is2FAEnabled(userId);
       if (!twoFactorStatus.enabled) {
         return res.status(400).json({
@@ -176,7 +149,6 @@ class TwoFactorController {
         return res.status(500).json(result);
       }
 
-      // Send backup codes via email
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true },
@@ -203,10 +175,6 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Verify backup code
-   * POST /api/v1/auth/2fa/backup-codes/verify
-   */
   async verifyBackupCode(req, res) {
     try {
       const userId = req.userId;
@@ -235,16 +203,11 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Setup SMS 2FA
-   * POST /api/v1/auth/2fa/sms/setup
-   */
   async setupSMS(req, res) {
     try {
       const userId = req.userId;
       const { phoneNumber } = req.body;
 
-      // Update user's phone number
       await prisma.user.update({
         where: { id: userId },
         data: { phoneNumber },
@@ -272,10 +235,6 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Verify SMS code
-   * POST /api/v1/auth/2fa/sms/verify
-   */
   async verifySMS(req, res) {
     try {
       const userId = req.userId;
@@ -287,7 +246,6 @@ class TwoFactorController {
         return res.status(400).json(result);
       }
 
-      // Enable SMS 2FA
       await prisma.userTwoFactor.upsert({
         where: { userId },
         update: {
@@ -303,7 +261,6 @@ class TwoFactorController {
         },
       });
 
-      // Send confirmation email
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true },
@@ -331,16 +288,11 @@ class TwoFactorController {
     }
   }
 
-  /**
-   * Disable 2FA
-   * POST /api/v1/auth/2fa/disable
-   */
   async disable2FA(req, res) {
     try {
       const userId = req.userId;
       const { password, code } = req.body;
 
-      // Verify password
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
@@ -365,7 +317,6 @@ class TwoFactorController {
         });
       }
 
-      // Check if 2FA is enabled
       const twoFactorStatus = await twoFactorService.is2FAEnabled(userId);
       if (!twoFactorStatus.enabled) {
         return res.status(400).json({
@@ -374,14 +325,12 @@ class TwoFactorController {
         });
       }
 
-      // Verify 2FA code
       let verificationResult;
-      
-      // Check if it's a backup code (8 characters, alphanumeric)
+
       if (code.length === 8 && /^[A-Fa-f0-9]+$/.test(code)) {
         verificationResult = await twoFactorService.verifyBackupCode(userId, code);
       } else {
-        // Assume it's a TOTP code
+
         verificationResult = await twoFactorService.verifyTOTP(userId, code);
       }
 
@@ -392,7 +341,6 @@ class TwoFactorController {
         });
       }
 
-      // Disable 2FA
       const result = await twoFactorService.disable2FA(userId);
 
       if (!result.success) {

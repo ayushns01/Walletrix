@@ -1,15 +1,7 @@
 import tokenService from '../services/tokenService.js';
 
-/**
- * Token Controller
- * Handles ERC-20 token HTTP requests
- */
-
 class TokenController {
-  /**
-   * Get token info
-   * GET /api/v1/tokens/info/:address
-   */
+
   async getTokenInfo(req, res) {
     try {
       const { address } = req.params;
@@ -31,10 +23,6 @@ class TokenController {
     }
   }
 
-  /**
-   * Get token balance
-   * GET /api/v1/tokens/balance/:tokenAddress/:walletAddress
-   */
   async getTokenBalance(req, res) {
     try {
       const { tokenAddress, walletAddress } = req.params;
@@ -56,11 +44,6 @@ class TokenController {
     }
   }
 
-  /**
-   * Get multiple token balances
-   * POST /api/v1/tokens/balances
-   * Body: { walletAddress, tokenAddresses[], network? }
-   */
   async getMultipleBalances(req, res) {
     try {
       const { walletAddress, tokenAddresses, network = 'mainnet' } = req.body;
@@ -92,10 +75,6 @@ class TokenController {
     }
   }
 
-  /**
-   * Get popular token balances for a wallet
-   * GET /api/v1/tokens/balances/popular/:address
-   */
   async getPopularTokenBalances(req, res) {
     try {
       const { address } = req.params;
@@ -117,10 +96,6 @@ class TokenController {
     }
   }
 
-  /**
-   * Get list of popular tokens
-   * GET /api/v1/tokens/popular
-   */
   getPopularTokens(req, res) {
     try {
       const result = tokenService.getPopularTokens();

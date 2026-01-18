@@ -49,7 +49,7 @@ export default function MultiSigWalletList() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {}
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Multi-Sig Wallets</h2>
@@ -66,7 +66,7 @@ export default function MultiSigWalletList() {
                 </button>
             </div>
 
-            {/* Wallets Grid */}
+            {}
             {wallets.length === 0 ? (
                 <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-12 text-center border border-gray-700">
                     <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -94,7 +94,7 @@ export default function MultiSigWalletList() {
                             onClick={() => setSelectedWallet(wallet)}
                             className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-purple-500/50 transition-all cursor-pointer group"
                         >
-                            {/* Network Badge */}
+                            {}
                             <div className="flex items-center justify-between mb-4">
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${wallet.network === 'ethereum'
                                         ? 'bg-blue-500/20 text-blue-300'
@@ -105,18 +105,18 @@ export default function MultiSigWalletList() {
                                 <span className="text-xs text-gray-500">{wallet.type}</span>
                             </div>
 
-                            {/* Wallet Name */}
+                            {}
                             <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-purple-400 transition-colors">
                                 {wallet.name}
                             </h3>
 
-                            {/* Address */}
+                            {}
                             <div className="mb-4">
                                 <p className="text-xs text-gray-500 mb-1">Address</p>
                                 <p className="text-sm text-gray-300 font-mono truncate">{wallet.address}</p>
                             </div>
 
-                            {/* Signature Info */}
+                            {}
                             <div className="flex items-center justify-between pt-4 border-t border-gray-700">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
@@ -143,7 +143,7 @@ export default function MultiSigWalletList() {
                 </div>
             )}
 
-            {/* Create Modal */}
+            {}
             {showCreateModal && (
                 <CreateMultiSigWallet
                     onClose={() => setShowCreateModal(false)}
@@ -151,7 +151,7 @@ export default function MultiSigWalletList() {
                 />
             )}
 
-            {/* Wallet Details Modal (placeholder) */}
+            {}
             {selectedWallet && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-purple-500/20">

@@ -15,50 +15,40 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
     const [pendingTransactions, setPendingTransactions] = useState([]);
     const [showCreateTx, setShowCreateTx] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview'); // overview, transactions, signers, settings
+    const [activeTab, setActiveTab] = useState('overview');
     const [error, setError] = useState('');
-    const [currentNetwork, setCurrentNetwork] = useState('ethereum'); // Toggle between 'ethereum' and 'sepolia'
+    const [currentNetwork, setCurrentNetwork] = useState('ethereum');
 
     useEffect(() => {
         if (walletId) {
             fetchWalletData(currentNetwork);
         }
-    }, [walletId, currentNetwork]); // Refetch when network changes
+    }, [walletId, currentNetwork]);
 
     const fetchWalletData = async (network = 'ethereum') => {
         try {
             setLoading(true);
             const token = await getToken();
 
-
-
-            // Fetch wallet details
             const walletRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/${walletId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const walletData = await walletRes.json();
 
-
-
             if (walletData.success) {
-                // Map backend response to frontend structure
+
                 const mappedWallet = {
                     ...walletData.multiSigWallet,
                     walletType: walletData.multiSigWallet.type || walletData.multiSigWallet.walletType,
                     redeemScript: walletData.multiSigWallet.redeemScript
                 };
 
-
-
                 setWallet(mappedWallet);
 
-                // Fetch balance if address exists - use backend proxy
                 if (mappedWallet.address && mappedWallet.address !== 'pending-deployment') {
                     try {
                         const effectiveNetwork = network.toLowerCase();
                         let balanceValue = '0';
-
-                        // Use backend proxy to fetch balance
 
                         const balanceRes = await fetch(
                             `${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/${walletId}/balance?network=${effectiveNetwork}`,
@@ -93,13 +83,10 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
 
             }
 
-            // Fetch transactions
             const txRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/multisig/${walletId}/transactions`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const txData = await txRes.json();
-
-
 
             if (txData.success) {
                 setTransactions(txData.transactions);
@@ -174,7 +161,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
-            {/* Header */}
+            {}
             <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-b border-purple-500/20">
                 <div className="max-w-7xl mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -186,7 +173,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             <span>Back</span>
                         </button>
 
-                        {/* Network Toggle for Ethereum wallets */}
+                        {}
                         {(wallet?.network === 'ethereum' || wallet?.network === 'sepolia') && (
                             <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-1 border border-gray-700/50">
                                 <button
@@ -230,7 +217,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 py-6">
-                {/* Development Mode Warning Banner */}
+                {}
                 <div className="mb-6 bg-gradient-to-r from-orange-500/20 to-red-500/20 border-2 border-orange-500/50 rounded-xl p-4">
                     <div className="flex items-start gap-3">
                         <div className="text-2xl">🚧</div>
@@ -243,7 +230,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                     </div>
                 </div>
 
-                {/* Wallet Header Card */}
+                {}
                 <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-purple-500/20 mb-6">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
@@ -257,7 +244,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                                 </div>
                             </div>
 
-                            {/* Wallet Address Display with Debug */}
+                            {}
                             <div className="mt-4 p-4 bg-gray-900/50 rounded-xl border border-gray-700/50">
                                 <p className="text-xs text-gray-400 mb-2">Wallet Address</p>
                                 <div className="flex items-center gap-2">
@@ -283,7 +270,6 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             </div>
                         </div>
 
-
                         <button
                             onClick={() => setShowCreateTx(true)}
                             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center gap-2 font-medium"
@@ -293,7 +279,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                         </button>
                     </div>
 
-                    {/* Stats Grid */}
+                    {}
                     <div className="grid grid-cols-4 gap-4 mt-6">
                         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                             <div className="flex items-center gap-2 text-gray-400 mb-2">
@@ -337,7 +323,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                     </div>
                 </div>
 
-                {/* Tabs */}
+                {}
                 <div className="bg-gray-800/30 rounded-xl p-1 mb-6 flex gap-1">
                     {['overview', 'transactions', 'signers'].map((tab) => (
                         <button
@@ -353,10 +339,10 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                     ))}
                 </div>
 
-                {/* Tab Content */}
+                {}
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
-                        {/* Dashboard Component */}
+                        {}
                         <MultiSigDashboard
                             wallet={wallet}
                             balances={{ balance: wallet.balance }}
@@ -366,7 +352,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             currentNetwork={currentNetwork}
                         />
 
-                        {/* Pending Transactions */}
+                        {}
                         {pendingTransactions.length > 0 && (
                             <div>
                                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -381,7 +367,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             </div>
                         )}
 
-                        {/* Recent Transactions */}
+                        {}
                         <div>
                             <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
                             {transactions.length === 0 ? (
@@ -448,7 +434,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                 )}
             </div>
 
-            {/* Create Transaction Modal */}
+            {}
             {showCreateTx && (
                 <CreateTransactionModal
                     walletId={walletId}
@@ -460,7 +446,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                 />
             )}
 
-            {/* Settings Modal */}
+            {}
             {showSettings && (
                 <SettingsModal
                     wallet={wallet}
@@ -475,13 +461,12 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
     );
 }
 
-// Transaction Card Component
 function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed = false, onExecute }) {
     const { getToken } = useAuth();
     const [executing, setExecuting] = useState(false);
 
     const handleExecute = async () => {
-        // Show development warning
+
         toast('⚠️ Development Mode: Transaction will be marked as executed but NOT sent to blockchain', {
             duration: 5000,
             icon: '🚧',
@@ -559,7 +544,7 @@ function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed 
                     </div>
                     {transaction.status === 'ready' && (
                         <div className="mt-3 space-y-2">
-                            {/* Permanent Warning Banner */}
+                            {}
                             <div className="bg-orange-500/10 border border-orange-500/50 rounded-lg p-2 text-xs">
                                 <div className="flex items-center gap-1.5 text-orange-400">
                                     <span>⚠️</span>
@@ -585,7 +570,6 @@ function TransactionCard({ transaction, getStatusColor, getStatusIcon, detailed 
     );
 }
 
-// Create Transaction Modal
 function CreateTransactionModal({ walletId, onClose, onSuccess }) {
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -688,7 +672,6 @@ function CreateTransactionModal({ walletId, onClose, onSuccess }) {
     );
 }
 
-// Settings Modal - Enhanced Version with Full Multi-Sig Details
 function SettingsModal({ wallet, onClose, onDelete }) {
     const { getToken } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
@@ -722,7 +705,7 @@ function SettingsModal({ wallet, onClose, onDelete }) {
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full border border-purple-500/20 max-h-[90vh] flex flex-col">
-                {/* Header */}
+                {}
                 <div className="flex items-center justify-between p-6 border-b border-purple-500/20">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-500/10 rounded-lg">
@@ -742,7 +725,7 @@ function SettingsModal({ wallet, onClose, onDelete }) {
                 </div>
 
                 <div className="flex flex-1 overflow-hidden">
-                    {/* Sidebar */}
+                    {}
                     <div className="w-52 border-r border-purple-500/20 p-4 overflow-y-auto">
                         <nav className="space-y-2">
                             {tabs.map((tab) => (
@@ -761,9 +744,9 @@ function SettingsModal({ wallet, onClose, onDelete }) {
                         </nav>
                     </div>
 
-                    {/* Content */}
+                    {}
                     <div className="flex-1 overflow-y-auto p-6">
-                        {/* General Tab */}
+                        {}
                         {activeTab === 'general' && (
                             <div className="space-y-6">
                                 <div>
@@ -849,7 +832,7 @@ function SettingsModal({ wallet, onClose, onDelete }) {
                             </div>
                         )}
 
-                        {/* Signers & Keys Tab */}
+                        {}
                         {activeTab === 'signers' && (
                             <div className="space-y-6">
                                 <div>
@@ -1228,5 +1211,3 @@ function SettingsModal({ wallet, onClose, onDelete }) {
         </div>
     );
 }
-
-

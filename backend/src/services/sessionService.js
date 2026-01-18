@@ -1,20 +1,11 @@
-/**
- * Advanced JWT Service
- * Handles access tokens, refresh tokens, and session management
- */
-
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
 import logger, { logAuth, logSecurity } from './loggerService.js';
 
-// In-memory store for refresh tokens (in production, use Redis)
 const refreshTokenStore = new Map();
-const userSessions = new Map(); // Track active sessions per user
-const blacklistedTokens = new Set(); // Blacklisted access tokens
+const userSessions = new Map();
+const blacklistedTokens = new Set();
 
-/**
- * Token configuration
- */
 const TOKEN_CONFIG = {
   accessToken: {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRES || '15m',
@@ -26,17 +17,11 @@ const TOKEN_CONFIG = {
   },
 };
 
-/**
- * Session limits
- */
 const SESSION_LIMITS = {
   maxConcurrentSessions: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '5'),
-  maxRefreshTokenAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  maxRefreshTokenAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-/**
- * Generate access token
- */
 export function generateAccessToken(payload) {
   try {
     const token = jwt.sign(payload, TOKEN_CONFIG.accessToken.secret, {
@@ -59,9 +44,6 @@ export function generateAccessToken(payload) {
   }
 }
 
-/**
- * Generate refresh token
- */
 export function generateRefreshToken(userId, sessionInfo = {}) {
   try {
     const tokenId = randomBytes(16).toString('hex');
@@ -78,7 +60,6 @@ export function generateRefreshToken(userId, sessionInfo = {}) {
       audience: 'walletrix-users',
     });
 
-    // Store refresh token with metadata
     const expiresAt = Date.now() + SESSION_LIMITS.maxRefreshTokenAge;
     refreshTokenStore.set(tokenId, {
       userId,
@@ -90,13 +71,11 @@ export function generateRefreshToken(userId, sessionInfo = {}) {
       isActive: true,
     });
 
-    // Track user sessions
     if (!userSessions.has(userId)) {
       userSessions.set(userId, new Set());
     }
     userSessions.get(userId).add(tokenId);
 
-    // Enforce session limits
     enforceSessionLimits(userId);
 
     logAuth('Refresh Token Generated', userId, {
@@ -114,9 +93,6 @@ export function generateRefreshToken(userId, sessionInfo = {}) {
   }
 }
 
-/**
- * Generate token pair (access + refresh)
- */
 export function generateTokenPair(userId, sessionInfo = {}) {
   const accessResult = generateAccessToken({ userId });
   const refreshResult = generateRefreshToken(userId, sessionInfo);
@@ -136,12 +112,9 @@ export function generateTokenPair(userId, sessionInfo = {}) {
   };
 }
 
-/**
- * Verify access token
- */
 export function verifyAccessToken(token) {
   try {
-    // Check if token is blacklisted
+
     if (blacklistedTokens.has(token)) {
       return {
         success: false,
@@ -176,9 +149,6 @@ export function verifyAccessToken(token) {
   }
 }
 
-/**
- * Verify refresh token
- */
 export function verifyRefreshToken(token) {
   try {
     const decoded = jwt.verify(token, TOKEN_CONFIG.refreshToken.secret, {
@@ -205,7 +175,7 @@ export function verifyRefreshToken(token) {
     }
 
     if (Date.now() > tokenData.expiresAt) {
-      // Clean up expired token
+
       invalidateRefreshToken(decoded.tokenId);
       return {
         success: false,
@@ -214,7 +184,6 @@ export function verifyRefreshToken(token) {
       };
     }
 
-    // Update last used timestamp
     tokenData.lastUsed = Date.now();
 
     return { success: true, payload: decoded, tokenData };
@@ -227,9 +196,6 @@ export function verifyRefreshToken(token) {
   }
 }
 
-/**
- * Refresh access token using refresh token
- */
 export function refreshAccessToken(refreshToken) {
   try {
     const refreshResult = verifyRefreshToken(refreshToken);
@@ -264,17 +230,13 @@ export function refreshAccessToken(refreshToken) {
   }
 }
 
-/**
- * Invalidate refresh token
- */
 export function invalidateRefreshToken(tokenId) {
   try {
     const tokenData = refreshTokenStore.get(tokenId);
 
     if (tokenData) {
       tokenData.isActive = false;
-      
-      // Remove from user sessions
+
       const userSessionSet = userSessions.get(tokenData.userId);
       if (userSessionSet) {
         userSessionSet.delete(tokenId);
@@ -288,10 +250,9 @@ export function invalidateRefreshToken(tokenId) {
       });
     }
 
-    // Clean up after a delay to allow for any in-flight requests
     setTimeout(() => {
       refreshTokenStore.delete(tokenId);
-    }, 30000); // 30 seconds
+    }, 30000);
 
     return { success: true };
   } catch (error) {
@@ -303,23 +264,16 @@ export function invalidateRefreshToken(tokenId) {
   }
 }
 
-/**
- * Blacklist access token (for immediate invalidation)
- */
 export function blacklistAccessToken(token) {
   blacklistedTokens.add(token);
-  
-  // Clean up blacklisted tokens after they would naturally expire
+
   setTimeout(() => {
     blacklistedTokens.delete(token);
-  }, 15 * 60 * 1000); // 15 minutes (access token lifetime)
-  
+  }, 15 * 60 * 1000);
+
   return { success: true };
 }
 
-/**
- * Invalidate all sessions for a user
- */
 export function invalidateAllUserSessions(userId) {
   try {
     const userSessionSet = userSessions.get(userId);
@@ -343,9 +297,6 @@ export function invalidateAllUserSessions(userId) {
   }
 }
 
-/**
- * Get user sessions
- */
 export function getUserSessions(userId) {
   try {
     const sessionSet = userSessions.get(userId);
@@ -376,16 +327,12 @@ export function getUserSessions(userId) {
   }
 }
 
-/**
- * Enforce session limits for a user
- */
 function enforceSessionLimits(userId) {
   const sessionSet = userSessions.get(userId);
   if (!sessionSet || sessionSet.size <= SESSION_LIMITS.maxConcurrentSessions) {
     return;
   }
 
-  // Get all session data and sort by creation time
   const sessions = Array.from(sessionSet)
     .map(tokenId => ({
       tokenId,
@@ -394,11 +341,10 @@ function enforceSessionLimits(userId) {
     .filter(session => session.data && session.data.isActive)
     .sort((a, b) => a.data.createdAt - b.data.createdAt);
 
-  // Remove oldest sessions
   const sessionsToRemove = sessions.length - SESSION_LIMITS.maxConcurrentSessions;
   for (let i = 0; i < sessionsToRemove; i++) {
     invalidateRefreshToken(sessions[i].tokenId);
-    
+
     logSecurity('Session Limit Exceeded - Oldest Session Removed', 'medium', {
       userId,
       removedTokenId: sessions[i].tokenId,
@@ -408,9 +354,6 @@ function enforceSessionLimits(userId) {
   }
 }
 
-/**
- * Clean up expired tokens (should be called periodically)
- */
 export function cleanupExpiredTokens() {
   const now = Date.now();
   let cleanupCount = 0;
@@ -432,9 +375,6 @@ export function cleanupExpiredTokens() {
   return { cleanupCount, remainingTokens: refreshTokenStore.size };
 }
 
-/**
- * Get session statistics
- */
 export function getSessionStatistics() {
   const totalSessions = refreshTokenStore.size;
   const activeUsers = userSessions.size;
@@ -454,7 +394,6 @@ export function getSessionStatistics() {
   };
 }
 
-// Clean up expired tokens every hour
 setInterval(cleanupExpiredTokens, 60 * 60 * 1000);
 
 export default {

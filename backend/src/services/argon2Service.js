@@ -1,29 +1,16 @@
 import argon2 from 'argon2';
 
-/**
- * Argon2id Service - Industry-leading password hashing
- * Argon2id combines Argon2i (data-independent) and Argon2d (data-dependent)
- * for optimal resistance against side-channel and GPU attacks
- * 
- * Winner of the Password Hashing Competition (2015)
- * Recommended by: OWASP, NIST, and major security organizations
- */
-
 const ARGON2_CONFIG = {
   type: argon2.argon2id,
-  memoryCost: 65536,      // 64 MB (OWASP recommendation for server-side)
-  timeCost: 3,            // 3 iterations
-  parallelism: 4,         // 4 parallel threads
-  hashLength: 32,         // 256-bit output
-  saltLength: 16,         // 128-bit salt (automatically generated)
+  memoryCost: 65536,
+  timeCost: 3,
+  parallelism: 4,
+  hashLength: 32,
+  saltLength: 16,
 };
 
 class Argon2Service {
-  /**
-   * Hash password using Argon2id
-   * @param {string} password - Plain text password
-   * @returns {Promise<string>} - Argon2 hash string (includes salt and parameters)
-   */
+
   async hashPassword(password) {
     try {
       if (!password || typeof password !== 'string') {
@@ -42,12 +29,6 @@ class Argon2Service {
     }
   }
 
-  /**
-   * Verify password against Argon2 hash
-   * @param {string} hash - Stored Argon2 hash
-   * @param {string} password - Password to verify
-   * @returns {Promise<boolean>} - True if password matches
-   */
   async verifyPassword(hash, password) {
     try {
       if (!hash || !password) {
@@ -61,12 +42,6 @@ class Argon2Service {
     }
   }
 
-  /**
-   * Check if hash needs rehashing (parameters changed)
-   * Useful for upgrading security parameters over time
-   * @param {string} hash - Stored hash
-   * @returns {Promise<boolean>} - True if rehash needed
-   */
   async needsRehash(hash) {
     try {
       if (!hash) {
@@ -80,11 +55,6 @@ class Argon2Service {
     }
   }
 
-  /**
-   * Get hash algorithm identifier
-   * @param {string} hash - Password hash
-   * @returns {string} - Algorithm identifier ('argon2id', 'bcrypt', 'unknown')
-   */
   getHashAlgorithm(hash) {
     if (!hash) {
       return 'unknown';
@@ -103,13 +73,6 @@ class Argon2Service {
     return 'unknown';
   }
 
-  /**
-   * Verify password with automatic algorithm detection
-   * Supports both Argon2 and bcrypt for backward compatibility
-   * @param {string} hash - Stored hash
-   * @param {string} password - Password to verify
-   * @returns {Promise<Object>} - { valid: boolean, algorithm: string, needsRehash: boolean }
-   */
   async verifyWithMigration(hash, password) {
     const algorithm = this.getHashAlgorithm(hash);
 
@@ -123,15 +86,14 @@ class Argon2Service {
         needsRehash,
       };
     } else if (algorithm === 'bcrypt') {
-      // For bcrypt hashes, we'll need to import bcrypt
-      // This allows gradual migration from bcrypt to Argon2
+
       const bcrypt = await import('bcryptjs');
       const valid = await bcrypt.compare(password, hash);
 
       return {
         valid,
         algorithm,
-        needsRehash: valid, // Always rehash bcrypt to Argon2
+        needsRehash: valid,
       };
     }
 
@@ -142,10 +104,6 @@ class Argon2Service {
     };
   }
 
-  /**
-   * Get configuration details (for debugging/monitoring)
-   * @returns {Object} - Current Argon2 configuration
-   */
   getConfig() {
     return {
       ...ARGON2_CONFIG,

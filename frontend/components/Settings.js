@@ -57,7 +57,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
       try {
         const result = await deleteDatabaseWallet(activeWalletId)
         if (result.success) {
-          // Success toast already shown in deleteDatabaseWallet
+
           onClose()
         }
       } catch (error) {
@@ -82,7 +82,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center p-2 sm:p-4 animate-fade-in" style={{ zIndex: 9998 }}>
       <div className="glass-effect rounded-2xl sm:rounded-3xl w-full max-w-6xl h-[95vh] sm:h-[90vh] border border-blue-500/30 shadow-2xl shadow-blue-500/20 flex flex-col animate-scale-in">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-3 sm:p-6 border-b border-blue-500/20">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative hidden sm:block">
@@ -103,7 +103,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
         </div>
 
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-          {/* Mobile Tab Navigation */}
+          {}
           <div className="lg:hidden w-full border-b border-blue-500/20 overflow-x-auto custom-scrollbar flex-shrink-0">
             <div className="flex gap-1 p-2 min-w-max">
               {tabs.map((tab) => (
@@ -122,7 +122,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
             </div>
           </div>
 
-          {/* Desktop Sidebar */}
+          {}
           <div className="hidden lg:block w-64 border-r border-blue-500/20 p-4 overflow-y-auto custom-scrollbar flex-shrink-0">
             <nav className="space-y-2">
               {tabs.map((tab) => (
@@ -141,9 +141,9 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
             </nav>
           </div>
 
-          {/* Content */}
+          {}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6">
-            {/* Account Tab */}
+            {}
             {activeTab === 'account' && (
               <div className="space-y-6">
                 <div>
@@ -634,7 +634,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
               </div>
             )}
 
-            {/* About Tab */}
+            {}
             {activeTab === 'about' && (
               <div className="space-y-6">
                 <div>
@@ -644,18 +644,18 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20 text-center">
                       <div className="relative inline-block mb-3 sm:mb-4">
                         <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative">
-                          {/* Rotating geometric frames */}
+                          {}
                           <div className="absolute inset-0 border-2 border-blue-400/40 rounded-2xl animate-spin" style={{ animationDuration: '10s' }} />
                           <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-2xl animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }} />
 
-                          {/* Center circle with wallet */}
+                          {}
                           <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-blue-800/30 rounded-2xl backdrop-blur-sm border border-blue-500/20 flex items-center justify-center">
                             <svg className="w-10 h-10 sm:w-12 sm:h-12 text-blue-300" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                             </svg>
                           </div>
 
-                          {/* Network nodes at corners */}
+                          {}
                           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" />
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50" />
                           <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50" />

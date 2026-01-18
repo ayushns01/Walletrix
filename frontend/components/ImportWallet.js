@@ -16,7 +16,6 @@ export default function ImportWallet({ onComplete }) {
   const [walletName, setWalletName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Always require password for wallet encryption
   const requiresPassword = true;
 
   const handleImport = async () => {
@@ -33,13 +32,11 @@ export default function ImportWallet({ onComplete }) {
       return;
     }
 
-    // Check for invalid characters
     if (!/^[a-z\s]+$/.test(mnemonic.toLowerCase())) {
       toast.error('⚠️ Recovery phrase should only contain lowercase letters and spaces');
       return;
     }
 
-    // Always validate password
     if (!password || password.trim() === '') {
       toast.error('⚠️ Password is required to encrypt your wallet');
       return;
@@ -91,7 +88,7 @@ export default function ImportWallet({ onComplete }) {
         </p>
 
         <div className="space-y-4">
-          {/* Wallet Name (optional) */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Wallet Name (Optional)
@@ -121,7 +118,7 @@ export default function ImportWallet({ onComplete }) {
             </p>
           </div>
 
-          {/* Password fields */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               New Password

@@ -1,8 +1,8 @@
 # 🔐 Walletrix
 
-**Enterprise-Grade Multi-Chain Cryptocurrency Wallet**
+**Multi-Chain Cryptocurrency Wallet**
 
-*Non-custodial • Self-custody • Industry-standard security*
+*Non-custodial • Self-custody • Open source*
 
 ---
 

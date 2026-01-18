@@ -10,7 +10,6 @@ export default function NotificationBell({ currentWalletId }) {
     const router = useRouter();
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Fetch unread count
     const fetchUnreadCount = async () => {
         try {
             const token = await getToken();
@@ -33,21 +32,19 @@ export default function NotificationBell({ currentWalletId }) {
         }
     };
 
-    // Poll for new notifications every 30 seconds
     useEffect(() => {
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30000);
         return () => clearInterval(interval);
     }, []);
 
-    // Re-fetch when wallet changes
     useEffect(() => {
         fetchUnreadCount();
     }, [currentWalletId]);
 
     return (
         <div className="relative">
-            {/* Bell Icon */}
+            {}
             <button
                 onClick={() => router.push('/notifications')}
                 className="group relative p-3 rounded-xl bg-gradient-to-br from-blue-500/30 via-indigo-500/20 to-purple-600/30 hover:from-blue-500/50 hover:via-indigo-500/30 hover:to-purple-600/50 border border-blue-400/50 hover:border-indigo-300/70 text-blue-300 hover:text-indigo-200 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/40 hover:scale-110"

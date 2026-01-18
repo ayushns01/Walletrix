@@ -2,9 +2,7 @@ import prisma from '../lib/prisma.js';
 import activityLogService from './activityLogService.js';
 
 class DatabaseWalletService {
-  /**
-   * Create new wallet for user
-   */
+
   async createWallet(userId, name, encryptedData, addresses, description = null, ipAddress = null, userAgent = null) {
     try {
       const wallet = await prisma.wallet.create({
@@ -18,7 +16,6 @@ class DatabaseWalletService {
         }
       });
 
-      // Log wallet creation
       await activityLogService.logWalletCreate(userId, wallet.id, 'hd', ipAddress, userAgent);
 
       return {
@@ -41,9 +38,6 @@ class DatabaseWalletService {
     }
   }
 
-  /**
-   * Get user's wallets
-   */
   async getUserWallets(userId) {
     try {
       const wallets = await prisma.wallet.findMany({
@@ -58,18 +52,17 @@ class DatabaseWalletService {
           addresses: true,
           createdAt: true,
           lastAccessedAt: true,
-          encryptedPrivateKeys: true // Include the encrypted data
+          encryptedPrivateKeys: true
         },
         orderBy: {
           lastAccessedAt: 'desc'
         }
       });
 
-      // Map to the format expected by the frontend
       const formattedWallets = wallets.map(wallet => ({
         ...wallet,
         encryptedData: wallet.encryptedPrivateKeys,
-        encryptedPrivateKeys: undefined // Optional: clean up original key
+        encryptedPrivateKeys: undefined
       }));
 
       return {
@@ -85,9 +78,6 @@ class DatabaseWalletService {
     }
   }
 
-  /**
-   * Get wallet by ID (with permission check)
-   */
   async getWallet(walletId, userId) {
     try {
       const wallet = await prisma.wallet.findFirst({
@@ -112,7 +102,6 @@ class DatabaseWalletService {
         throw new Error('Wallet not found or access denied');
       }
 
-      // Update last accessed
       await prisma.wallet.update({
         where: { id: walletId },
         data: { lastAccessed: new Date() }
@@ -141,9 +130,6 @@ class DatabaseWalletService {
     }
   }
 
-  /**
-   * Update wallet metadata
-   */
   async updateWallet(walletId, userId, updates) {
     try {
       const wallet = await prisma.wallet.findFirst({
@@ -184,12 +170,9 @@ class DatabaseWalletService {
     }
   }
 
-  /**
-   * Delete wallet
-   */
   async deleteWallet(walletId, userId, ipAddress = null, userAgent = null) {
     try {
-      // Verify wallet exists and belongs to user
+
       const wallet = await prisma.wallet.findFirst({
         where: {
           id: walletId,
@@ -204,14 +187,12 @@ class DatabaseWalletService {
         };
       }
 
-      // Delete wallet
       await prisma.wallet.delete({
         where: {
           id: walletId
         }
       });
 
-      // Log wallet deletion
       await activityLogService.logWalletDelete(userId, walletId, ipAddress, userAgent);
 
       return {
@@ -227,21 +208,17 @@ class DatabaseWalletService {
     }
   }
 
-  /**
-   * Import wallet from localStorage data
-   */
   async importFromLocalStorage(userId, localStorageData, walletName = 'Imported Wallet') {
     try {
-      // Parse localStorage wallet data
-      const walletData = typeof localStorageData === 'string' 
-        ? JSON.parse(localStorageData) 
+
+      const walletData = typeof localStorageData === 'string'
+        ? JSON.parse(localStorageData)
         : localStorageData;
 
       if (!walletData.encrypted || !walletData.ethereum?.address) {
         throw new Error('Invalid wallet data format');
       }
 
-      // Create wallet in database
       const wallet = await this.createWallet(
         userId,
         walletName,

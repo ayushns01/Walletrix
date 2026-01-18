@@ -1,26 +1,10 @@
 import { split, combine } from 'shamirs-secret-sharing';
 import crypto from 'crypto';
 
-/**
- * Shamir's Secret Sharing Service
- * Implements (k, n)-threshold secret sharing for mnemonic recovery
- * 
- * Example: Split mnemonic into 5 shares, require any 3 to recover
- * Use case: Social recovery - distribute shares to trusted guardians
- * 
- * Security: Even if k-1 shares are compromised, the secret remains secure
- */
-
 class ShamirSecretService {
-    /**
-     * Split secret into shares using Shamir's Secret Sharing
-     * @param {string} secret - Secret to split (mnemonic phrase)
-     * @param {number} totalShares - Total number of shares (n)
-     * @param {number} threshold - Minimum shares needed to recover (k)
-     * @returns {Array<string>} - Array of share strings (base64)
-     */
+
     splitSecret(secret, totalShares = 5, threshold = 3) {
-        // Validation
+
         if (!secret || typeof secret !== 'string') {
             throw new Error('Secret must be a non-empty string');
         }
@@ -45,7 +29,6 @@ class ShamirSecretService {
             const secretBuffer = Buffer.from(secret, 'utf8');
             const shares = split(secretBuffer, { shares: totalShares, threshold });
 
-            // Convert shares to base64 for easy storage/transmission
             return shares.map((share, index) => ({
                 index: index + 1,
                 share: share.toString('base64'),
@@ -58,11 +41,6 @@ class ShamirSecretService {
         }
     }
 
-    /**
-     * Recover secret from shares
-     * @param {Array<string>} shares - Array of share strings (base64)
-     * @returns {string} - Recovered secret
-     */
     recoverSecret(shares) {
         if (!shares || !Array.isArray(shares)) {
             throw new Error('Shares must be an array');
@@ -73,7 +51,7 @@ class ShamirSecretService {
         }
 
         try {
-            // Convert base64 shares back to buffers
+
             const shareBuffers = shares.map(shareData => {
                 const shareString = typeof shareData === 'string'
                     ? shareData
@@ -89,13 +67,6 @@ class ShamirSecretService {
         }
     }
 
-    /**
-     * Create social recovery setup for a mnemonic
-     * @param {string} mnemonic - Mnemonic to protect
-     * @param {Array<Object>} guardians - Guardian information
-     * @param {number} customThreshold - Optional custom threshold (default: 60% of guardians)
-     * @returns {Object} - Recovery setup details
-     */
     async createSocialRecovery(mnemonic, guardians, customThreshold = null) {
         if (!mnemonic || typeof mnemonic !== 'string') {
             throw new Error('Mnemonic must be a non-empty string');
@@ -106,7 +77,7 @@ class ShamirSecretService {
         }
 
         const totalShares = guardians.length;
-        const threshold = customThreshold || Math.ceil(totalShares * 0.6); // 60% threshold
+        const threshold = customThreshold || Math.ceil(totalShares * 0.6);
 
         if (threshold > totalShares) {
             throw new Error('Threshold cannot exceed number of guardians');
@@ -133,11 +104,6 @@ class ShamirSecretService {
         };
     }
 
-    /**
-     * Validate share format
-     * @param {string} share - Share to validate
-     * @returns {boolean} - True if valid
-     */
     validateShare(share) {
         try {
             const shareString = typeof share === 'string' ? share : share.share;
@@ -148,12 +114,6 @@ class ShamirSecretService {
         }
     }
 
-    /**
-     * Estimate security level based on threshold
-     * @param {number} threshold - Threshold value
-     * @param {number} totalShares - Total shares
-     * @returns {Object} - Security assessment
-     */
     assessSecurity(threshold, totalShares) {
         const ratio = threshold / totalShares;
 
@@ -183,11 +143,6 @@ class ShamirSecretService {
         };
     }
 
-    /**
-     * Generate recovery instructions for guardians
-     * @param {Object} recoverySetup - Recovery setup from createSocialRecovery
-     * @returns {string} - Human-readable instructions
-     */
     generateRecoveryInstructions(recoverySetup) {
         const { threshold, totalShares, guardianShares } = recoverySetup;
 

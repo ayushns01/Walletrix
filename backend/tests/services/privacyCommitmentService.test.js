@@ -2,7 +2,7 @@ import privacyCommitmentService from '../../src/services/privacyCommitmentServic
 
 describe('PrivacyCommitmentService', () => {
     beforeAll(async () => {
-        // Initialize the service before running tests
+
         await privacyCommitmentService.initialize();
     });
 
@@ -58,8 +58,8 @@ describe('PrivacyCommitmentService', () => {
         });
 
         it('should handle large numbers (BigInt)', async () => {
-            const largeBalance = '1000000000000000000'; // 1 ETH in wei
-            const threshold = '500000000000000000';    // 0.5 ETH in wei
+            const largeBalance = '1000000000000000000';
+            const threshold = '500000000000000000';
 
             const proof = await privacyCommitmentService.proveBalanceAboveThreshold(largeBalance, threshold);
             expect(proof.publicSignals.aboveThreshold).toBe(true);
@@ -69,7 +69,6 @@ describe('PrivacyCommitmentService', () => {
             const proof1 = await privacyCommitmentService.proveBalanceAboveThreshold('1000', '500');
             const proof2 = await privacyCommitmentService.proveBalanceAboveThreshold('1000', '500');
 
-            // Commitments should be different due to random blinding factors
             expect(proof1.proof.commitment).not.toBe(proof2.proof.commitment);
         });
     });
@@ -92,7 +91,7 @@ describe('PrivacyCommitmentService', () => {
         it('should reject proof with missing fields', async () => {
             const invalidProof = {
                 proof: { commitment: '123' },
-                // missing publicSignals
+
             };
             const isValid = await privacyCommitmentService.verifyBalanceProof(invalidProof);
 
@@ -107,7 +106,6 @@ describe('PrivacyCommitmentService', () => {
         it('should reject tampered proof', async () => {
             const proof = await privacyCommitmentService.proveBalanceAboveThreshold('1000', '500');
 
-            // Tamper with the commitment
             proof.proof.commitment = 'tampered_commitment';
 
             const isValid = await privacyCommitmentService.verifyBalanceProof(proof);
@@ -117,7 +115,6 @@ describe('PrivacyCommitmentService', () => {
         it('should reject expired proof (older than 1 hour)', async () => {
             const proof = await privacyCommitmentService.proveBalanceAboveThreshold('1000', '500');
 
-            // Set timestamp to 2 hours ago
             proof.proof.timestamp = Date.now() - (2 * 60 * 60 * 1000);
 
             const isValid = await privacyCommitmentService.verifyBalanceProof(proof);
@@ -189,7 +186,7 @@ describe('PrivacyCommitmentService', () => {
 
             const isValid = await privacyCommitmentService.verifyPedersenCommitment(
                 commitment.commitment,
-                '2000', // wrong amount
+                '2000',
                 commitment.blinding
             );
 
@@ -202,7 +199,7 @@ describe('PrivacyCommitmentService', () => {
             const isValid = await privacyCommitmentService.verifyPedersenCommitment(
                 commitment.commitment,
                 commitment.amount,
-                '99999' // wrong blinding
+                '99999'
             );
 
             expect(isValid).toBe(false);
@@ -292,7 +289,7 @@ describe('PrivacyCommitmentService', () => {
             const endTime = Date.now();
 
             const duration = endTime - startTime;
-            expect(duration).toBeLessThan(2000); // Less than 2 seconds
+            expect(duration).toBeLessThan(2000);
         });
 
         it('should verify proof in reasonable time (<500ms)', async () => {
@@ -303,7 +300,7 @@ describe('PrivacyCommitmentService', () => {
             const endTime = Date.now();
 
             const duration = endTime - startTime;
-            expect(duration).toBeLessThan(500); // Less than 500ms
+            expect(duration).toBeLessThan(500);
         });
 
         it('should create commitment in reasonable time (<100ms)', async () => {
@@ -312,7 +309,7 @@ describe('PrivacyCommitmentService', () => {
             const endTime = Date.now();
 
             const duration = endTime - startTime;
-            expect(duration).toBeLessThan(100); // Less than 100ms
+            expect(duration).toBeLessThan(100);
         });
     });
 });

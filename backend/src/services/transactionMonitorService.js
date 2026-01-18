@@ -1,20 +1,11 @@
-/**
- * Transaction Status Tracking Service
- * Monitors pending transactions and updates their status
- */
-
 import { ethers } from 'ethers';
 import { PrismaClient } from '@prisma/client';
 import logger, { logTransaction, logBlockchain } from './loggerService.js';
 
 const prisma = new PrismaClient();
 
-// Store active monitoring sessions
 const monitoringSessions = new Map();
 
-/**
- * Transaction status enum
- */
 export const TransactionStatus = {
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
@@ -24,13 +15,10 @@ export const TransactionStatus = {
   DROPPED: 'dropped',
 };
 
-/**
- * Start monitoring a transaction
- */
 export async function startMonitoring(transactionId, txHash, network, config = {}) {
   const {
     maxRetries = 100,
-    pollInterval = 5000, // 5 seconds
+    pollInterval = 5000,
     confirmations = 1,
     onStatusChange = null,
   } = config;
@@ -51,10 +39,9 @@ export async function startMonitoring(transactionId, txHash, network, config = {
 
   const monitor = setInterval(async () => {
     try {
-      // Check transaction status
+
       const status = await checkTransactionStatus(txHash, network, confirmations);
 
-      // If status changed, update database and notify
       if (status !== lastStatus) {
         lastStatus = status;
 
@@ -69,7 +56,6 @@ export async function startMonitoring(transactionId, txHash, network, config = {
           onStatusChange(status, transactionId);
         }
 
-        // Stop monitoring if transaction is finalized
         if ([TransactionStatus.SUCCESS, TransactionStatus.FAILED, TransactionStatus.DROPPED].includes(status)) {
           stopMonitoring(transactionId);
         }
@@ -77,7 +63,6 @@ export async function startMonitoring(transactionId, txHash, network, config = {
 
       retries++;
 
-      // Stop after max retries
       if (retries >= maxRetries) {
         logger.warn('Max retries reached for transaction monitoring', {
           transactionId,
@@ -102,16 +87,13 @@ export async function startMonitoring(transactionId, txHash, network, config = {
   });
 }
 
-/**
- * Stop monitoring a transaction
- */
 export function stopMonitoring(transactionId) {
   const session = monitoringSessions.get(transactionId);
-  
+
   if (session) {
     clearInterval(session.interval);
     monitoringSessions.delete(transactionId);
-    
+
     const duration = Date.now() - session.startTime;
     logger.info('Stopped monitoring transaction', {
       transactionId,
@@ -121,24 +103,19 @@ export function stopMonitoring(transactionId) {
   }
 }
 
-/**
- * Check transaction status on blockchain
- */
 async function checkTransactionStatus(txHash, network, requiredConfirmations = 1) {
   try {
-    // Get provider for network
+
     const provider = getProvider(network);
-    
+
     if (!provider) {
       return TransactionStatus.PENDING;
     }
 
-    // Get transaction receipt
     const receipt = await provider.getTransactionReceipt(txHash);
 
     if (!receipt) {
-      // Transaction not mined yet
-      // Check if transaction is still in mempool
+
       try {
         const tx = await provider.getTransaction(txHash);
         return tx ? TransactionStatus.PENDING : TransactionStatus.DROPPED;
@@ -147,14 +124,13 @@ async function checkTransactionStatus(txHash, network, requiredConfirmations = 1
       }
     }
 
-    // Check confirmations
     const currentBlock = await provider.getBlockNumber();
     const confirmations = currentBlock - receipt.blockNumber + 1;
 
     if (confirmations >= requiredConfirmations) {
-      // Transaction is confirmed, check if successful
-      return receipt.status === 1 
-        ? TransactionStatus.SUCCESS 
+
+      return receipt.status === 1
+        ? TransactionStatus.SUCCESS
         : TransactionStatus.FAILED;
     }
 
@@ -169,14 +145,11 @@ async function checkTransactionStatus(txHash, network, requiredConfirmations = 1
   }
 }
 
-/**
- * Update transaction status in database
- */
 async function updateTransactionStatus(transactionId, status) {
   try {
     await prisma.transaction.update({
       where: { id: transactionId },
-      data: { 
+      data: {
         status,
         updatedAt: new Date(),
       },
@@ -195,9 +168,6 @@ async function updateTransactionStatus(transactionId, status) {
   }
 }
 
-/**
- * Get provider for network
- */
 function getProvider(network) {
   const providers = {
     'ethereum': process.env.ETHEREUM_RPC_URL,
@@ -211,7 +181,7 @@ function getProvider(network) {
   };
 
   const rpcUrl = providers[network] || providers[network.toLowerCase()];
-  
+
   if (!rpcUrl) {
     logger.warn('No RPC URL configured for network', { network });
     return null;
@@ -220,9 +190,6 @@ function getProvider(network) {
   return new ethers.JsonRpcProvider(rpcUrl);
 }
 
-/**
- * Get all pending transactions that need monitoring
- */
 export async function getPendingTransactions() {
   try {
     return await prisma.transaction.findMany({
@@ -241,13 +208,9 @@ export async function getPendingTransactions() {
   }
 }
 
-/**
- * Resume monitoring for all pending transactions
- * Called on server startup
- */
 export async function resumeMonitoring() {
   const pendingTransactions = await getPendingTransactions();
-  
+
   logger.info('Resuming monitoring for pending transactions', {
     count: pendingTransactions.length,
   });
@@ -257,9 +220,6 @@ export async function resumeMonitoring() {
   }
 }
 
-/**
- * Get monitoring status for all transactions
- */
 export function getMonitoringStatus() {
   const sessions = Array.from(monitoringSessions.entries()).map(([id, session]) => ({
     transactionId: id,
@@ -274,11 +234,8 @@ export function getMonitoringStatus() {
   };
 }
 
-/**
- * Estimate transaction time
- */
 export async function estimateTransactionTime(network, gasPrice) {
-  // Simple estimation based on network
+
   const estimations = {
     'ethereum': { fast: 30, average: 120, slow: 600 },
     'polygon': { fast: 5, average: 15, slow: 60 },
@@ -290,26 +247,21 @@ export async function estimateTransactionTime(network, gasPrice) {
   };
 
   const times = estimations[network] || estimations['ethereum'];
-  
-  // Return average time in seconds
+
   return times.average;
 }
 
-/**
- * Check if transaction is stuck
- */
 export async function isTransactionStuck(txHash, network, thresholdMinutes = 30) {
   try {
     const provider = getProvider(network);
     if (!provider) return false;
 
     const tx = await provider.getTransaction(txHash);
-    if (!tx) return true; // Transaction not found, possibly dropped
+    if (!tx) return true;
 
     const receipt = await provider.getTransactionReceipt(txHash);
-    if (receipt) return false; // Transaction is mined
+    if (receipt) return false;
 
-    // Check if transaction is older than threshold
     const currentBlock = await provider.getBlockNumber();
     const blockTimestamp = (await provider.getBlock(currentBlock)).timestamp;
     const txAge = blockTimestamp - tx.blockNumber;
@@ -325,9 +277,6 @@ export async function isTransactionStuck(txHash, network, thresholdMinutes = 30)
   }
 }
 
-/**
- * Get transaction details with current status
- */
 export async function getTransactionDetails(transactionId) {
   try {
     const tx = await prisma.transaction.findUnique({
@@ -338,10 +287,8 @@ export async function getTransactionDetails(transactionId) {
       return null;
     }
 
-    // Check if being monitored
     const isMonitored = monitoringSessions.has(transactionId);
 
-    // Get live status if pending
     let currentStatus = tx.status;
     if (tx.status === TransactionStatus.PENDING) {
       currentStatus = await checkTransactionStatus(tx.txHash, tx.network);
@@ -361,9 +308,6 @@ export async function getTransactionDetails(transactionId) {
   }
 }
 
-/**
- * Stop all monitoring on shutdown
- */
 export function stopAllMonitoring() {
   logger.info('Stopping all transaction monitoring', {
     count: monitoringSessions.size,
@@ -374,7 +318,6 @@ export function stopAllMonitoring() {
   }
 }
 
-// Handle graceful shutdown
 process.on('SIGTERM', stopAllMonitoring);
 process.on('SIGINT', stopAllMonitoring);
 

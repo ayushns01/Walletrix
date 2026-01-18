@@ -1,15 +1,8 @@
-/**
- * Activity Log Service
- * Writes security and user activity events to database for audit trail
- */
-
 import prisma from '../lib/prisma.js';
 import logger from './loggerService.js';
 
 class ActivityLogService {
-  /**
-   * Log an activity to the database
-   */
+
   async logActivity({
     userId = null,
     action,
@@ -46,9 +39,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Log user registration
-   */
   async logRegistration(userId, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -64,9 +54,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log user login
-   */
   async logLogin(userId, ipAddress, userAgent, success = true, failureReason = null) {
     return this.logActivity({
       userId,
@@ -85,9 +72,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log user logout
-   */
   async logLogout(userId, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -103,9 +87,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log password change
-   */
   async logPasswordChange(userId, ipAddress, userAgent, success = true) {
     return this.logActivity({
       userId,
@@ -121,9 +102,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log 2FA enable/disable
-   */
   async log2FAChange(userId, action, ipAddress, userAgent, success = true) {
     return this.logActivity({
       userId,
@@ -139,9 +117,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log wallet creation
-   */
   async logWalletCreate(userId, walletId, walletType, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -158,9 +133,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log wallet deletion
-   */
   async logWalletDelete(userId, walletId, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -176,9 +148,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log transaction send
-   */
   async logTransactionSend(userId, transactionId, network, amount, toAddress, ipAddress, userAgent, success = true) {
     return this.logActivity({
       userId,
@@ -197,9 +166,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log settings update
-   */
   async logSettingsUpdate(userId, settingType, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -216,9 +182,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log failed login attempts
-   */
   async logFailedLogin(email, ipAddress, userAgent, reason) {
     return this.logActivity({
       userId: null,
@@ -236,9 +199,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Log suspicious activity
-   */
   async logSuspiciousActivity(userId, activityType, details, ipAddress, userAgent) {
     return this.logActivity({
       userId,
@@ -256,9 +216,6 @@ class ActivityLogService {
     });
   }
 
-  /**
-   * Get user activity logs
-   */
   async getUserActivityLogs(userId, limit = 50, offset = 0) {
     try {
       const logs = await prisma.activityLog.findMany({
@@ -291,9 +248,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get recent failed login attempts
-   */
   async getRecentFailedLogins(limit = 20) {
     try {
       const logs = await prisma.activityLog.findMany({
@@ -314,9 +268,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Clean up old activity logs (keep last 90 days)
-   */
   async cleanupOldLogs(daysToKeep = 90) {
     try {
       const cutoffDate = new Date();

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 export default function AllTransactionsModal({ isOpen, onClose, transactions: initialTransactions, wallet, selectedNetwork, onTransactionClick }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all'); // all, incoming, outgoing
+  const [filterType, setFilterType] = useState('all');
   const [networkFilter, setNetworkFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('timestamp');
@@ -28,26 +28,24 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
   const [allTransactions, setAllTransactions] = useState([]);
   const [fetchingFromBlockchain, setFetchingFromBlockchain] = useState(false);
 
-  // Fetch fresh transactions from Etherscan when modal opens
   const fetchFreshTransactions = useCallback(async () => {
     if (!wallet) return;
-    
+
     setFetchingFromBlockchain(true);
     try {
       const [chain, network] = selectedNetwork.split('-');
-      
+
       if (chain === 'ethereum' || ['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
         const address = wallet.ethereum?.address;
         if (!address) {
           toast.error('No Ethereum address found');
           return;
         }
-        
-        // Fetch up to 100 transactions from Etherscan
+
         const response = await blockchainAPI.getEthereumTransactions(address, 1, 100, selectedNetwork);
-        
+
         if (response.success && response.transactions) {
-          // Normalize and filter valid transactions
+
           const validTxs = response.transactions
             .filter(tx => tx.hash && (tx.value_eth || tx.value))
             .map(tx => ({
@@ -70,11 +68,11 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           toast.error('No Bitcoin address found');
           return;
         }
-        
+
         const response = await blockchainAPI.getBitcoinTransactions(address, network);
-        
+
         if (response.success && response.transactions) {
-          // Normalize and filter valid Bitcoin transactions
+
           const validTxs = response.transactions
             .filter(tx => tx.hash && (tx.value_btc || tx.value))
             .map(tx => ({
@@ -94,34 +92,31 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
       }
     } catch (error) {
       console.error('Error fetching transactions from blockchain:', error);
-      
-      // Handle specific error cases
+
       if (error.response?.status === 429) {
         toast.error('Rate limit exceeded. Showing cached transactions.');
       } else {
         toast.error('Failed to fetch fresh transactions. Showing cached data.');
       }
-      
-      // Always fallback to initial transactions if fetch fails
+
       setAllTransactions(initialTransactions || []);
     } finally {
       setFetchingFromBlockchain(false);
     }
   }, [wallet, selectedNetwork, initialTransactions]);
 
-  // Reset filters and fetch fresh transactions when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(1);
-      // Show cached transactions immediately
+
       setAllTransactions(initialTransactions || []);
-      // Then fetch fresh transactions from Etherscan in background
+
       fetchFreshTransactions();
       if (wallet?.id) {
         loadAnalytics();
       }
     } else {
-      // Reset filters when modal closes
+
       setSearchTerm('');
       setFilterType('all');
       setNetworkFilter('');
@@ -138,25 +133,23 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      // Filter transactions locally from blockchain data
+
       let filtered = [...(allTransactions || [])];
 
-      // Apply search filter
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
-        filtered = filtered.filter(tx => 
+        filtered = filtered.filter(tx =>
           tx.hash?.toLowerCase().includes(search) ||
           tx.from?.toLowerCase().includes(search) ||
           tx.to?.toLowerCase().includes(search)
         );
       }
 
-      // Apply type filter
       if (filterType !== 'all') {
-        const isOutgoing = (tx) => 
+        const isOutgoing = (tx) =>
           tx.from?.toLowerCase() === wallet?.ethereum?.address?.toLowerCase() ||
           tx.from?.toLowerCase() === wallet?.bitcoin?.address?.toLowerCase();
-        
+
         if (filterType === 'outgoing') {
           filtered = filtered.filter(tx => isOutgoing(tx));
         } else if (filterType === 'incoming') {
@@ -164,17 +157,14 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
         }
       }
 
-      // Apply network filter
       if (networkFilter) {
         filtered = filtered.filter(tx => tx.network === networkFilter);
       }
 
-      // Apply status filter
       if (statusFilter) {
         filtered = filtered.filter(tx => tx.status?.toLowerCase() === statusFilter.toLowerCase());
       }
 
-      // Apply date filters
       if (dateFrom || dateTo) {
         filtered = filtered.filter(tx => {
           const txDate = new Date(tx.timestamp?.includes('T') ? tx.timestamp : parseInt(tx.timestamp) * 1000);
@@ -184,7 +174,6 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
         });
       }
 
-      // Apply amount filters
       if (amountMin || amountMax) {
         filtered = filtered.filter(tx => {
           const amount = parseFloat(tx.value_eth || tx.value_btc || 0);
@@ -194,10 +183,9 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
         });
       }
 
-      // Apply sorting
       filtered.sort((a, b) => {
         let aVal, bVal;
-        
+
         if (sortBy === 'timestamp') {
           aVal = new Date(a.timestamp?.includes('T') ? a.timestamp : parseInt(a.timestamp) * 1000).getTime();
           bVal = new Date(b.timestamp?.includes('T') ? b.timestamp : parseInt(b.timestamp) * 1000).getTime();
@@ -205,14 +193,13 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           aVal = parseFloat(a.value_eth || a.value_btc || 0);
           bVal = parseFloat(b.value_eth || b.value_btc || 0);
         }
-        
+
         return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
       });
 
-      // Apply pagination
       const startIndex = (currentPage - 1) * itemsPerPage;
       const paginatedTxs = filtered.slice(startIndex, startIndex + itemsPerPage);
-      
+
       setTransactions(paginatedTxs);
       setPagination({
         currentPage,
@@ -236,7 +223,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
       if (networkFilter) params.append('network', networkFilter);
 
       const response = await api.get(`/api/v1/transactions/wallet/${wallet.id}/analytics?${params}`);
-      
+
       if (response.success) {
         setAnalytics(response.data);
       }
@@ -255,7 +242,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
       if (dateTo) params.append('dateTo', dateTo);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/transactions/wallet/${wallet.id}/export?${params}`);
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -272,19 +259,17 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
     }
   };
 
-  // Trigger search when filters change
   useEffect(() => {
     if (isOpen && allTransactions && allTransactions.length > 0) {
       const timeoutId = setTimeout(() => {
         setCurrentPage(1);
         loadTransactions();
-      }, 300); // Debounce search
+      }, 300);
 
       return () => clearTimeout(timeoutId);
     }
   }, [searchTerm, filterType, networkFilter, statusFilter, sortBy, sortOrder, dateFrom, dateTo, amountMin, amountMax, isOpen, loadTransactions, allTransactions]);
 
-  // Load transactions when page changes
   useEffect(() => {
     if (isOpen && currentPage > 1) {
       loadTransactions();
@@ -347,7 +332,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="glass-effect rounded-3xl border border-blue-500/30 shadow-2xl shadow-blue-500/30 max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-blue-500/20">
           <div className="flex items-center gap-4">
             <div>
@@ -380,7 +365,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           </button>
         </div>
 
-        {/* Analytics Panel */}
+        {}
         {showAnalytics && analytics && (
           <div className="p-6 border-b border-blue-500/20 bg-gradient-to-r from-purple-950/20 to-black/40">
             <h3 className="text-lg font-semibold text-purple-100 mb-4">Transaction Analytics (30 days)</h3>
@@ -405,9 +390,9 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           </div>
         )}
 
-        {/* Filters and Search */}
+        {}
         <div className="p-6 border-b border-blue-500/20 bg-gradient-to-r from-blue-950/20 to-black/40 space-y-4">
-          {/* Basic Search and Filters */}
+          {}
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
@@ -419,7 +404,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                 className="w-full pl-10 pr-4 py-3 bg-gradient-to-r from-black/60 to-blue-950/40 border border-blue-500/30 rounded-xl text-blue-100 placeholder-blue-300/50 focus:border-blue-400/50 focus:outline-none"
               />
             </div>
-            
+
             <div className="flex gap-3">
               <select
                 value={filterType}
@@ -449,7 +434,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
             </div>
           </div>
 
-          {/* Advanced Filters */}
+          {}
           {isAdvancedSearch && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-blue-500/20">
               <select
@@ -508,7 +493,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
             </div>
           )}
 
-          {/* Active filters and clear button */}
+          {}
           {(searchTerm || filterType !== 'all' || networkFilter || statusFilter || dateFrom || dateTo || amountMin || amountMax) && (
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2 text-sm text-blue-300">
@@ -530,7 +515,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           )}
         </div>
 
-        {/* Transactions List */}
+        {}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-16">
@@ -542,14 +527,14 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
               <p className="text-lg text-blue-100/80">No transactions found</p>
               <p className="text-sm text-blue-300/60 mt-2">
                 {searchTerm || filterType !== 'all' || networkFilter || statusFilter || dateFrom || dateTo || amountMin || amountMax
-                  ? 'Try adjusting your search or filter criteria' 
+                  ? 'Try adjusting your search or filter criteria'
                   : 'Your transaction history will appear here'
                 }
               </p>
             </div>
           ) : (
             <div className="p-6 space-y-3">
-              {/* Sort controls */}
+              {}
               <div className="flex items-center gap-4 pb-4 border-b border-blue-500/20">
                 <span className="text-sm text-blue-300">Sort by:</span>
                 <button
@@ -573,7 +558,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
               </div>
 
               {transactions.map((tx, index) => {
-                const isOutgoing = tx.from?.toLowerCase() === wallet?.ethereum?.address?.toLowerCase() || 
+                const isOutgoing = tx.from?.toLowerCase() === wallet?.ethereum?.address?.toLowerCase() ||
                                  tx.from?.toLowerCase() === wallet?.bitcoin?.address?.toLowerCase() ||
                                  !tx.isIncoming;
 
@@ -584,13 +569,13 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                     className="group relative overflow-hidden bg-gradient-to-r from-black/60 via-blue-950/40 to-black/60 rounded-2xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-1 cursor-pointer"
                   >
                     <div className={`absolute left-0 top-0 w-1 h-full ${isOutgoing ? 'bg-gradient-to-b from-red-400 to-red-600' : 'bg-gradient-to-b from-green-400 to-green-600'}`}></div>
-                    
+
                     <div className="relative p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${
-                            isOutgoing 
-                              ? 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/30' 
+                            isOutgoing
+                              ? 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/30'
                               : 'bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/30'
                           }`}>
                             {isOutgoing ? (
@@ -599,7 +584,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                               <ArrowDownRight className="w-6 h-6 text-green-300" />
                             )}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
                               <p className="text-blue-50 font-semibold">
@@ -613,7 +598,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                                 {tx.status?.toUpperCase()}
                               </span>
                             </div>
-                            
+
                             <div className="flex items-center gap-2 text-sm text-blue-300/80">
                               <span className="capitalize">{tx.network}</span>
                               <span className="text-blue-400/60">•</span>
@@ -622,7 +607,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                               <span>{tx.tokenSymbol}</span>
                             </div>
                           </div>
-                          
+
                           <div className="text-right">
                             <p className={`font-bold text-lg ${
                               isOutgoing ? 'text-red-300' : 'text-green-300'
@@ -648,14 +633,14 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           )}
         </div>
 
-        {/* Pagination */}
+        {}
         {pagination && pagination.totalPages > 1 && (
           <div className="p-6 border-t border-blue-500/20 bg-gradient-to-r from-blue-950/20 to-black/40">
             <div className="flex items-center justify-between">
               <p className="text-blue-300/70 text-sm">
                 Showing {((pagination.currentPage - 1) * itemsPerPage) + 1}-{Math.min(pagination.currentPage * itemsPerPage, pagination.totalItems)} of {pagination.totalItems}
               </p>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -664,11 +649,11 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
                 >
                   Previous
                 </button>
-                
+
                 <span className="px-4 py-2 text-blue-100">
                   {pagination.currentPage} of {pagination.totalPages}
                 </span>
-                
+
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
                   disabled={!pagination.hasNextPage}

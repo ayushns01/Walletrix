@@ -13,9 +13,9 @@ const prisma = new PrismaClient();
 
 async function applyMigration() {
   console.log('🔧 Checking database schema...');
-  
+
   try {
-    // Check if migration is needed by testing for missing column
+
     await prisma.$queryRaw`SELECT password_hash_algorithm FROM users LIMIT 1`;
     console.log('✅ Database schema is up to date');
     return;
@@ -25,27 +25,24 @@ async function applyMigration() {
   }
 
   try {
-    // Read migration SQL (using V3 - clean, no comments)
+
     const migrationPath = join(__dirname, '..', 'MIGRATION_FIX_V3.sql');
     console.log('📄 Reading migration file from:', migrationPath);
-    
+
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
     console.log('✅ Migration file loaded successfully');
 
-    // Split SQL statements more intelligently
-    // Split by semicolon followed by newline to avoid splitting within statements
     const statements = migrationSQL
       .split(/;\s*\n/)
       .map(s => s.trim())
-      .filter(s => s && !s.startsWith('--') && s.length > 10) // Filter empty and comment-only lines
-      .map(s => s.endsWith(';') ? s : s + ';'); // Ensure each statement ends with semicolon
+      .filter(s => s && !s.startsWith('--') && s.length > 10)
+      .map(s => s.endsWith(';') ? s : s + ';');
 
     console.log(`📝 Applying ${statements.length} SQL statements...`);
 
-    // Execute each statement
     let successCount = 0;
     let skipCount = 0;
-    
+
     for (let i = 0; i < statements.length; i++) {
       const statement = statements[i];
       if (statement.trim()) {
@@ -56,8 +53,8 @@ async function applyMigration() {
             console.log(`   Progress: ${i + 1}/${statements.length} statements`);
           }
         } catch (err) {
-          // Ignore "already exists" errors
-          if (err.message.includes('already exists') || 
+
+          if (err.message.includes('already exists') ||
               err.message.includes('duplicate column') ||
               err.message.includes('duplicate key')) {
             skipCount++;

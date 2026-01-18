@@ -1,14 +1,5 @@
 import prisma from '../lib/prisma.js';
 
-/**
- * Address Book Controller
- * Manages user's trusted addresses
- */
-
-/**
- * Get all address book entries for a wallet
- * GET /api/v1/address-book/:walletId
- */
 async function getAddressBook(req, res) {
   try {
     const { walletId } = req.params;
@@ -38,11 +29,6 @@ async function getAddressBook(req, res) {
   }
 }
 
-/**
- * Add address to address book
- * POST /api/v1/address-book
- * Body: { walletId, address, label, trusted }
- */
 async function addAddress(req, res) {
   try {
     const { walletId, address, label, trusted = true } = req.body;
@@ -54,7 +40,6 @@ async function addAddress(req, res) {
       });
     }
 
-    // Check if address already exists
     const existing = await prisma.addressBook.findFirst({
       where: {
         walletId: parseInt(walletId),
@@ -91,11 +76,6 @@ async function addAddress(req, res) {
   }
 }
 
-/**
- * Update address book entry
- * PUT /api/v1/address-book/:id
- * Body: { label?, trusted? }
- */
 async function updateAddress(req, res) {
   try {
     const { id } = req.params;
@@ -137,10 +117,6 @@ async function updateAddress(req, res) {
   }
 }
 
-/**
- * Delete address from address book
- * DELETE /api/v1/address-book/:id
- */
 async function deleteAddress(req, res) {
   try {
     const { id } = req.params;
@@ -169,10 +145,6 @@ async function deleteAddress(req, res) {
   }
 }
 
-/**
- * Check if address is in address book
- * GET /api/v1/address-book/check/:walletId/:address
- */
 async function checkAddress(req, res) {
   try {
     const { walletId, address } = req.params;
@@ -206,11 +178,6 @@ async function checkAddress(req, res) {
   }
 }
 
-/**
- * Report a scam address
- * POST /api/v1/address-book/report-scam
- * Body: { address, severity, description }
- */
 async function reportScamAddress(req, res) {
   try {
     const { address, severity = 'medium', description } = req.body;
@@ -222,13 +189,12 @@ async function reportScamAddress(req, res) {
       });
     }
 
-    // Check if already reported
     const existing = await prisma.scamAddress.findFirst({
       where: { address: address.toLowerCase() },
     });
 
     if (existing) {
-      // Update report count
+
       await prisma.scamAddress.update({
         where: { id: existing.id },
         data: { reportCount: existing.reportCount + 1 },
@@ -240,7 +206,6 @@ async function reportScamAddress(req, res) {
       });
     }
 
-    // Create new scam report
     const scamAddress = await prisma.scamAddress.create({
       data: {
         address: address.toLowerCase(),
@@ -263,15 +228,11 @@ async function reportScamAddress(req, res) {
   }
 }
 
-/**
- * Get scam address list
- * GET /api/v1/address-book/scam-list
- */
 async function getScamAddresses(req, res) {
   try {
     const scamAddresses = await prisma.scamAddress.findMany({
       orderBy: { reportCount: 'desc' },
-      take: 1000, // Limit to top 1000 scam addresses
+      take: 1000,
     });
 
     res.status(200).json({

@@ -71,9 +71,9 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden relative" style={{ position: 'relative', zIndex: 0 }}>
-      {/* Animated Background - Deep Space */}
+      {}
       <div className="animated-bg">
-        {/* Distant Stars Layer */}
+        {}
         <div className="stars">
           {[...Array(150)].map((_, i) => {
             const duration = 15 + (i * 0.2) % 20;
@@ -92,7 +92,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           })}
         </div>
 
-        {/* Bright Stars */}
+        {}
         <div className="stars">
           {[...Array(40)].map((_, i) => {
             const duration = 12 + (i * 0.5) % 18;
@@ -111,7 +111,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           })}
         </div>
 
-        {/* Nebula Clouds */}
+        {}
         {[...Array(4)].map((_, i) => {
           const colors = [
             'radial-gradient(circle, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3) 40%, transparent 70%)',
@@ -143,7 +143,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           );
         })}
 
-        {/* Distant Galaxies */}
+        {}
         {[...Array(3)].map((_, i) => {
           const rotateDuration = 60 + (i * 13.3) % 40;
           const driftDuration = 50 + (i * 9.7) % 30;
@@ -171,33 +171,33 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         })}
       </div>
 
-      {/* Navigation */}
+      {}
       <nav className={`fixed top-0 left-0 right-0 transition-all duration-300 ${scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-blue-500/20 shadow-lg shadow-blue-500/10' : ''
         }`} style={{ zIndex: 100 }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
+            {}
             <div className="flex items-center gap-3 group cursor-pointer">
               <div className="relative w-12 h-12">
-                {/* Geometric background pattern */}
+                {}
                 <div className="absolute inset-0">
-                  {/* Central hexagon */}
+                  {}
                   <div className="absolute inset-2 border-2 border-blue-400/40 rounded transform rotate-45 transition-all duration-500" />
                   <div className="absolute inset-1 border border-cyan-400/20 rounded-lg transform -rotate-45 transition-all duration-500" />
                 </div>
 
-                {/* Network nodes */}
+                {}
                 <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                 <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2 group-hover:bg-cyan-400 transition-colors" />
                 <div className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
                 <div className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 group-hover:bg-blue-400 transition-colors" />
 
-                {/* Central wallet icon */}
+                {}
                 <div className="relative z-10 flex items-center justify-center h-full">
                   <Wallet className="w-6 h-6 text-blue-300 group-hover:text-cyan-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] animate-pulse" />
                 </div>
 
-                {/* Rotating glow */}
+                {}
                 <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 animate-spin" style={{ animationDuration: '4s' }} />
               </div>
               <div>
@@ -206,7 +206,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               </div>
             </div>
 
-            {/* Desktop Navigation */}
+            {}
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-blue-100 hover:text-blue-400 transition-colors">Features</a>
               <a href="#networks" className="text-blue-100 hover:text-blue-400 transition-colors">Networks</a>
@@ -249,7 +249,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
+            {}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -258,7 +258,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
             </button>
           </div>
 
-          {/* Mobile Menu */}
+          {}
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-blue-500/20 pt-4">
               <a href="#features" className="block py-2 text-blue-100 hover:text-blue-400 transition-colors">Features</a>
@@ -307,12 +307,12 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {}
       <section className="pt-52 pb-20 px-4 relative" style={{ zIndex: 10 }}>
         <div className="container mx-auto max-w-5xl">
           <div className="text-center animate-fade-in">
 
-            {/* Main Title */}
+            {}
             <div className="mb-8">
               <p className="text-lg md:text-xl text-blue-300/80 mb-2 font-medium tracking-wider uppercase">
                 Welcome to
@@ -324,12 +324,12 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               </h1>
             </div>
 
-            {/* Subtitle */}
+            {}
             <p className="text-lg md:text-xl text-blue-100/80 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
-              Your keys. Your coins. Your control. A multi-chain wallet with enterprise-grade encryption, supporting Ethereum, Bitcoin, Solana, and 7+ EVM networks.
+              Your keys. Your coins. Your control. A multi-chain wallet with AES-256 encryption, supporting Ethereum, Bitcoin, Solana, and 7+ EVM networks.
             </p>
 
-            {/* CTA Buttons */}
+            {}
             <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
               {!isLoaded ? (
                 <button
@@ -367,7 +367,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               </a>
             </div>
 
-            {/* Continue without login - Only show when NOT signed in */}
+            {}
             {!isSignedIn && (
               <button
                 onClick={onGuestMode}
@@ -382,7 +382,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         </div>
       </section>
 
-      {/* Features Section */}
+      {}
       <section id="features" className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -426,7 +426,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         </div>
       </section>
 
-      {/* Networks Section */}
+      {}
       <section id="networks" className="py-20 px-4 bg-black/20">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -459,7 +459,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         </div>
       </section>
 
-      {/* Security Section */}
+      {}
       <section id="security" className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -471,7 +471,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
             </p>
           </div>
 
-          {/* Hero Security Stats */}
+          {}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
             {[
               { value: '256-bit', label: 'AES-GCM Encryption', sublabel: 'Authenticated encryption' },
@@ -491,9 +491,9 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
             ))}
           </div>
 
-          {/* 4 Core Security Features */}
+          {}
           <div className="grid md:grid-cols-2 gap-6 mb-12">
-            {/* Argon2id */}
+            {}
             <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
@@ -509,7 +509,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
               </p>
             </div>
 
-            {/* Shamir Secret Sharing */}
+            {}
             <div className="glass-effect rounded-2xl p-8 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
@@ -553,7 +553,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
                 </div>
               </div>
               <p className="text-blue-200/80 text-sm leading-relaxed">
-                Require 2-of-3 or 3-of-5 signatures for transactions. Enterprise-grade security for teams and high-value accounts.
+                Require 2-of-3 or 3-of-5 signatures for transactions. Multi-signature security for teams and high-value accounts.
               </p>
             </div>
           </div>
@@ -579,7 +579,6 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
           </div>
         </div>
       </section>
-
 
       {/* CTA Section */}
       <section className="py-20 px-4">

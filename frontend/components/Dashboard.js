@@ -35,9 +35,8 @@ export default function Dashboard() {
     }
   };
 
-  // Calculate total portfolio value with memoization
   const calculateTotalValue = useMemo(() => {
-    // Don't calculate if critical data is still loading or no network selected
+
     if (!selectedNetwork || portfolioLoading || (dataLoading && (dataLoading.balances || dataLoading.prices))) {
       return { value: 0, isLoading: true };
     }
@@ -45,7 +44,6 @@ export default function Dashboard() {
     let total = 0;
     const [chain] = selectedNetwork.split('-');
 
-    // Add native coin value based on selected chain
     if (chain === 'bitcoin' && balances.bitcoin && prices.bitcoin) {
       const btcValue = parseFloat(balances.bitcoin) * prices.bitcoin.current_price;
       total += btcValue;
@@ -53,7 +51,7 @@ export default function Dashboard() {
       const ethValue = parseFloat(balances.ethereum) * prices.ethereum.current_price;
       total += ethValue;
     } else if (['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
-      // For other EVM chains, balance is stored under chain name but price is under ethereum
+
       const chainBalance = balances[chain];
       if (chainBalance && prices.ethereum) {
         const chainValue = parseFloat(chainBalance) * prices.ethereum.current_price;
@@ -64,7 +62,6 @@ export default function Dashboard() {
       total += solValue;
     }
 
-    // Add token values (only for Ethereum-based chains)
     if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
       tokens.forEach(token => {
         if (token.balance && token.priceUsd) {
@@ -79,13 +76,11 @@ export default function Dashboard() {
 
   const { value: totalValue, isLoading: portfolioValueLoading } = calculateTotalValue;
 
-  // Get network info
   const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
   const isEthereum = chain === 'ethereum';
   const isBitcoin = chain === 'bitcoin';
   const isSolana = chain === 'solana';
 
-  // Get all assets including native coins and tokens based on selected network
   const allAssets = [
     ...(isBitcoin ? [{
       name: 'Bitcoin',
@@ -117,12 +112,11 @@ export default function Dashboard() {
     })) : []),
   ];
 
-
   return (
     <div className="space-y-5">
-      {/* Total Balance Card */}
+      {}
       <div data-tour="portfolio" className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 relative overflow-hidden border border-slate-700/50 transition-opacity duration-300" style={{ opacity: portfolioValueLoading ? 0.7 : 1 }}>
-        {/* Background decorations */}
+        {}
         <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -mr-20 -mt-20 blur-2xl" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/10 rounded-full -ml-16 -mb-16 blur-2xl" />
 
@@ -181,7 +175,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Wallet Address Card */}
+      {}
       <div data-tour="wallet-address" className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Wallet Address</h3>
 
@@ -263,7 +257,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Assets List */}
+      {}
       <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Assets</h3>
 
@@ -278,7 +272,6 @@ export default function Dashboard() {
             const value = parseFloat(asset.balance) * (asset.priceData?.current_price || 0);
             const hasBalance = parseFloat(asset.balance) > 0;
 
-            // Determine icon color based on asset
             let iconGradient = 'from-blue-500 to-blue-600';
             if (asset.symbol === 'BTC') iconGradient = 'from-orange-500 to-orange-600';
             else if (asset.symbol === 'SOL') iconGradient = 'from-purple-500 to-pink-500';

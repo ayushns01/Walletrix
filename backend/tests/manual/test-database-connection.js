@@ -5,14 +5,13 @@ const prisma = new PrismaClient();
 
 async function testDatabaseConnection() {
   console.log('🔍 Testing Walletrix Database Connection...\n');
-  
+
   try {
-    // Test 1: Database Connection
+
     console.log('1️⃣ Testing database connection...');
     await prisma.$connect();
     console.log('✅ Database connection successful!\n');
 
-    // Test 2: Create Test User
     console.log('2️⃣ Testing users table...');
     const testUser = await prisma.user.create({
       data: {
@@ -24,7 +23,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ User created: ${testUser.email} (ID: ${testUser.id})\n`);
 
-    // Test 3: Create User Preferences
     console.log('3️⃣ Testing user_preferences table...');
     const preferences = await prisma.userPreferences.create({
       data: {
@@ -36,7 +34,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Preferences created for user: ${testUser.email}\n`);
 
-    // Test 4: Create User Session
     console.log('4️⃣ Testing user_sessions table...');
     const session = await prisma.userSession.create({
       data: {
@@ -50,7 +47,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Session created: ${session.sessionToken}\n`);
 
-    // Test 5: Create Wallet
     console.log('5️⃣ Testing wallets table...');
     const wallet = await prisma.wallet.create({
       data: {
@@ -64,7 +60,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Wallet created: ${wallet.name} (ID: ${wallet.id})\n`);
 
-    // Test 6: Create Transaction
     console.log('6️⃣ Testing transactions table...');
     const transaction = await prisma.transaction.create({
       data: {
@@ -83,7 +78,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Transaction created: ${transaction.txHash.substring(0, 10)}...\n`);
 
-    // Test 7: Create Address Book Entry
     console.log('7️⃣ Testing address_book table...');
     const addressEntry = await prisma.addressBookEntry.create({
       data: {
@@ -97,7 +91,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Address book entry created: ${addressEntry.name}\n`);
 
-    // Test 8: Create Activity Log
     console.log('8️⃣ Testing activity_logs table...');
     const activityLog = await prisma.activityLog.create({
       data: {
@@ -113,7 +106,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Activity log created: ${activityLog.action}\n`);
 
-    // Test 9: Create Price Cache
     console.log('9️⃣ Testing price_cache table...');
     const priceCache = await prisma.priceCache.upsert({
       where: { symbol: 'ETH' },
@@ -133,7 +125,6 @@ async function testDatabaseConnection() {
     });
     console.log(`✅ Price cache created: ${priceCache.symbol} @ $${priceCache.priceUsd}\n`);
 
-    // Test 10: Query all data back
     console.log('🔟 Testing data retrieval...');
     const allUsers = await prisma.user.count();
     const allWallets = await prisma.wallet.count();
@@ -154,7 +145,6 @@ async function testDatabaseConnection() {
     console.log(`   Activity Logs: ${allLogs}`);
     console.log(`   Price Cache: ${allPrices}\n`);
 
-    // Cleanup test data
     console.log('🧹 Cleaning up test data...');
     await prisma.transaction.deleteMany({ where: { walletId: wallet.id } });
     await prisma.wallet.deleteMany({ where: { userId: testUser.id } });

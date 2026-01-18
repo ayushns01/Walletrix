@@ -3,29 +3,20 @@ import notificationService from '../services/notificationService.js';
 import prisma from '../lib/prisma.js';
 import logger from '../services/loggerService.js';
 
-/**
- * Multi-Signature Wallet Controller
- * Handles M-of-N multisig wallet creation and transaction signing
- */
-
 class MultiSigController {
-    /**
-     * Create multi-signature wallet
-     * POST /api/v1/wallet/multisig/create
-     */
+
     async createMultiSigWallet(req, res) {
         try {
             const {
                 name,
-                network, // 'bitcoin' or 'ethereum'
-                type, // 'p2sh', 'p2wsh', 'gnosis-safe'
-                publicKeys, // For Bitcoin
-                owners, // For Ethereum
+                network,
+                type,
+                publicKeys,
+                owners,
                 requiredSignatures
             } = req.body;
-            const userId = req.user.id; // Fixed: clerkAuth sets req.user.id, not req.user.userId
+            const userId = req.user.id;
 
-            // Validate input
             if (!name || !network || !requiredSignatures) {
                 return res.status(400).json({
                     success: false,
@@ -33,8 +24,6 @@ class MultiSigController {
                 });
             }
 
-
-            // Only Ethereum multisig supported
             if (network !== 'ethereum') {
                 return res.status(400).json({
                     success: false,
@@ -42,7 +31,6 @@ class MultiSigController {
                 });
             }
 
-            // Ethereum multisig (Gnosis Safe)
             if (!owners || !Array.isArray(owners)) {
                 return res.status(400).json({
                     success: false,
@@ -57,21 +45,16 @@ class MultiSigController {
                 });
             }
 
-            // Create Ethereum multisig
             const multiSigResult = multiSigService.createEthereumMultisig(
                 owners,
                 requiredSignatures
             );
 
-            // 🔍 Look up userId for each owner by their wallet address
-
-
             const ownerUserIds = await Promise.all(
                 owners.map(async (ownerAddress) => {
-                    // Normalize address (checksum)
+
                     const normalizedAddress = ownerAddress.toLowerCase();
 
-                    // Find wallet with this address (try both exact match and JSON path)
                     let wallet = await prisma.wallet.findFirst({
                         where: {
                             addresses: {
@@ -86,7 +69,6 @@ class MultiSigController {
                         }
                     });
 
-                    // If not found, try case-insensitive search
                     if (!wallet) {
                         const allWallets = await prisma.wallet.findMany({
                             where: { isActive: true },
@@ -102,25 +84,21 @@ class MultiSigController {
                         });
                     }
 
-
                     return wallet?.userId || null;
                 })
             );
 
-            // Prepare signers with proper userId mapping
             const signers = owners.map((owner, index) => ({
-                userId: ownerUserIds[index], // ✅ Use looked-up userId
-                publicKey: owner, // Use address as publicKey for Ethereum (satisfies unique constraint)
+                userId: ownerUserIds[index],
+                publicKey: owner,
                 address: owner,
                 label: `Owner ${index + 1}`,
                 order: index
             }));
 
-
-            // Store in database
             const multiSigWallet = await prisma.multiSigWallet.create({
                 data: {
-                    userId: userId, // ✅ Add the missing userId field
+                    userId: userId,
                     name: name,
                     network: network,
                     walletType: type || (network === 'bitcoin' ? 'p2sh' : 'gnosis-safe'),
@@ -180,10 +158,6 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Get multi-sig wallet details
-     * GET /api/v1/wallet/multisig/:id
-     */
     async getMultiSigWallet(req, res) {
         try {
             const { id } = req.params;
@@ -245,10 +219,6 @@ class MultiSigController {
         }
     }
 
-    /**
-     * List all multi-sig wallets for user
-     * GET /api/v1/wallet/multisig/user/:userId
-     */
     async getUserMultiSigWallets(req, res) {
         try {
             const userId = req.user.id;
@@ -299,17 +269,12 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Create multi-sig transaction
-     * POST /api/v1/wallet/multisig/:id/transaction
-     */
     async createTransaction(req, res) {
         try {
             const { id } = req.params;
             const { toAddress, amount, tokenSymbol = 'ETH', data } = req.body;
             const userId = req.user.id;
 
-            // Validate input
             if (!toAddress || !amount) {
                 return res.status(400).json({
                     success: false,
@@ -317,7 +282,6 @@ class MultiSigController {
                 });
             }
 
-            // Get multi-sig wallet
             const multiSigWallet = await prisma.multiSigWallet.findFirst({
                 where: {
                     id: id,
@@ -333,7 +297,6 @@ class MultiSigController {
                 });
             }
 
-            // Create transaction
             const transaction = await prisma.multiSigTransaction.create({
                 data: {
                     multiSigWalletId: id,
@@ -347,7 +310,6 @@ class MultiSigController {
                 }
             });
 
-            // 🔔 Send notifications to all owners
             try {
                 await notificationService.notifyMultiSigTransaction({
                     multiSigWalletId: id,
@@ -362,7 +324,7 @@ class MultiSigController {
                     error: notifError.message,
                     transactionId: transaction.id
                 });
-                // Don't fail the transaction if notifications fail
+
             }
 
             logger.info('Multi-sig transaction created', {
@@ -399,10 +361,6 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Sign multi-sig transaction
-     * POST /api/v1/wallet/multisig/transaction/:txId/sign
-     */
     async signTransaction(req, res) {
         try {
             const { txId } = req.params;
@@ -416,7 +374,6 @@ class MultiSigController {
                 });
             }
 
-            // Get transaction
             const transaction = await prisma.multiSigTransaction.findUnique({
                 where: { id: txId },
                 include: {
@@ -446,7 +403,6 @@ class MultiSigController {
                 });
             }
 
-            // Check if already signed by this signer
             const existingSignature = transaction.signatures.find(
                 sig => sig.signerId === signerId
             );
@@ -458,7 +414,6 @@ class MultiSigController {
                 });
             }
 
-            // Add signature
             await prisma.multiSigSignature.create({
                 data: {
                     multiSigTransactionId: txId,
@@ -467,7 +422,6 @@ class MultiSigController {
                 }
             });
 
-            // Update signature count
             const newSignatureCount = transaction.currentSignatures + 1;
             const updatedTransaction = await prisma.multiSigTransaction.update({
                 where: { id: txId },
@@ -511,16 +465,11 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Get all transactions for a multi-sig wallet
-     * GET /api/v1/wallet/multisig/:id/transactions
-     */
     async getTransactions(req, res) {
         try {
             const { id } = req.params;
             const userId = req.user.id;
 
-            // Verify user has access to this wallet
             const wallet = await prisma.multiSigWallet.findFirst({
                 where: {
                     id: id,
@@ -578,16 +527,11 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Get pending transactions for a multi-sig wallet
-     * GET /api/v1/wallet/multisig/:id/pending
-     */
     async getPendingTransactions(req, res) {
         try {
             const { id } = req.params;
             const userId = req.user.id;
 
-            // Verify user has access to this wallet
             const wallet = await prisma.multiSigWallet.findFirst({
                 where: {
                     id: id,
@@ -646,16 +590,11 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Execute a ready multi-sig transaction
-     * PUT /api/v1/wallet/multisig/transaction/:txId/execute
-     */
     async executeTransaction(req, res) {
         try {
             const { txId } = req.params;
             const userId = req.user.id;
 
-            // Get transaction with wallet info
             const transaction = await prisma.multiSigTransaction.findUnique({
                 where: { id: txId },
                 include: {
@@ -685,8 +624,6 @@ class MultiSigController {
                 });
             }
 
-            // TODO: Implement actual blockchain execution
-            // For now, just mark as executed
             const txHash = `0x${Math.random().toString(16).substring(2)}${Math.random().toString(16).substring(2)}`;
 
             const updatedTransaction = await prisma.multiSigTransaction.update({
@@ -698,7 +635,6 @@ class MultiSigController {
                 }
             });
 
-            // Send notifications to all owners
             try {
                 await notificationService.notifyMultiSigExecuted({
                     multiSigWalletId: transaction.multiSigWalletId,
@@ -740,16 +676,11 @@ class MultiSigController {
         }
     }
 
-    /**
-     * Delete multi-sig wallet
-     * DELETE /api/v1/wallet/multisig/:id
-     */
     async deleteMultiSigWallet(req, res) {
         try {
             const { id } = req.params;
             const userId = req.user.id;
 
-            // Verify wallet exists and belongs to user
             const wallet = await prisma.multiSigWallet.findFirst({
                 where: {
                     id: id,
@@ -765,7 +696,6 @@ class MultiSigController {
                 });
             }
 
-            // Soft delete - set isActive to false
             await prisma.multiSigWallet.update({
                 where: { id: id },
                 data: { isActive: false }

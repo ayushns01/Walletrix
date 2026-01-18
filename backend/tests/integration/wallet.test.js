@@ -1,8 +1,3 @@
-/**
- * Wallet Routes Integration Tests
- * End-to-end testing of wallet generation and management endpoints
- */
-
 import request from 'supertest';
 import app from '../../src/index.js';
 
@@ -20,22 +15,19 @@ describe('Wallet Routes', () => {
       expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('message', 'Wallet generated successfully');
       expect(response.body).toHaveProperty('wallet');
-      
+
       const { wallet } = response.body;
       expect(wallet).toHaveProperty('mnemonic');
       expect(wallet).toHaveProperty('addresses');
       expect(wallet).toHaveProperty('privateKeys');
-      
-      // Validate mnemonic
+
       expect(wallet.mnemonic).toBeValidMnemonic();
-      
-      // Validate addresses
+
       expect(wallet.addresses).toHaveProperty('ethereum');
       expect(wallet.addresses).toHaveProperty('bitcoin');
       expect(wallet.addresses.ethereum).toBeValidEthereumAddress();
       expect(wallet.addresses.bitcoin).toBeValidBitcoinAddress();
-      
-      // Validate private keys (should be present but masked in response)
+
       expect(wallet.privateKeys).toHaveProperty('ethereum');
       expect(wallet.privateKeys).toHaveProperty('bitcoin');
     });
@@ -86,15 +78,14 @@ describe('Wallet Routes', () => {
     });
 
     test('should respect rate limiting', async () => {
-      const promises = Array(12).fill().map(() => 
+      const promises = Array(12).fill().map(() =>
         request(app)
           .post('/api/v1/wallet/generate')
           .send({})
       );
 
       const responses = await Promise.all(promises);
-      
-      // Should hit rate limit (10 per hour)
+
       const rateLimited = responses.some(res => res.status === 429);
       expect(rateLimited).toBe(true);
     });
@@ -114,7 +105,7 @@ describe('Wallet Routes', () => {
 
       expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('wallet');
-      
+
       const { wallet } = response.body;
       expect(wallet).toHaveProperty('mnemonic', testMnemonic);
       expect(wallet.addresses).toHaveProperty('ethereum');
@@ -145,13 +136,12 @@ describe('Wallet Routes', () => {
 
       const response2 = await request(app)
         .post('/api/v1/wallet/import/mnemonic')
-        .send({ 
+        .send({
           mnemonic: testMnemonic,
           passphrase: 'test-passphrase'
         })
         .expect(200);
 
-      // Should generate different addresses with passphrase
       expect(response1.body.wallet.addresses.ethereum)
         .not.toBe(response2.body.wallet.addresses.ethereum);
     });
@@ -194,7 +184,7 @@ describe('Wallet Routes', () => {
 
       expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('wallet');
-      
+
       const { wallet } = response.body;
       expect(wallet).toHaveProperty('address');
       expect(wallet).toHaveProperty('privateKey');
@@ -204,7 +194,7 @@ describe('Wallet Routes', () => {
 
     test('should handle private key without 0x prefix', async () => {
       const privateKeyWithoutPrefix = testPrivateKey.slice(2);
-      
+
       const response = await request(app)
         .post('/api/v1/wallet/import/private-key')
         .send({
@@ -276,7 +266,7 @@ describe('Wallet Routes', () => {
   describe('GET /api/v1/wallet/validate/:network/:address', () => {
     test('should validate correct Ethereum address', async () => {
       const address = '0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95';
-      
+
       const response = await request(app)
         .get(`/api/v1/wallet/validate/ethereum/${address}`)
         .expect(200);
@@ -290,7 +280,7 @@ describe('Wallet Routes', () => {
 
     test('should validate correct Bitcoin address', async () => {
       const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
-      
+
       const response = await request(app)
         .get(`/api/v1/wallet/validate/bitcoin/${address}`)
         .expect(200);
@@ -303,7 +293,7 @@ describe('Wallet Routes', () => {
 
     test('should handle case insensitive Ethereum addresses', async () => {
       const address = '0x742d35cc6465c395c6de4d83f2e47aa4e6aa6b95';
-      
+
       const response = await request(app)
         .get(`/api/v1/wallet/validate/ethereum/${address}`)
         .expect(200);
@@ -332,7 +322,7 @@ describe('Wallet Routes', () => {
 
     test('should reject address for wrong network', async () => {
       const ethAddress = '0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95';
-      
+
       const response = await request(app)
         .get(`/api/v1/wallet/validate/bitcoin/${ethAddress}`)
         .expect(200);
@@ -342,7 +332,7 @@ describe('Wallet Routes', () => {
 
     test('should fail with unsupported network', async () => {
       const address = '0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95';
-      
+
       const response = await request(app)
         .get(`/api/v1/wallet/validate/unsupported/${address}`)
         .expect(400);
@@ -363,7 +353,7 @@ describe('Wallet Routes', () => {
 
       expect(response.body).toHaveProperty('success', true);
       expect(response.body).toHaveProperty('encrypted');
-      
+
       const { encrypted } = response.body;
       expect(encrypted).toHaveProperty('encryptedData');
       expect(encrypted).toHaveProperty('iv');

@@ -18,7 +18,6 @@ export default function AccountDetails({ isOpen, onClose }) {
   const [showSolPrivateKey, setShowSolPrivateKey] = useState(false);
   const [copiedField, setCopiedField] = useState('');
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setPassword('');
@@ -120,7 +119,7 @@ export default function AccountDetails({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center p-2 sm:p-4 animate-fade-in" style={{ zIndex: 9999 }}>
       <div className="glass-effect rounded-2xl sm:rounded-3xl max-w-4xl w-full h-[95vh] sm:h-[90vh] border border-blue-500/30 shadow-2xl shadow-blue-500/20 flex flex-col animate-scale-in">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-3 sm:p-6 border-b border-blue-500/20 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative hidden sm:block">
@@ -142,7 +141,7 @@ export default function AccountDetails({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Security Warning */}
+        {}
         <div className="p-3 sm:p-6 border-b border-blue-500/20 flex-shrink-0">
           <div className="glass-effect rounded-xl p-3 sm:p-4 border border-red-500/30 bg-red-900/10">
             <div className="flex items-start gap-2 sm:gap-3">
@@ -161,7 +160,7 @@ export default function AccountDetails({ isOpen, onClose }) {
         </div>
 
         {!isUnlocked ? (
-          /* Password Entry */
+
           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6">
             <div className="max-w-md mx-auto">
               <div className="text-center mb-6">
@@ -196,9 +195,9 @@ export default function AccountDetails({ isOpen, onClose }) {
             </div>
           </div>
         ) : (
-          /* Wallet Details */
+
           <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 space-y-4 sm:space-y-6">
-            {/* Action Buttons */}
+            {}
             <div className="flex justify-end">
               <button
                 onClick={handleDownloadBackup}
@@ -210,7 +209,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </button>
             </div>
 
-            {/* Mnemonic Phrase */}
+            {}
             <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/50 rounded-2xl p-5 sm:p-6 border border-amber-500/30">
               <div className="flex items-center justify-between mb-4 gap-2">
                 <h4 className="text-base sm:text-lg font-semibold text-white flex items-center gap-3 min-w-0">
@@ -280,7 +279,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Ethereum Details */}
+            {}
             <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
               <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4 flex items-center gap-2">
                 <span className="text-blue-400 text-xl">Ξ</span>
@@ -291,7 +290,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </h4>
 
               <div className="space-y-3 sm:space-y-4">
-                {/* Ethereum Address */}
+                {}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                     Public Address
@@ -313,7 +312,7 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Ethereum Private Key */}
+                {}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                     Private Key
@@ -344,7 +343,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Bitcoin Details */}
+            {}
             <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
               <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4 flex items-center gap-2">
                 <span className="text-orange-400 text-xl">₿</span>
@@ -352,7 +351,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </h4>
 
               <div className="space-y-3 sm:space-y-4">
-                {/* Bitcoin Address */}
+                {}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                     Public Address
@@ -374,7 +373,7 @@ export default function AccountDetails({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Bitcoin Private Key */}
+                {}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                     Private Key (WIF Format)
@@ -405,7 +404,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Solana Account */}
+            {}
             {walletData?.solana && (
               <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
                 <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4 flex items-center gap-2">
@@ -414,7 +413,7 @@ export default function AccountDetails({ isOpen, onClose }) {
                 </h4>
 
                 <div className="space-y-3 sm:space-y-4">
-                  {/* Solana Address */}
+                  {}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                       Public Address
@@ -436,7 +435,7 @@ export default function AccountDetails({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  {/* Solana Private Key */}
+                  {}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-blue-300 mb-2">
                       Private Key
@@ -468,7 +467,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
             )}
 
-            {/* Wallet Information */}
+            {}
             <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
               <h4 className="text-base sm:text-lg font-semibold text-blue-100 mb-3 sm:mb-4">Wallet Information</h4>
 
@@ -511,7 +510,7 @@ export default function AccountDetails({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Security Reminder */}
+            {}
             <div className="glass-effect rounded-xl p-3 sm:p-4 border border-red-500/30 bg-red-900/10">
               <h4 className="text-red-300 font-semibold mb-2 text-sm sm:text-base">Remember:</h4>
               <ul className="text-red-200 text-xs sm:text-sm space-y-1">

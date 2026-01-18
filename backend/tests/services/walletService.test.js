@@ -1,36 +1,31 @@
-/**
- * Wallet Service Unit Tests
- * Comprehensive testing for wallet generation, import, and validation
- */
-
 import walletService from '../walletService.js';
 
 describe('WalletService', () => {
   describe('generateWallet', () => {
     test('should generate wallet with 12-word mnemonic by default', async () => {
       const wallet = await walletService.generateWallet();
-      
+
       expect(wallet).toHaveProperty('mnemonic');
       expect(wallet).toHaveProperty('addresses');
       expect(wallet).toHaveProperty('privateKeys');
       expect(wallet.mnemonic).toBeValidMnemonic();
-      
+
       const words = wallet.mnemonic.split(' ');
       expect(words).toHaveLength(12);
     });
 
     test('should generate wallet with 24-word mnemonic when strength is 256', async () => {
       const wallet = await walletService.generateWallet({ strength: 256 });
-      
+
       expect(wallet.mnemonic).toBeValidMnemonic();
-      
+
       const words = wallet.mnemonic.split(' ');
       expect(words).toHaveLength(24);
     });
 
     test('should generate Ethereum address by default', async () => {
       const wallet = await walletService.generateWallet();
-      
+
       expect(wallet.addresses).toHaveProperty('ethereum');
       expect(wallet.addresses.ethereum).toBeValidEthereumAddress();
       expect(wallet.privateKeys).toHaveProperty('ethereum');
@@ -39,17 +34,17 @@ describe('WalletService', () => {
 
     test('should generate Bitcoin address by default', async () => {
       const wallet = await walletService.generateWallet();
-      
+
       expect(wallet.addresses).toHaveProperty('bitcoin');
       expect(wallet.addresses.bitcoin).toBeValidBitcoinAddress();
       expect(wallet.privateKeys).toHaveProperty('bitcoin');
     });
 
     test('should generate addresses for specified networks only', async () => {
-      const wallet = await walletService.generateWallet({ 
-        networks: ['ethereum', 'polygon'] 
+      const wallet = await walletService.generateWallet({
+        networks: ['ethereum', 'polygon']
       });
-      
+
       expect(wallet.addresses).toHaveProperty('ethereum');
       expect(wallet.addresses).toHaveProperty('polygon');
       expect(wallet.addresses).not.toHaveProperty('bitcoin');
@@ -63,8 +58,8 @@ describe('WalletService', () => {
     });
 
     test('should throw error for unsupported network', async () => {
-      await expect(walletService.generateWallet({ 
-        networks: ['unsupported-network'] 
+      await expect(walletService.generateWallet({
+        networks: ['unsupported-network']
       })).rejects.toThrow('Unsupported network');
     });
   });
@@ -74,7 +69,7 @@ describe('WalletService', () => {
 
     test('should import wallet from valid mnemonic', async () => {
       const wallet = await walletService.importFromMnemonic(testMnemonic);
-      
+
       expect(wallet).toHaveProperty('mnemonic', testMnemonic);
       expect(wallet).toHaveProperty('addresses');
       expect(wallet).toHaveProperty('privateKeys');
@@ -84,7 +79,7 @@ describe('WalletService', () => {
     test('should generate deterministic addresses from same mnemonic', async () => {
       const wallet1 = await walletService.importFromMnemonic(testMnemonic);
       const wallet2 = await walletService.importFromMnemonic(testMnemonic);
-      
+
       expect(wallet1.addresses.ethereum).toBe(wallet2.addresses.ethereum);
       expect(wallet1.addresses.bitcoin).toBe(wallet2.addresses.bitcoin);
     });
@@ -93,7 +88,7 @@ describe('WalletService', () => {
       const wallet = await walletService.importFromMnemonic(testMnemonic, {
         networks: ['ethereum', 'arbitrum']
       });
-      
+
       expect(wallet.addresses).toHaveProperty('ethereum');
       expect(wallet.addresses).toHaveProperty('arbitrum');
       expect(wallet.addresses).not.toHaveProperty('bitcoin');
@@ -104,8 +99,7 @@ describe('WalletService', () => {
       const walletWithPassphrase = await walletService.importFromMnemonic(testMnemonic, {
         passphrase: 'test-passphrase'
       });
-      
-      // Addresses should be different with passphrase
+
       expect(walletWithPassphrase.addresses.ethereum)
         .not.toBe(walletWithoutPassphrase.addresses.ethereum);
     });
@@ -126,7 +120,7 @@ describe('WalletService', () => {
 
     test('should import Ethereum wallet from private key', async () => {
       const wallet = await walletService.importFromPrivateKey(testPrivateKey, 'ethereum');
-      
+
       expect(wallet).toHaveProperty('address');
       expect(wallet).toHaveProperty('privateKey');
       expect(wallet).toHaveProperty('network', 'ethereum');
@@ -137,14 +131,14 @@ describe('WalletService', () => {
     test('should handle private key without 0x prefix', async () => {
       const privateKeyWithoutPrefix = testPrivateKey.slice(2);
       const wallet = await walletService.importFromPrivateKey(privateKeyWithoutPrefix, 'ethereum');
-      
+
       expect(wallet.address).toBeValidEthereumAddress();
     });
 
     test('should generate same address for same private key', async () => {
       const wallet1 = await walletService.importFromPrivateKey(testPrivateKey, 'ethereum');
       const wallet2 = await walletService.importFromPrivateKey(testPrivateKey, 'ethereum');
-      
+
       expect(wallet1.address).toBe(wallet2.address);
     });
 
@@ -163,7 +157,7 @@ describe('WalletService', () => {
     test('should validate correct Ethereum address', () => {
       const address = '0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95';
       const result = walletService.validateAddress(address, 'ethereum');
-      
+
       expect(result).toHaveProperty('valid', true);
       expect(result).toHaveProperty('address', address);
       expect(result).toHaveProperty('network', 'ethereum');
@@ -173,7 +167,7 @@ describe('WalletService', () => {
     test('should validate correct Bitcoin address', () => {
       const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
       const result = walletService.validateAddress(address, 'bitcoin');
-      
+
       expect(result).toHaveProperty('valid', true);
       expect(result).toHaveProperty('address', address);
       expect(result).toHaveProperty('network', 'bitcoin');
@@ -182,7 +176,7 @@ describe('WalletService', () => {
     test('should validate Ethereum address case insensitively', () => {
       const address = '0x742d35cc6465c395c6de4d83f2e47aa4e6aa6b95';
       const result = walletService.validateAddress(address, 'ethereum');
-      
+
       expect(result.valid).toBe(true);
       expect(result.checksumAddress).toBe('0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95');
     });
@@ -190,21 +184,21 @@ describe('WalletService', () => {
     test('should reject invalid Ethereum address', () => {
       const address = '0xinvalid';
       const result = walletService.validateAddress(address, 'ethereum');
-      
+
       expect(result.valid).toBe(false);
     });
 
     test('should reject invalid Bitcoin address', () => {
       const address = 'invalid-bitcoin-address';
       const result = walletService.validateAddress(address, 'bitcoin');
-      
+
       expect(result.valid).toBe(false);
     });
 
     test('should reject address for wrong network', () => {
       const ethAddress = '0x742d35Cc6465C395C6de4D83F2e47Aa4E6AA6b95';
       const result = walletService.validateAddress(ethAddress, 'bitcoin');
-      
+
       expect(result.valid).toBe(false);
     });
   });
@@ -215,7 +209,7 @@ describe('WalletService', () => {
 
     test('should encrypt data successfully', async () => {
       const encrypted = await walletService.encryptData(testData, testPassword);
-      
+
       expect(encrypted).toHaveProperty('encryptedData');
       expect(encrypted).toHaveProperty('iv');
       expect(encrypted).toHaveProperty('authTag');
@@ -225,8 +219,7 @@ describe('WalletService', () => {
     test('should produce different ciphertext for same data', async () => {
       const encrypted1 = await walletService.encryptData(testData, testPassword);
       const encrypted2 = await walletService.encryptData(testData, testPassword);
-      
-      // Should be different due to random IV
+
       expect(encrypted1.encryptedData).not.toBe(encrypted2.encryptedData);
       expect(encrypted1.iv).not.toBe(encrypted2.iv);
     });
@@ -249,30 +242,29 @@ describe('WalletService', () => {
     test('should decrypt data successfully', async () => {
       const encrypted = await walletService.encryptData(testData, testPassword);
       const decrypted = await walletService.decryptData(encrypted, testPassword);
-      
+
       expect(decrypted).toBe(testData);
     });
 
     test('should throw error for wrong password', async () => {
       const encrypted = await walletService.encryptData(testData, testPassword);
-      
+
       await expect(walletService.decryptData(encrypted, 'wrong-password'))
         .rejects.toThrow('Decryption failed');
     });
 
     test('should throw error for tampered data', async () => {
       const encrypted = await walletService.encryptData(testData, testPassword);
-      
-      // Tamper with encrypted data
+
       encrypted.encryptedData = encrypted.encryptedData.slice(0, -2) + 'XX';
-      
+
       await expect(walletService.decryptData(encrypted, testPassword))
         .rejects.toThrow('Decryption failed');
     });
 
     test('should throw error for missing encryption components', async () => {
       const incompleteData = { encryptedData: 'data' };
-      
+
       await expect(walletService.decryptData(incompleteData, testPassword))
         .rejects.toThrow('Invalid encryption data');
     });
@@ -286,7 +278,7 @@ describe('WalletService', () => {
         networks: ['ethereum'],
         count: 3
       });
-      
+
       expect(accounts).toHaveLength(3);
       accounts.forEach((account, index) => {
         expect(account).toHaveProperty('index', index);
@@ -301,7 +293,7 @@ describe('WalletService', () => {
         networks: ['ethereum'],
         count: 3
       });
-      
+
       const addresses = accounts.map(account => account.address);
       const uniqueAddresses = [...new Set(addresses)];
       expect(uniqueAddresses).toHaveLength(3);
@@ -313,7 +305,7 @@ describe('WalletService', () => {
         count: 1,
         basePath: "m/44'/60'/1'/0"
       });
-      
+
       expect(accounts[0]).toHaveProperty('address');
       expect(accounts[0].address).toBeValidEthereumAddress();
     });

@@ -25,7 +25,7 @@ describe('StealthAddressService', () => {
 
             expect(keys.scanPrivateKey).toMatch(/^0x[0-9a-f]{64}$/i);
             expect(keys.spendPrivateKey).toMatch(/^0x[0-9a-f]{64}$/i);
-            expect(keys.scanPublicKey).toMatch(/^0x[0-9a-f]{66}$/i); // Compressed format
+            expect(keys.scanPublicKey).toMatch(/^0x[0-9a-f]{66}$/i);
             expect(keys.spendPublicKey).toMatch(/^0x[0-9a-f]{66}$/i);
         });
     });
@@ -36,7 +36,7 @@ describe('StealthAddressService', () => {
             const metaAddress = keys.stealthMetaAddress;
 
             expect(metaAddress).toMatch(/^st:eth:/);
-            expect(metaAddress.length).toBe(139); // st:eth: (7) + 132 hex chars
+            expect(metaAddress.length).toBe(139);
         });
 
         it('should decode meta-address', () => {
@@ -148,7 +148,7 @@ describe('StealthAddressService', () => {
             const detected = stealthAddressService.scanForPayments(
                 keys.scanPrivateKey,
                 keys.spendPublicKey,
-                [{ txHash: '0x123' }] // missing publicKey
+                [{ txHash: '0x123' }]
             );
 
             expect(detected).toHaveLength(0);
@@ -251,19 +251,15 @@ describe('StealthAddressService', () => {
 
     describe('Integration Tests', () => {
         it('should complete full stealth payment flow', () => {
-            // 1. Recipient generates keys
+
             const recipientKeys = stealthAddressService.generateStealthKeys();
 
-            // 2. Recipient publishes meta-address
             const metaAddress = recipientKeys.stealthMetaAddress;
 
-            // 3. Sender generates stealth address
             const payment = stealthAddressService.generateStealthAddress(metaAddress);
 
-            // 4. Sender sends funds to stealth address (simulated)
             expect(payment.stealthAddress).toBeTruthy();
 
-            // 5. Recipient scans for payments
             const detected = stealthAddressService.scanForPayments(
                 recipientKeys.scanPrivateKey,
                 recipientKeys.spendPublicKey,
@@ -273,7 +269,6 @@ describe('StealthAddressService', () => {
             expect(detected).toHaveLength(1);
             expect(detected[0].stealthAddress).toBe(payment.stealthAddress);
 
-            // 6. Recipient derives private key to spend
             const stealthPrivKey = stealthAddressService.deriveStealthPrivateKey(
                 recipientKeys.scanPrivateKey,
                 recipientKeys.spendPrivateKey,
@@ -290,7 +285,6 @@ describe('StealthAddressService', () => {
             const payment1 = stealthAddressService.generateStealthAddress(recipient1.stealthMetaAddress);
             const payment2 = stealthAddressService.generateStealthAddress(recipient2.stealthMetaAddress);
 
-            // Recipient 1 scans - will see both payments but only payment1 is theirs
             const detected1 = stealthAddressService.scanForPayments(
                 recipient1.scanPrivateKey,
                 recipient1.spendPublicKey,
@@ -300,7 +294,6 @@ describe('StealthAddressService', () => {
                 ]
             );
 
-            // Both payments will be "detected" but only payment1 belongs to recipient1
             expect(detected1).toHaveLength(2);
             expect(detected1[0].stealthAddress).toBe(payment1.stealthAddress);
         });
@@ -328,7 +321,6 @@ describe('StealthAddressService', () => {
         it('should scan 100 payments in reasonable time (<1s)', () => {
             const keys = stealthAddressService.generateStealthKeys();
 
-            // Generate 100 ephemeral keys
             const ephemeralKeys = [];
             for (let i = 0; i < 100; i++) {
                 const tempKeys = stealthAddressService.generateStealthKeys();

@@ -5,7 +5,7 @@ import { ChevronDown, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 const networks = [
-  // Ethereum Networks
+
   {
     id: 'ethereum-mainnet',
     name: 'Ethereum Mainnet',
@@ -28,8 +28,7 @@ const networks = [
     rpcUrl: 'https://sepolia.infura.io/v3/',
     chainId: 11155111,
   },
-  
-  // Polygon Networks
+
   {
     id: 'polygon-mainnet',
     name: 'Polygon Mainnet',
@@ -52,8 +51,7 @@ const networks = [
     rpcUrl: 'https://rpc-mumbai.maticvigil.com',
     chainId: 80001,
   },
-  
-  // Bitcoin Networks
+
   {
     id: 'bitcoin-mainnet',
     name: 'Bitcoin Mainnet',
@@ -76,8 +74,7 @@ const networks = [
     rpcUrl: 'https://bitcoin-testnet-rpc.com',
     chainId: 1,
   },
-  
-  // Solana Networks
+
   {
     id: 'solana-mainnet',
     name: 'Solana Mainnet',
@@ -120,7 +117,6 @@ export default function NetworkSelector() {
 
   const currentNetwork = networks.find(n => n.id === selectedNetwork) || networks[0];
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -150,21 +146,21 @@ export default function NetworkSelector() {
         <span className="text-sm font-medium text-blue-100 truncate">
           {currentNetwork.name}
         </span>
-        <ChevronDown 
-          className={`w-5 h-5 text-blue-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+        <ChevronDown
+          className={`w-5 h-5 text-blue-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
       {isOpen && (
         <div className="absolute left-1/2 transform -translate-x-1/2 mt-3 w-[95vw] sm:w-[650px] bg-gradient-to-br from-black via-gray-900 to-blue-950 border border-blue-500/40 rounded-2xl shadow-2xl shadow-blue-500/30 overflow-hidden backdrop-blur-xl" style={{ zIndex: 1000 }}>
           <div className="flex flex-col sm:flex-row">
-            {/* Mainnet Column */}
+            {}
             <div className="flex-1 border-r-0 sm:border-r border-blue-500/30">
               <div className="px-6 py-4 text-sm font-bold text-blue-300 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-blue-950/50 to-black/50 backdrop-blur-sm">
                 🌐 Mainnets
               </div>
               <div className="py-3 max-h-96 overflow-y-auto custom-scrollbar">
-                {/* Ethereum & Layer 2 Mainnets */}
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
                   Ethereum & Layer 2
                 </div>
@@ -192,8 +188,8 @@ export default function NetworkSelector() {
                     )}
                   </button>
                 ))}
-                
-                {/* Solana Mainnet */}
+
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
                   Solana
                 </div>
@@ -221,8 +217,8 @@ export default function NetworkSelector() {
                     )}
                   </button>
                 ))}
-                
-                {/* Bitcoin Mainnet */}
+
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
                   Bitcoin
                 </div>
@@ -253,13 +249,13 @@ export default function NetworkSelector() {
               </div>
             </div>
 
-            {/* Testnet Column */}
+            {}
             <div className="flex-1 border-t sm:border-t-0 border-blue-500/30">
               <div className="px-6 py-4 text-sm font-bold text-blue-200 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-black/50 to-blue-950/50 backdrop-blur-sm">
                 🧪 Testnets
               </div>
               <div className="py-3 max-h-96 overflow-y-auto custom-scrollbar">
-                {/* Ethereum & Layer 2 Testnets */}
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
                   Ethereum & Layer 2
                 </div>
@@ -287,8 +283,8 @@ export default function NetworkSelector() {
                     )}
                   </button>
                 ))}
-                
-                {/* Solana Testnets */}
+
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
                   Solana
                 </div>
@@ -316,8 +312,8 @@ export default function NetworkSelector() {
                     )}
                   </button>
                 ))}
-                
-                {/* Bitcoin Testnet */}
+
+                {}
                 <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
                   Bitcoin
                 </div>
