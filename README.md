@@ -2,14 +2,13 @@
 
 **Multi-Chain Cryptocurrency Wallet**
 
-*Non-custodial • Self-custody • Open source*
+*Educational project demonstrating wallet architecture and cryptographic implementations*
 
 ---
 
 ## 🎯 What is Walletrix?
 
-
-Walletrix is a **production-ready cryptocurrency wallet** built with modern web technologies. It demonstrates advanced blockchain engineering, enterprise security practices, and full-stack development expertise.
+Walletrix is a **full-stack cryptocurrency wallet application** built to demonstrate blockchain engineering concepts, cryptographic implementations, and modern web development practices. It showcases HD wallet generation, multi-chain support, and security-focused architecture.
 
 **Live Demo**: [walletrix.vercel.app](https://walletrix.vercel.app) | **Backend**: Deployed on Render | **Frontend**: Deployed on Vercel    
 
@@ -26,11 +25,11 @@ Walletrix is a **production-ready cryptocurrency wallet** built with modern web 
 | Solana | Non-EVM | ✅ |
 
 ### 💼 Wallet Features
-- **HD Wallet Generation** — BIP-39/44/48/85 compliant
-- **Multi-Signature Wallets** — Bitcoin P2WSH + Ethereum Gnosis Safe
-- **Shamir's Secret Sharing** — 3-of-5 social recovery
-- **BIP-85 Child Derivation** — Unlimited wallets from single seed
-- **ERC-20 Token Support** — USDT, USDC, DAI, LINK, UNI, WBTC + custom
+- **HD Wallet Generation** — BIP-39/44 compliant address derivation
+- **Multi-Signature Addresses** — Bitcoin P2SH/P2WSH address generation
+- **Shamir's Secret Sharing** — k-of-n threshold secret splitting
+- **BIP-85 Child Derivation** — Deterministic child mnemonic generation
+- **ERC-20 Token Support** — Balance queries for popular tokens
 
 ### 📊 Dashboard & Analytics
 - Real-time balance tracking
@@ -41,9 +40,9 @@ Walletrix is a **production-ready cryptocurrency wallet** built with modern web 
 
 ---
 
-## 🛡️ Security Highlights
+## 🛡️ Security Implementation
 
-> *"Industry-standard security with advanced cryptographic implementations"*
+> *Demonstrating modern cryptographic practices and security patterns*
 
 ### Cryptography
 | Feature | Implementation | Standard |
@@ -66,11 +65,13 @@ Walletrix is a **production-ready cryptocurrency wallet** built with modern web 
 - Input validation with express-validator
 - CORS protection with whitelist
 
-### Transaction Security
-- Pre-transaction simulation
-- Address reputation checking
-- Anomaly detection (unusual amounts)
-- Address poisoning detection
+### Transaction Validation
+- Address format validation
+- Known scam address checking
+- Balance verification before send
+- Basic anomaly warnings
+
+> **Note**: This is an educational project. Transaction signing architecture needs refactoring for true non-custodial operation. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for roadmap.
 
 ---
 
@@ -211,7 +212,7 @@ Walletrix/
 | `User` | Authentication + Clerk integration |
 | `Wallet` | HD/Imported wallet storage |
 | `Transaction` | High-precision Decimal(36,18) |
-| `MultiSigWallet` | M-of-N configuration |
+| `MultiSigWallet` | M-of-N address generation (Bitcoin P2WSH) |
 | `BIP85ChildWallet` | Derived child wallets |
 | `Notification` | Real-time notifications |
 | `ActivityLog` | Security audit trail |
@@ -228,8 +229,8 @@ See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive securi
 - Argon2id password hashing (PHC winner)
 - AES-256-GCM encryption
 - Shamir's Secret Sharing
-- Stealth addresses (ECDH on secp256k1)
-- Multi-signature wallets
+- Stealth addresses (ECDH key exchange demonstration)
+- Multi-signature address generation
 - Rate limiting strategies
 - Security headers
 
@@ -237,16 +238,16 @@ See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive securi
 
 ## 📈 API Overview
 
-**40+ RESTful Endpoints** organized by domain:
+RESTful API organized by domain:
 
-| Domain | Endpoints | Description |
-|--------|-----------|-------------|
-| `/auth` | 6 | Authentication, sessions, 2FA |
-| `/wallet` | 8 | Generate, import, encrypt, backup |
-| `/blockchain` | 8 | Balances, transactions, gas |
-| `/tokens` | 5 | ERC-20 queries, batch operations |
-| `/prices` | 8 | Real-time market data |
-| `/multisig` | 6 | Multi-signature operations |
+| Domain | Description |
+|--------|-------------|
+| `/auth` | Authentication, sessions, 2FA |
+| `/wallet` | Generate, import, encrypt |
+| `/blockchain` | Balance queries, gas estimation |
+| `/tokens` | ERC-20 balance queries |
+| `/prices` | Market data (CoinGecko) |
+| `/multisig` | Address generation |
 
 ---
 
@@ -263,5 +264,23 @@ See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive securi
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## ⚠️ Project Scope & Limitations
+
+This is a **learning/portfolio project** demonstrating:
+- Multi-chain HD wallet derivation (BIP-39/44)
+- Cryptographic implementations (Argon2id, AES-256-GCM, Shamir's)
+- Full-stack architecture with proper security patterns
+- Database design and API development
+
+**Current limitations:**
+- Transaction signing architecture needs refactoring
+- Multi-sig is address generation only (no transaction coordination)
+- Stealth addresses are cryptographic demonstration (no on-chain registry)
+- Tests need import path fixes
+
+See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for planned improvements.
 
 ---
