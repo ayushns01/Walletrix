@@ -1,0 +1,206 @@
+// ============================================================================
+// Walletrix Database Schema
+// Hybrid EOA + ERC-4337 Smart Vault Architecture
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Core User & Wallet Models
+// ============================================================================
+
+/// A Walletrix user account (authenticated via Clerk or JWT)
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String   @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  wallets      Wallet[]
+  activityLogs ActivityLog[]
+
+  @@map("users")
+}
+
+/// Represents a wallet (EOA) derived from BIP-39 or imported via private key.
+/// This is the foundation — on EVM chains, a SmartAccount can optionally be
+/// deployed on top of this wallet to enable ERC-4337 features.
+model Wallet {
+  id           String     @id @default(cuid())
+  userId       String     @map("user_id")
+  label        String     @default("My Wallet")
+  type         WalletType @default(HD)
+  network      Network    @default(ETHEREUM)
+  address      String
+  encryptedKey String?    @map("encrypted_key") @db.Text
+  metadata     Json?
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smartAccount  SmartAccount?
+  transactions  Transaction[]
+
+  @@unique([userId, address, network])
+  @@index([userId])
+  @@index([address])
+  @@map("wallets")
+}
+
+enum WalletType {
+  HD       // Derived from BIP-39 mnemonic
+  IMPORTED // Imported via private key
+}
+
+enum Network {
+  ETHEREUM
+  POLYGON
+  ARBITRUM
+  OPTIMISM
+  BASE
+  BSC
+  AVALANCHE
+  BITCOIN
+  SOLANA
+  SEPOLIA
+  GOERLI
+  HOLESKY
+}
+
+// ============================================================================
+// ERC-4337 Smart Vault Models (Hybrid Architecture)
+// ============================================================================
+
+/// An ERC-4337 Smart Account (WalletrixVault) deployed on top of an EOA wallet.
+/// The EOA acts as the signer/owner; the SmartAccount holds funds on-chain.
+model SmartAccount {
+  id           String   @id @default(cuid())
+  walletId     String   @unique @map("wallet_id")
+  vaultAddress String   @map("vault_address")
+  chainId      Int      @map("chain_id")
+  factorySalt  String   @map("factory_salt")
+  isDeployed   Boolean  @default(false) @map("is_deployed")
+  deployTxHash String?  @map("deploy_tx_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  wallet    Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  guardians Guardian[]
+  userOps   UserOperation[]
+
+  @@unique([vaultAddress, chainId])
+  @@index([walletId])
+  @@map("smart_accounts")
+}
+
+/// A guardian in the social recovery system.
+/// M-of-N guardians must approve to recover a SmartAccount.
+model Guardian {
+  id              String   @id @default(cuid())
+  smartAccountId  String   @map("smart_account_id")
+  guardianAddress String   @map("guardian_address")
+  label           String?
+  isActive        Boolean  @default(true) @map("is_active")
+  addedAt         DateTime @default(now()) @map("added_at")
+
+  smartAccount SmartAccount @relation(fields: [smartAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([smartAccountId, guardianAddress])
+  @@index([smartAccountId])
+  @@map("guardians")
+}
+
+/// A meta-transaction submitted via the ERC-4337 bundler.
+model UserOperation {
+  id              String          @id @default(cuid())
+  smartAccountId  String          @map("smart_account_id")
+  userOpHash      String          @unique @map("user_op_hash")
+  status          UserOpStatus    @default(PENDING)
+  paymasterUsed   String?         @map("paymaster_used")
+  gasSponsored    Boolean         @default(false) @map("gas_sponsored")
+  bundlerResponse Json?           @map("bundler_response")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  executedAt      DateTime?       @map("executed_at")
+
+  smartAccount SmartAccount @relation(fields: [smartAccountId], references: [id], onDelete: Cascade)
+
+  @@index([smartAccountId])
+  @@index([status])
+  @@map("user_operations")
+}
+
+enum UserOpStatus {
+  PENDING
+  BUNDLED
+  CONFIRMED
+  FAILED
+}
+
+// ============================================================================
+// Transaction & Activity Tracking
+// ============================================================================
+
+/// Records on-chain transactions (both EOA and Smart Vault).
+model Transaction {
+  id          String            @id @default(cuid())
+  walletId    String            @map("wallet_id")
+  txHash      String            @map("tx_hash")
+  network     Network
+  fromAddress String            @map("from_address")
+  toAddress   String            @map("to_address")
+  value       String            // Stored as string to handle BigInt safely
+  status      TransactionStatus @default(PENDING)
+  category    TxCategory        @default(TRANSFER)
+  gasUsed     String?           @map("gas_used")
+  timestamp   DateTime          @default(now())
+  metadata    Json?
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([txHash])
+  @@index([status])
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum TxCategory {
+  TRANSFER
+  SWAP
+  APPROVE
+  DEPLOY
+  RECOVERY
+  BATCH
+}
+
+/// Audit log for user actions (wallet creation, settings changes, etc.)
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

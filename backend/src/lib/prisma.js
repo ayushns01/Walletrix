@@ -1,0 +1,26 @@
+import { PrismaClient } from '@prisma/client';
+
+/**
+ * Prisma client singleton.
+ * Prevents multiple instances during development hot-reloads.
+ * In production, a single instance is created and reused.
+ *
+ * Prisma v7 (classic engine): DATABASE_URL is read from prisma.config.ts.
+ */
+
+const globalForPrisma = globalThis;
+
+const prisma =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+        log:
+            process.env.NODE_ENV === 'development'
+                ? ['query', 'error', 'warn']
+                : ['error'],
+    });
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+}
+
+export default prisma;
