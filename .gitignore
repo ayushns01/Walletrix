@@ -155,8 +155,10 @@ cypress/screenshots/
 .dockerignore
 docker-compose.override.yml
 
-# Prisma
-# migrations/  # COMMENTED OUT - We need migrations in git for production deploys!
+# Foundry (Smart Contracts)
+contracts/lib/
+contracts/out/
+contracts/cache/
 
 # Vercel
 .vercel
