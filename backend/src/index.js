@@ -22,12 +22,8 @@ import walletRoutes from './routes/walletRoutes.js';
 import blockchainRoutes from './routes/blockchainRoutes.js';
 import tokenRoutes from './routes/tokenRoutes.js';
 import priceRoutes from './routes/priceRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
-import addressBookRoutes from './routes/addressBookRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
-import sessionCleanupJob from './jobs/sessionCleanup.js';
 import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
 
 const app = express();
@@ -146,37 +142,14 @@ app.get('/api/v1', (req, res) => {
         trending: 'GET /api/v1/prices/list/trending',
         topCoins: 'GET /api/v1/prices/list/top',
       },
-      backup: {
-        createBackup: 'POST /api/v1/wallet-backup/:walletId/backup',
-        importBackup: 'POST /api/v1/wallet-backup/import',
-        exportAddresses: 'GET /api/v1/wallet-backup/:walletId/export/addresses',
-        exportMnemonic: 'POST /api/v1/wallet-backup/:walletId/export/mnemonic',
-        getBackupHistory: 'GET /api/v1/wallet-backup/:walletId/backups',
-        validateBackup: 'POST /api/v1/wallet-backup/validate',
-      },
     },
   });
 });
 
-app.use('/api/v1/auth', rateLimiters.auth, authRoutes);
 app.use('/api/v1/wallet', rateLimiters.walletGeneration, walletRoutes);
-app.use('/api/v1/wallets', rateLimiters.databaseWallet, databaseWalletRoutes);
 app.use('/api/v1/blockchain', rateLimiters.blockchainQuery, blockchainRoutes);
 app.use('/api/v1/tokens', rateLimiters.tokenQuery, tokenRoutes);
 app.use('/api/v1/prices', rateLimiters.priceData, priceRoutes);
-app.use('/api/v1/address-book', rateLimiters.global, addressBookRoutes);
-
-const walletBackupRoutes = await import('./routes/walletBackupRoutes.js');
-app.use('/api/v1/wallet-backup', rateLimiters.backup, walletBackupRoutes.default);
-
-const bip85Routes = await import('./routes/bip85Routes.js');
-app.use('/api/v1/wallet/bip85', rateLimiters.walletGeneration, bip85Routes.default);
-
-const multiSigRoutes = await import('./routes/multiSigRoutes.js');
-app.use('/api/v1/wallet/multisig', rateLimiters.walletGeneration, multiSigRoutes.default);
-
-const notificationRoutes = await import('./routes/notificationRoutes.js');
-app.use('/api/v1/notifications', rateLimiters.global, notificationRoutes.default);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -190,16 +163,6 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
     });
 
     startMetricsLogging(60);
-    sessionCleanupJob.start();
-    logger.info('Session cleanup job started');
-
-    try {
-      const { resumeMonitoring } = await import('./services/transactionMonitorService.js');
-      await resumeMonitoring();
-      logger.info('Transaction monitoring resumed');
-    } catch (error) {
-      logger.error('Failed to resume transaction monitoring', { error: error.message });
-    }
   });
 }
 
