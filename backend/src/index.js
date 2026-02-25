@@ -22,6 +22,10 @@ import walletRoutes from './routes/walletRoutes.js';
 import blockchainRoutes from './routes/blockchainRoutes.js';
 import tokenRoutes from './routes/tokenRoutes.js';
 import priceRoutes from './routes/priceRoutes.js';
+import smartVaultRoutes from './routes/smartVaultRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
+import frontendWalletRoutes from './routes/frontendWalletRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
 import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
@@ -142,6 +146,27 @@ app.get('/api/v1', (req, res) => {
         trending: 'GET /api/v1/prices/list/trending',
         topCoins: 'GET /api/v1/prices/list/top',
       },
+      auth: {
+        register: 'POST /api/v1/auth/register',
+        login: 'POST /api/v1/auth/login',
+        refresh: 'POST /api/v1/auth/refresh',
+      },
+      dbWallets: {
+        profile: 'GET /api/v1/db-wallets/profile',
+        create: 'POST /api/v1/db-wallets',
+        list: 'GET /api/v1/db-wallets',
+        get: 'GET /api/v1/db-wallets/:walletId',
+        update: 'PATCH /api/v1/db-wallets/:walletId',
+        delete: 'DELETE /api/v1/db-wallets/:walletId',
+        transactions: 'GET /api/v1/db-wallets/:walletId/transactions',
+      },
+      smartVault: {
+        deploy: 'POST /api/v1/smart-vault/deploy',
+        getVault: 'GET /api/v1/smart-vault/:walletId',
+        sponsor: 'POST /api/v1/smart-vault/sponsor',
+        send: 'POST /api/v1/smart-vault/send',
+        guardians: 'POST /api/v1/smart-vault/guardians',
+      },
     },
   });
 });
@@ -150,6 +175,15 @@ app.use('/api/v1/wallet', rateLimiters.walletGeneration, walletRoutes);
 app.use('/api/v1/blockchain', rateLimiters.blockchainQuery, blockchainRoutes);
 app.use('/api/v1/tokens', rateLimiters.tokenQuery, tokenRoutes);
 app.use('/api/v1/prices', rateLimiters.priceData, priceRoutes);
+app.use('/api/v1/smart-vault', rateLimiters.global, smartVaultRoutes);
+app.use('/api/v1/auth', rateLimiters.global, authRoutes);
+app.use('/api/v1/db-wallets', rateLimiters.global, databaseWalletRoutes);
+app.use('/api/v1/wallets', rateLimiters.global, frontendWalletRoutes);
+
+// Stub: multisig wallet endpoint (returns empty array for now)
+app.get('/api/v1/wallet/multisig/user/:userId', (req, res) => {
+  res.status(200).json({ success: true, wallets: [] });
+});
 
 app.use(notFoundHandler);
 app.use(errorHandler);
