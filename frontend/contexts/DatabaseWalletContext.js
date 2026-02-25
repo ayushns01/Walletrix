@@ -487,9 +487,9 @@ export function WalletProvider({ children }) {
         );
 
         const walletData = {
-          ethereum: { address: response.data.ethereum.address },
-          bitcoin: { address: response.data.bitcoin.address },
-          solana: { address: response.data.solana.address },
+          ethereum: { address: response.data.addresses.ethereum },
+          bitcoin: { address: response.data.addresses.bitcoin },
+          solana: { address: response.data.addresses.solana },
           encrypted: encryptedResponse.encrypted,
         };
 
@@ -499,9 +499,9 @@ export function WalletProvider({ children }) {
             walletName,
             encryptedResponse.encrypted,
             {
-              ethereum: response.data.ethereum.address,
-              bitcoin: response.data.bitcoin.address,
-              solana: response.data.solana.address
+              ethereum: response.data.addresses.ethereum,
+              bitcoin: response.data.addresses.bitcoin,
+              solana: response.data.addresses.solana
             },
             'Generated wallet'
           );
@@ -540,9 +540,9 @@ export function WalletProvider({ children }) {
         );
 
         const walletData = {
-          ethereum: { address: response.data.ethereum.address },
-          bitcoin: { address: response.data.bitcoin.address },
-          solana: { address: response.data.solana.address },
+          ethereum: { address: response.data.addresses.ethereum },
+          bitcoin: { address: response.data.addresses.bitcoin },
+          solana: { address: response.data.addresses.solana },
           encrypted: encryptedResponse.encrypted,
         };
 
@@ -552,9 +552,9 @@ export function WalletProvider({ children }) {
             walletName,
             encryptedResponse.encrypted,
             {
-              ethereum: response.data.ethereum.address,
-              bitcoin: response.data.bitcoin.address,
-              solana: response.data.solana.address
+              ethereum: response.data.addresses.ethereum,
+              bitcoin: response.data.addresses.bitcoin,
+              solana: response.data.addresses.solana
             },
             'Imported from recovery phrase'
           );

@@ -47,6 +47,7 @@ export default function Home() {
     setShowWalkthroughOnUnlock
   } = useWallet()
 
+  const [mounted, setMounted] = useState(false)
   const [view, setView] = useState('landing')
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
@@ -59,18 +60,20 @@ export default function Home() {
   const [showWalletSelector, setShowWalletSelector] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
-  const [guestMode, setGuestMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('walletrix_guest_mode') === 'true'
-    }
-    return false
-  })
+  const [guestMode, setGuestMode] = useState(false)
+
+  // Handle hydration - read localStorage only on client after mount
+  useEffect(() => {
+    setMounted(true)
+    const savedGuestMode = localStorage.getItem('walletrix_guest_mode') === 'true'
+    setGuestMode(savedGuestMode)
+  }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (mounted) {
       localStorage.setItem('walletrix_guest_mode', guestMode.toString())
     }
-  }, [guestMode])
+  }, [guestMode, mounted])
 
   useEffect(() => {
     if (clerkUser && wallet && isLocked) {
@@ -165,6 +168,17 @@ export default function Home() {
     } else {
       setShowReceiveModal(true)
     }
+  }
+
+  // Prevent hydration mismatch by rendering consistent initial state
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="animate-pulse">
+          <Wallet className="w-12 h-12 text-purple-500" />
+        </div>
+      </main>
+    )
   }
 
   if (!wallet && view === 'landing' && !guestMode) {

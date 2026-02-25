@@ -160,6 +160,9 @@ contracts/lib/
 contracts/out/
 contracts/cache/
 
+# Prisma (Generated Client)
+backend/src/generated/
+
 # Vercel
 .vercel
 
