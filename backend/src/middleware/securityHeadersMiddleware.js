@@ -22,6 +22,7 @@ export const securityHeaders = (req, res, next) => {
     next();
 };
 
+
 export const contentSecurityPolicy = (req, res, next) => {
     const cspDirectives = [
         "default-src 'self'",
