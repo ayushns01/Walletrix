@@ -23,6 +23,7 @@ const optionalEnvVars = {
 
   ETHEREUM_MAINNET_RPC: 'Ethereum mainnet RPC endpoint',
 
+
   ETHEREUM_SEPOLIA_RPC: 'Ethereum Sepolia testnet RPC',
   ETHEREUM_GOERLI_RPC: 'Ethereum Goerli testnet RPC',
   ETHEREUM_HOLESKY_RPC: 'Ethereum Holesky testnet RPC',
