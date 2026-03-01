@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
  * Prevents multiple instances during development hot-reloads.
  * In production, a single instance is created and reused.
  *
- * Prisma v7 (classic engine): DATABASE_URL is read from prisma.config.ts.
+ * Prisma v6: DATABASE_URL is read from schema.prisma via env("DATABASE_URL").
  */
 
 const globalForPrisma = globalThis;

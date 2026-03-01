@@ -32,16 +32,15 @@ class FrontendWalletController {
             }
 
             // Ensure user exists in DB (upsert from Clerk ID)
-            let user = await prisma.user.findUnique({ where: { email: clerkUserId } });
-            if (!user) {
-                user = await prisma.user.create({
-                    data: {
-                        email: clerkUserId,
-                        name: name || 'Clerk User',
-                        passwordHash: 'clerk-managed', // Clerk handles auth
-                    },
-                });
-            }
+            const user = await prisma.user.upsert({
+                where: { email: clerkUserId },
+                update: {}, // No-op if exists
+                create: {
+                    email: clerkUserId,
+                    name: name || 'Clerk User',
+                    passwordHash: 'clerk-managed', // Clerk handles auth
+                },
+            });
 
             const groupId = `grp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             const walletsToCreate = [];
@@ -145,11 +144,16 @@ class FrontendWalletController {
             for (const w of wallets) {
                 const groupId = w.metadata?.groupId || w.id;
                 if (!groups[groupId]) {
+                    // Parse encryptedKey from JSON string to object for the frontend
+                    let parsedEncrypted = w.encryptedKey || null;
+                    if (w.encryptedKey) {
+                        try { parsedEncrypted = JSON.parse(w.encryptedKey); } catch { /* keep as string */ }
+                    }
                     groups[groupId] = {
                         id: w.id,
                         name: w.label,
                         addresses: {},
-                        encryptedData: w.encryptedKey || null,
+                        encryptedData: parsedEncrypted,
                         description: w.metadata?.description || '',
                         createdAt: w.createdAt,
                     };
