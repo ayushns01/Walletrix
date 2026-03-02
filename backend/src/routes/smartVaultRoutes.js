@@ -19,3 +19,4 @@ router.post('/guardians', smartVaultController.addGuardian);
 router.delete('/guardians', smartVaultController.removeGuardian);
 
 export default router;
+
