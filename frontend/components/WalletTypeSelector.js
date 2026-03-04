@@ -7,7 +7,7 @@ import { Shield, Zap, Users, ChevronRight, Sparkles, Clock, ArrowLeft, Info } fr
  * WalletTypeSelector
  * Presented during wallet creation — user chooses between:
  * 1. Standard Wallet (EOA) — classic BIP-39 experience
- * 2. Smart Vault (ERC-4337) — gasless, batch tx, social recovery
+ * 2. Smart Vault (ERC-4337) — batch tx
  */
 export default function WalletTypeSelector({ onSelect, onBack }) {
     const [hoveredType, setHoveredType] = useState(null);
@@ -39,23 +39,18 @@ export default function WalletTypeSelector({ onSelect, onBack }) {
             id: 'smart_vault',
             title: 'Smart Vault',
             subtitle: 'ERC-4337 Smart Account',
-            description: 'Next-gen wallet with gasless transactions, batch execution, and social recovery.',
+            description: 'Next-gen wallet with batch execution.',
             icon: Zap,
             gradient: 'from-cyan-600/20 to-blue-600/20',
             borderColor: 'border-cyan-500/30 hover:border-cyan-500',
             iconBg: 'bg-cyan-500/20 group-hover:bg-cyan-500/30',
             iconColor: 'text-cyan-400',
             features: [
-                { label: 'Gasless', color: 'bg-cyan-500/20 text-cyan-300', icon: '⛽' },
                 { label: 'Batch transactions', color: 'bg-blue-500/20 text-blue-300', icon: '📦' },
-                { label: 'Social recovery', color: 'bg-orange-500/20 text-orange-300', icon: '🛡️' },
             ],
             details: [
-                'Gas fees sponsored by Walletrix — free transactions',
                 'Execute multiple operations in a single click',
-                'Assign guardians for account recovery if you lose your key',
                 'Role-based permissions for team operations',
-                '48-hour timelock protects against unauthorized recovery',
             ],
             recommended: true,
         },

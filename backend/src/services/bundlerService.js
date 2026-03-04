@@ -49,7 +49,6 @@ class BundlerService {
                         smartAccountId,
                         userOpHash: `failed_${Date.now()}`,
                         status: 'FAILED',
-                        gasSponsored: !!signedUserOp.paymasterAndData && signedUserOp.paymasterAndData !== '0x',
                         bundlerResponse: result.error,
                     },
                 });
@@ -65,8 +64,6 @@ class BundlerService {
                     smartAccountId,
                     userOpHash,
                     status: 'BUNDLED',
-                    gasSponsored: !!signedUserOp.paymasterAndData && signedUserOp.paymasterAndData !== '0x',
-                    paymasterUsed: signedUserOp.paymasterAndData?.slice(0, 42) || null,
                     bundlerResponse: result,
                 },
             });

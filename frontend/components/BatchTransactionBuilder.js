@@ -280,7 +280,6 @@ export default function BatchTransactionBuilder({ vaultAddress, onSubmit, onClos
                     <h3 className="text-lg font-semibold text-white mb-2">Batch Submitted!</h3>
                     <p className="text-sm text-slate-400 mb-6">
                         {transactions.length} transactions submitted to the bundler.
-                        Gas was sponsored by Walletrix.
                     </p>
                     <button
                         onClick={onClose}

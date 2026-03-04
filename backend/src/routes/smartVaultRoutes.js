@@ -11,7 +11,6 @@ router.post('/predict-address', smartVaultController.predictAddress);
 
 // ── UserOperation Flow ──
 router.post('/build-userop', smartVaultController.buildUserOp);
-router.post('/sponsor', smartVaultController.sponsor);
 router.post('/send', smartVaultController.sendUserOp);
 router.get('/receipt/:userOpHash', smartVaultController.getReceipt);
 

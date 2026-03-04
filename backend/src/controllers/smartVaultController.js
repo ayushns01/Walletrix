@@ -1,5 +1,4 @@
 import smartVaultService from '../services/smartVaultService.js';
-import paymasterService from '../services/paymasterService.js';
 import bundlerService from '../services/bundlerService.js';
 import logger from '../services/loggerService.js';
 
@@ -155,33 +154,7 @@ class SmartVaultController {
         }
     }
 
-    /**
-     * POST /api/v1/smart-vault/sponsor
-     * Request gas sponsorship for a UserOperation.
-     */
-    async sponsor(req, res) {
-        try {
-            const { smartAccountId, userOp } = req.body;
 
-            if (!smartAccountId || !userOp) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'smartAccountId and userOp are required',
-                });
-            }
-
-            const result = await paymasterService.sponsorUserOp(smartAccountId, userOp);
-
-            if (!result.success) {
-                return res.status(403).json(result);
-            }
-
-            res.status(200).json(result);
-        } catch (error) {
-            logger.error('Sponsor UserOp failed', { error: error.message });
-            res.status(500).json({ success: false, error: 'Internal server error' });
-        }
-    }
 
     /**
      * POST /api/v1/smart-vault/send

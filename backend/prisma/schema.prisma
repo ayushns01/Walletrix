@@ -127,8 +127,6 @@ model UserOperation {
   smartAccountId  String          @map("smart_account_id")
   userOpHash      String          @unique @map("user_op_hash")
   status          UserOpStatus    @default(PENDING)
-  paymasterUsed   String?         @map("paymaster_used")
-  gasSponsored    Boolean         @default(false) @map("gas_sponsored")
   bundlerResponse Json?           @map("bundler_response")
   createdAt       DateTime        @default(now()) @map("created_at")
   executedAt      DateTime?       @map("executed_at")
