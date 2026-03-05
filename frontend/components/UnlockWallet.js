@@ -5,7 +5,7 @@ import { Lock, Trash2 } from 'lucide-react';
 import { useWallet } from '@/contexts/DatabaseWalletContext';
 import toast from 'react-hot-toast';
 
-export default function UnlockWallet({ onDeleteWallet }) {
+export default function UnlockWallet({ onDeleteWallet, onImportWallet }) {
   const { unlockWallet } = useWallet();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,9 +70,12 @@ export default function UnlockWallet({ onDeleteWallet }) {
           <div className="mt-8 text-center space-y-4">
             <p className="text-sm text-blue-300/70">
               Forgot your password?{' '}
-              <a href="#" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors duration-300">
+              <button
+                onClick={onImportWallet}
+                className="text-blue-400 hover:text-blue-300 font-semibold transition-colors duration-300 underline"
+              >
                 Restore from recovery phrase
-              </a>
+              </button>
             </p>
 
             {}

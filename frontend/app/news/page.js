@@ -78,7 +78,7 @@ export default function NewsPage() {
                 <div className="mb-8">
                     <button
                         onClick={() => router.back()}
-                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 p-2 hover:bg-slate-800/50 rounded-lg"
                     >
                         <ArrowLeft className="w-5 h-5" />
                         <span>Back</span>

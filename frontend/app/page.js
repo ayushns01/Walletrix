@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
@@ -19,6 +19,7 @@ import SettingsModal from '@/components/Settings'
 import NotificationBell from '@/components/NotificationBell'
 import Walkthrough from '@/components/Walkthrough'
 import MultiSigWalletDetail from '@/components/MultiSigWalletDetail'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
@@ -40,6 +41,7 @@ export default function Home() {
     setActiveWalletId,
     importLocalStorageWallet,
     deleteWallet,
+    deleteDatabaseWallet,
     unlockWallet,
     lockWallet,
     selectedNetwork,
@@ -69,6 +71,21 @@ export default function Home() {
     setGuestMode(savedGuestMode)
   }, [])
 
+  // Reactive view setting based on wallet state
+  useEffect(() => {
+    if (!mounted) return; // Wait for initial mount and hydration
+
+    if (wallet && !isLocked) {
+      setView('dashboard');
+    } else if (wallet && isLocked) {
+      setView('locked');
+    } else if (!wallet && guestMode) {
+      setView('welcome');
+    } else if (!wallet && !guestMode) {
+      setView('landing');
+    }
+  }, [wallet, isLocked, guestMode, mounted]);
+
   useEffect(() => {
     if (mounted) {
       localStorage.setItem('walletrix_guest_mode', guestMode.toString())
@@ -77,8 +94,10 @@ export default function Home() {
 
   useEffect(() => {
     if (clerkUser && wallet && isLocked) {
-
-      unlockWallet(clerkUser.id).catch(console.error);
+      unlockWallet(clerkUser.id).catch((error) => {
+        console.error('Auto-unlock failed:', error);
+        toast.error('Could not auto-unlock wallet. Please unlock manually.');
+      });
     }
   }, [clerkUser, wallet, isLocked]);
 
@@ -181,6 +200,22 @@ export default function Home() {
     )
   }
 
+  // If wallet exists and is locked, show unlock screen
+  if (wallet && isLocked) {
+    return (
+      <UnlockWallet
+        onDeleteWallet={deleteWallet}
+        onImportWallet={async () => {
+          if (confirm('This will delete your current locked wallet so you can restore from a recovery phrase. Make sure you have your 12-word phrase ready. Continue?')) {
+            await deleteWallet();
+            setView('import');
+          }
+        }}
+      />
+    )
+  }
+
+  // If no wallet and on landing page, show landing page
   if (!wallet && view === 'landing' && !guestMode) {
     return (
       <LandingPage
@@ -193,14 +228,7 @@ export default function Home() {
     )
   }
 
-  if (wallet && isLocked) {
-    return (
-      <UnlockWallet
-        onDeleteWallet={deleteWallet}
-      />
-    )
-  }
-
+  // If no wallet, show wallet creation/import flows
   if (!wallet) {
     return (
       <main className="min-h-screen bg-black text-white overflow-x-hidden relative">
@@ -309,6 +337,17 @@ export default function Home() {
             <div className="max-w-lg mx-auto text-center py-12">
               <div className="bg-gradient-to-b from-slate-800/90 to-slate-900/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-blue-500/20 shadow-2xl shadow-blue-500/10">
 
+                {/* Back to Landing */}
+                <div className="flex justify-start mb-6">
+                  <button
+                    onClick={() => { setGuestMode(false); setView('landing'); }}
+                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-700/50 rounded-lg"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-sm">Back</span>
+                  </button>
+                </div>
+
                 {}
                 <div className="flex items-center gap-4 justify-center mb-8 group cursor-pointer">
                   <div className="relative w-16 h-16">
@@ -400,26 +439,41 @@ export default function Home() {
                           <div className="space-y-3">
                             {/* Regular Wallets */}
                             {userWallets && userWallets.map((w) => (
-                              <button
+                              <div
                                 key={w.id}
-                                onClick={() => {
-                                  setActiveWalletId(w.id);
-                                }}
-                                className="w-full p-4 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl border border-slate-600/50 hover:border-blue-400/50 transition-all text-left group"
+                                className="flex items-center gap-2 w-full group"
                               >
-                                <div className="flex items-center gap-4">
-                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                                    <Wallet className="w-6 h-6 text-white" />
+                                <button
+                                  onClick={() => {
+                                    setActiveWalletId(w.id);
+                                  }}
+                                  className="flex-1 p-4 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl border border-slate-600/50 hover:border-blue-400/50 transition-all text-left"
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                      <Wallet className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-white font-medium truncate">{w.name || 'Unnamed Wallet'}</p>
+                                      <p className="text-xs text-slate-400 mt-0.5">
+                                        Created {new Date(w.createdAt).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-white font-medium truncate">{w.name || 'Unnamed Wallet'}</p>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                      Created {new Date(w.createdAt).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-                                </div>
-                              </button>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`Delete "${w.name || 'Unnamed Wallet'}"? Make sure you've backed up your recovery phrase.`)) {
+                                      await deleteDatabaseWallet(w.id);
+                                    }
+                                  }}
+                                  className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl border border-slate-600/50 hover:border-red-500/50 transition-all flex-shrink-0"
+                                  title="Delete wallet"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             ))}
 
                             {/* Multi-Sig Wallets */}
@@ -507,39 +561,47 @@ export default function Home() {
             <div className="py-8">
               <button
                 onClick={() => setView('welcome')}
-                className="mb-8 text-blue-300 hover:text-blue-100 transition-all duration-300 text-lg font-medium flex items-center gap-2 hover:bg-blue-500/10 px-3 py-2 rounded-lg"
+                className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800/50 rounded-lg"
               >
-                ← Back to Welcome
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
               </button>
-              <CreateWallet
-                onComplete={() => setView('dashboard')}
-                onMultiSigCreated={(wallet) => {
-                  setSelectedMultiSigWallet(wallet);
-                  setView('multisig-detail');
-                }}
-              />
+              <ErrorBoundary>
+                <CreateWallet
+                  onComplete={() => setView('dashboard')}
+                  onMultiSigCreated={(wallet) => {
+                    setSelectedMultiSigWallet(wallet);
+                    setView('multisig-detail');
+                  }}
+                />
+              </ErrorBoundary>
             </div>
           )}
 
           {view === 'multisig-detail' && selectedMultiSigWallet && (
-            <MultiSigWalletDetail
-              walletId={selectedMultiSigWallet.id}
-              onBack={() => {
-                setSelectedMultiSigWallet(null);
-                setView('multisig');
-              }}
-            />
+            <ErrorBoundary>
+              <MultiSigWalletDetail
+                walletId={selectedMultiSigWallet.id}
+                onBack={() => {
+                  setSelectedMultiSigWallet(null);
+                  setView('multisig');
+                }}
+              />
+            </ErrorBoundary>
           )}
 
           {view === 'import' && (
             <div className="py-8">
               <button
                 onClick={() => setView('welcome')}
-                className="mb-8 text-blue-300 hover:text-blue-100 transition-all duration-300 text-lg font-medium flex items-center gap-2 hover:bg-blue-500/10 px-3 py-2 rounded-lg"
+                className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800/50 rounded-lg"
               >
-                ← Back to Welcome
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back</span>
               </button>
-              <ImportWallet onComplete={() => setView('dashboard')} />
+              <ErrorBoundary>
+                <ImportWallet onComplete={() => setView('dashboard')} />
+              </ErrorBoundary>
             </div>
           )}
         </div>
@@ -1037,7 +1099,9 @@ export default function Home() {
 
         {/* Dashboard */}
         <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1, willChange: 'contents' }}>
-          <Dashboard />
+          <ErrorBoundary>
+            <Dashboard />
+          </ErrorBoundary>
         </div>
 
         {/* Modals */}

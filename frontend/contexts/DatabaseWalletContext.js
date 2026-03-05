@@ -506,9 +506,14 @@ export function WalletProvider({ children }) {
             'Generated wallet'
           );
 
+          // Set wallet state directly — switchWallet reads from userWallets which
+          // may not have updated yet (React state is async), causing a blank screen.
           if (createdWallet && createdWallet.id) {
-            await switchWallet(createdWallet.id);
+            setActiveWalletId(createdWallet.id);
+            setWalletChangeTimestamp(Date.now());
           }
+          setWallet(walletData);
+          setIsLocked(false);
         } else {
 
           localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));
@@ -559,9 +564,14 @@ export function WalletProvider({ children }) {
             'Imported from recovery phrase'
           );
 
+          // Set wallet state directly — switchWallet reads from userWallets which
+          // may not have updated yet (React state is async), causing a blank screen.
           if (createdWallet && createdWallet.id) {
-            await switchWallet(createdWallet.id);
+            setActiveWalletId(createdWallet.id);
+            setWalletChangeTimestamp(Date.now());
           }
+          setWallet(walletData);
+          setIsLocked(false);
         } else {
 
           localStorage.setItem('walletrix_wallet', JSON.stringify(walletData));

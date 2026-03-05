@@ -142,9 +142,20 @@ export default function SendModal({ isOpen, onClose, asset }) {
       const walletData = JSON.parse(walletDataString);
       let result;
 
+      // Detect old wallet format (created before private keys were stored)
+      const isOldFormat = !walletData.ethereum?.privateKey && !walletData.bitcoin?.privateKey && !walletData.solana?.privateKey;
+      if (isOldFormat) {
+        toast.error('⚠️ Your wallet was created with an older format. Please re-import your wallet using your recovery phrase to enable sending.', { duration: 7000 });
+        return;
+      }
+
       const [chain, networkName] = selectedNetwork.split('-');
 
       if (asset.symbol === 'BTC') {
+        if (!walletData.bitcoin?.privateKey) {
+          toast.error('❌ Bitcoin key not found in wallet data.');
+          return;
+        }
         result = await transactionAPI.sendBitcoinTransaction(
           walletData.bitcoin.privateKey,
           recipient,
@@ -153,6 +164,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
           activeWalletId
         );
       } else if (asset.symbol === 'SOL') {
+        if (!walletData.solana?.privateKey) {
+          toast.error('❌ Solana key not found in wallet data.');
+          return;
+        }
         result = await transactionAPI.sendSolanaTransaction(
           walletData.solana.privateKey,
           recipient,
@@ -160,6 +175,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
           { network: networkName, walletId: activeWalletId, confirmed: true }
         );
       } else if (asset.symbol === 'ETH') {
+        if (!walletData.ethereum?.privateKey) {
+          toast.error('❌ Ethereum key not found in wallet data.');
+          return;
+        }
         result = await transactionAPI.sendEthereumTransaction(
           walletData.ethereum.privateKey,
           recipient,
@@ -167,6 +186,10 @@ export default function SendModal({ isOpen, onClose, asset }) {
           { network: networkName, walletId: activeWalletId, confirmed: true }
         );
       } else {
+        if (!walletData.ethereum?.privateKey) {
+          toast.error('❌ Ethereum key not found in wallet data.');
+          return;
+        }
         result = await transactionAPI.sendTokenTransaction(
           walletData.ethereum.privateKey,
           asset.address,

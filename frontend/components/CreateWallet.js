@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Wallet, Eye, EyeOff, AlertCircle, Shield, Users } from 'lucide-react';
+import { Wallet, Eye, EyeOff, AlertCircle, Shield, Users, ArrowLeft } from 'lucide-react';
 import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { useUser } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
@@ -196,6 +196,13 @@ export default function CreateWallet({ onComplete, onMultiSigCreated }) {
           {}
           {step === 1 && (
             <div>
+              <button
+                onClick={() => { setStep(0); setWalletType(null); }}
+                className="mb-4 flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-2 py-1 hover:bg-slate-700/50 rounded-lg"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm">Back</span>
+              </button>
               <div className="flex items-center justify-center mb-6">
                 <Wallet className="w-16 h-16 text-purple-400" />
               </div>
