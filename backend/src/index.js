@@ -26,6 +26,9 @@ import smartVaultRoutes from './routes/smartVaultRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
 import frontendWalletRoutes from './routes/frontendWalletRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import telegramRoutes from './routes/telegramRoutes.js';
+import telegramWebhookRoutes from './routes/telegramWebhookRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
 import swaggerUi from 'swagger-ui-express';
 import securityHeadersMiddleware from './middleware/securityHeadersMiddleware.js';
@@ -50,10 +53,16 @@ const corsOptions = {
 
     const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '').split(',').map(url => url.trim()).filter(Boolean);
 
-    const isAllowedOrigin = allowedOrigins.indexOf(origin) !== -1 ||
-      origin.includes('walletrix.vercel.app') ||
-      origin.includes('walletrix-git-') ||
-      origin.includes('ayushns01s-projects.vercel.app');
+    // Strict regex matching — prevents subdomain spoofing via .includes()
+    const ALLOWED_VERCEL_PATTERNS = [
+      /^https:\/\/walletrix\.vercel\.app$/,
+      /^https:\/\/walletrix-git-[\w-]+\.vercel\.app$/,
+      /^https:\/\/ayushns01s-projects\.vercel\.app$/,
+    ];
+
+    const isAllowedOrigin =
+      allowedOrigins.includes(origin) ||
+      ALLOWED_VERCEL_PATTERNS.some((pattern) => pattern.test(origin));
 
     if (isAllowedOrigin) {
       callback(null, true);
