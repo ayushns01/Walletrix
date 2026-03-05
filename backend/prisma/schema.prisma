@@ -18,18 +18,50 @@ datasource db {
 
 /// A Walletrix user account (authenticated via Clerk or JWT)
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String   @map("password_hash")
-  avatarUrl    String?  @map("avatar_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  passwordHash      String    @map("password_hash")
+  avatarUrl         String?   @map("avatar_url")
+  telegramId        String?   @unique @map("telegram_id")
+  telegramLinkedAt  DateTime? @map("telegram_linked_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  wallets      Wallet[]
-  activityLogs ActivityLog[]
+  wallets           Wallet[]
+  activityLogs      ActivityLog[]
+  telegramLinkCode  TelegramLinkCode?
+  telegramBotWallet TelegramBotWallet?
 
   @@map("users")
+}
+
+/// One-time link code for connecting a Telegram account to a Walletrix user.
+model TelegramLinkCode {
+  id         String   @id @default(cuid())
+  userId     String   @unique @map("user_id")
+  code       String   @unique
+  telegramId String   @map("telegram_id")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_link_codes")
+}
+
+/// A dedicated bot EOA wallet generated per user for Telegram-initiated transactions.
+/// Private key is encrypted with the server-side SERVER_SIGNING_KEY.
+model TelegramBotWallet {
+  id                   String   @id @default(cuid())
+  userId               String   @unique @map("user_id")
+  address              String   @unique
+  encryptedPrivateKey  String   @map("encrypted_private_key") @db.Text
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_bot_wallets")
 }
 
 /// Represents a wallet (EOA) derived from BIP-39 or imported via private key.

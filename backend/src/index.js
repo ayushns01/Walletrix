@@ -188,6 +188,9 @@ app.use('/api/v1/smart-vault', rateLimiters.global, smartVaultRoutes);
 app.use('/api/v1/auth', rateLimiters.global, authRoutes);
 app.use('/api/v1/db-wallets', rateLimiters.global, databaseWalletRoutes);
 app.use('/api/v1/wallets', rateLimiters.global, frontendWalletRoutes);
+app.use('/api/v1/notifications', rateLimiters.global, notificationRoutes);
+app.use('/api/v1/telegram', rateLimiters.global, telegramRoutes);
+app.use('/api/v1/telegram', rateLimiters.global, telegramWebhookRoutes); // Webhook has no auth — validated inside controller
 
 // Stub: multisig wallet endpoint (returns empty array for now)
 app.get('/api/v1/wallet/multisig/user/:userId', (req, res) => {
