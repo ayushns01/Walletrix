@@ -8,8 +8,9 @@ import {
   Users, LogOut, Moon, Sun, Smartphone, Languages, Database, FileDown, Sparkles
 } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
-import { useUser, useClerk } from '@clerk/nextjs'
+import { useUser, useClerk, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { telegramAPI } from '@/lib/api'
 
 export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStartTutorial }) {
   const { user: clerkUser } = useUser()
@@ -31,9 +32,15 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
     setShowWalkthroughOnUnlock
   } = useWallet()
 
+  const { getToken } = useAuth()
   const [activeTab, setActiveTab] = useState('account')
   const [showPrivateKey, setShowPrivateKey] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+
+  // Telegram linking state
+  const [telegramStatus, setTelegramStatus] = useState(null)
+  const [telegramLinkCode, setTelegramLinkCode] = useState(null)
+  const [telegramLoading, setTelegramLoading] = useState(false)
 
   if (!isOpen) return null
 
@@ -45,6 +52,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
     { id: 'privacy', name: 'Privacy', icon: Eye },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'appearance', name: 'Appearance', icon: Moon },
+    { id: 'telegram', name: 'Telegram Bot', icon: Smartphone },
     { id: 'advanced', name: 'Advanced', icon: SettingsIcon },
     { id: 'about', name: 'About & Support', icon: HelpCircle },
   ]
@@ -562,6 +570,178 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                         <span className="text-blue-100 text-sm sm:text-base flex-1">USD ($)</span>
                         <span className="text-xs px-2 sm:px-3 py-1 bg-green-500/20 text-green-300 rounded-full whitespace-nowrap">Active</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Telegram Bot Tab */}
+            {activeTab === 'telegram' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-blue-100 mb-3 sm:mb-4">Telegram Bot</h3>
+                  <p className="text-xs sm:text-sm text-blue-300 mb-4 sm:mb-6">
+                    Link your Telegram account to manage your Walletrix wallet via our AI-powered bot.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Status Card */}
+                    <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-blue-100 text-sm sm:text-base">Connection Status</h4>
+                        <button
+                          onClick={async () => {
+                            try {
+                              setTelegramLoading(true)
+                              const token = await getToken()
+                              const res = await telegramAPI.getStatus(token)
+                              setTelegramStatus(res.data)
+                            } catch {
+                              toast.error('Failed to fetch Telegram status')
+                            } finally {
+                              setTelegramLoading(false)
+                            }
+                          }}
+                          disabled={telegramLoading}
+                          className="text-xs px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all disabled:opacity-50"
+                        >
+                          {telegramLoading ? 'Loading...' : 'Refresh'}
+                        </button>
+                      </div>
+
+                      {!telegramStatus ? (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-blue-300 mb-3">Click Refresh to check your Telegram link status.</p>
+                        </div>
+                      ) : telegramStatus.linked ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 p-3 bg-green-900/20 rounded-lg border border-green-500/20">
+                            <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
+                            <span className="text-green-300 text-sm font-medium">Linked</span>
+                            <span className="text-green-200/70 text-xs ml-auto">ID: {telegramStatus.telegramId}</span>
+                          </div>
+
+                          {telegramStatus.botWallet && (
+                            <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-500/10">
+                              <p className="text-xs text-blue-400 mb-1">Bot Wallet Address</p>
+                              <p className="text-xs sm:text-sm text-blue-200 font-mono break-all select-all">
+                                {telegramStatus.botWallet.address}
+                              </p>
+                              <p className="text-xs text-blue-400 mt-2">Fund this address to use the bot for transfers.</p>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Unlink your Telegram account? Your bot wallet will be removed.')) return
+                              try {
+                                setTelegramLoading(true)
+                                const token = await getToken()
+                                await telegramAPI.unlinkTelegram(token)
+                                setTelegramStatus(null)
+                                setTelegramLinkCode(null)
+                                toast.success('Telegram unlinked successfully')
+                              } catch {
+                                toast.error('Failed to unlink Telegram')
+                              } finally {
+                                setTelegramLoading(false)
+                              }
+                            }}
+                            disabled={telegramLoading}
+                            className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-all text-sm disabled:opacity-50"
+                          >
+                            Unlink Telegram
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 p-3 bg-blue-900/20 rounded-lg border border-blue-500/10">
+                            <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />
+                            <span className="text-blue-300 text-sm">Not linked</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Generate Link Code */}
+                    {telegramStatus && !telegramStatus.linked && (
+                      <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                        <h4 className="font-semibold text-blue-100 mb-2 text-sm sm:text-base">Link Your Account</h4>
+                        <p className="text-xs sm:text-sm text-blue-300 mb-4">
+                          Generate a one-time code, then send it to our Telegram bot to link your account.
+                        </p>
+
+                        {!telegramLinkCode ? (
+                          <button
+                            onClick={async () => {
+                              try {
+                                setTelegramLoading(true)
+                                const token = await getToken()
+                                const res = await telegramAPI.generateLinkCode(token)
+                                setTelegramLinkCode(res.data)
+                              } catch {
+                                toast.error('Failed to generate link code')
+                              } finally {
+                                setTelegramLoading(false)
+                              }
+                            }}
+                            disabled={telegramLoading}
+                            className="w-full px-4 py-2.5 bg-blue-600/30 hover:bg-blue-600/40 text-blue-200 rounded-lg transition-all text-sm font-medium disabled:opacity-50"
+                          >
+                            {telegramLoading ? 'Generating...' : 'Generate Link Code'}
+                          </button>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-400/20 text-center">
+                              <p className="text-xs text-blue-400 mb-2">Your Link Code</p>
+                              <p className="text-2xl sm:text-3xl font-mono font-bold text-blue-100 tracking-widest select-all">
+                                {telegramLinkCode.code}
+                              </p>
+                              <p className="text-xs text-blue-400 mt-2">
+                                Expires in 10 minutes
+                              </p>
+                            </div>
+
+                            <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-500/10">
+                              <p className="text-xs sm:text-sm text-blue-200 font-medium mb-2">How to link:</p>
+                              <ol className="text-xs text-blue-300 space-y-1.5 list-decimal list-inside">
+                                <li>Open Telegram and search for <span className="text-blue-200 font-medium">@WalletrixBot</span></li>
+                                <li>Send <span className="font-mono text-blue-200">/start {telegramLinkCode.code}</span></li>
+                                <li>Click Refresh above to verify the link</li>
+                              </ol>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(telegramLinkCode.code)
+                                toast.success('Code copied to clipboard')
+                              }}
+                              className="w-full px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all text-sm"
+                            >
+                              Copy Code
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Info Card */}
+                    <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">
+                      <h4 className="font-semibold text-blue-100 mb-3 text-sm sm:text-base">What can the bot do?</h4>
+                      <ul className="space-y-2">
+                        {[
+                          'Check your wallet balance',
+                          'Send ETH and ERC-20 tokens via natural language',
+                          'AI-powered intent parsing — just type what you want',
+                          'Confirmation prompts before every transaction',
+                        ].map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-blue-300">
+                            <ChevronRight className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </div>

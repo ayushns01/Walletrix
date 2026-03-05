@@ -355,4 +355,27 @@ export const transactionAPI = {
   },
 };
 
+export const telegramAPI = {
+  getStatus: async (token) => {
+    const response = await api.get('/api/v1/telegram/status', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  generateLinkCode: async (token) => {
+    const response = await api.post('/api/v1/telegram/link/generate', {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  unlinkTelegram: async (token) => {
+    const response = await api.post('/api/v1/telegram/unlink', {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+};
+
 export default api;
