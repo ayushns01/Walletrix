@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './loggerService.js';
 
 class BitcoinService {
   constructor() {
@@ -37,7 +38,7 @@ class BitcoinService {
         txCount: data.n_tx,
       };
     } catch (error) {
-      console.error('Error getting Bitcoin balance:', error);
+      logger.error('Error getting Bitcoin balance', { address, network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -80,7 +81,7 @@ class BitcoinService {
         count: transactions.length,
       };
     } catch (error) {
-      console.error('Error getting Bitcoin transaction history:', error);
+      logger.error('Error getting Bitcoin transaction history', { address, network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -120,7 +121,7 @@ class BitcoinService {
         },
       };
     } catch (error) {
-      console.error('Error getting Bitcoin transaction:', error);
+      logger.error('Error getting Bitcoin transaction', { txHash, network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -155,7 +156,7 @@ class BitcoinService {
         totalValueBTC: (utxos.reduce((sum, utxo) => sum + utxo.value, 0) / 100000000).toFixed(8),
       };
     } catch (error) {
-      console.error('Error getting UTXOs:', error);
+      logger.error('Error getting Bitcoin UTXOs', { address, network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -178,7 +179,7 @@ class BitcoinService {
         message: 'Transaction broadcast successfully',
       };
     } catch (error) {
-      console.error('Error broadcasting Bitcoin transaction:', error);
+      logger.error('Error broadcasting Bitcoin transaction', { network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -209,7 +210,7 @@ class BitcoinService {
         },
       };
     } catch (error) {
-      console.error('Error getting fee estimate:', error);
+      logger.error('Error getting Bitcoin fee estimate', { network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -232,7 +233,7 @@ class BitcoinService {
         lastBlockTime: new Date(response.data.time).toISOString(),
       };
     } catch (error) {
-      console.error('Error getting block height:', error);
+      logger.error('Error getting Bitcoin block height', { network, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,

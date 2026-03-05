@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import ethereumService from './ethereumService.js';
+import logger from './loggerService.js';
 
 const ERC20_ABI = [
   'function name() view returns (string)',
@@ -59,7 +60,7 @@ class TokenService {
         },
       };
     } catch (error) {
-      console.error('Error getting token info:', error);
+      logger.error('Error getting token info', { tokenAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -92,7 +93,7 @@ class TokenService {
         },
       };
     } catch (error) {
-      console.error('Error getting token balance:', error);
+      logger.error('Error getting token balance', { tokenAddress, walletAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -140,7 +141,7 @@ class TokenService {
         tokens: balances,
       };
     } catch (error) {
-      console.error('Error getting multiple token balances:', error);
+      logger.error('Error getting multiple token balances', { walletAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -153,7 +154,7 @@ class TokenService {
       const tokenAddresses = Object.values(this.popularTokens);
       return await this.getMultipleTokenBalances(walletAddress, tokenAddresses, network);
     } catch (error) {
-      console.error('Error getting popular token balances:', error);
+      logger.error('Error getting popular token balances', { walletAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -183,7 +184,7 @@ class TokenService {
         },
       };
     } catch (error) {
-      console.error('Error getting token allowance:', error);
+      logger.error('Error getting token allowance', { tokenAddress, ownerAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -204,7 +205,7 @@ class TokenService {
         to: toAddress,
       };
     } catch (error) {
-      console.error('Error encoding transfer data:', error);
+      logger.error('Error encoding transfer data', { toAddress, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -225,7 +226,7 @@ class TokenService {
         spender: spenderAddress,
       };
     } catch (error) {
-      console.error('Error encoding approve data:', error);
+      logger.error('Error encoding approve data', { spenderAddress, error: error.message });
       return {
         success: false,
         error: error.message,

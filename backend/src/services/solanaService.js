@@ -1,5 +1,6 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios from 'axios';
+import logger from './loggerService.js';
 
 class SolanaService {
   constructor() {
@@ -38,12 +39,11 @@ class SolanaService {
         this.connections[network] = new Connection(config.rpc, 'confirmed');
       });
 
-      console.log('✅ Solana connections initialized');
-      console.log('🔗 Supported Solana networks:', Object.keys(this.networkConfigs).join(', '));
+      logger.info('Solana connections initialized', { networks: Object.keys(this.networkConfigs).join(', ') });
 
       this._initialized = true;
     } catch (error) {
-      console.error('Error initializing Solana connections:', error);
+      logger.error('Error initializing Solana connections', { error: error.message });
     }
   }
 
@@ -60,7 +60,7 @@ class SolanaService {
     const connection = this.connections[mappedNetwork];
 
     if (!connection) {
-      console.warn(`Connection not found for network: ${network}, falling back to mainnet-beta`);
+      logger.warn('Solana connection not found for network, falling back to mainnet-beta', { network });
       return this.connections['mainnet-beta'];
     }
 
@@ -85,7 +85,7 @@ class SolanaService {
         currency: 'SOL',
       };
     } catch (error) {
-      console.error('Error getting Solana balance:', error);
+      logger.error('Error getting Solana balance', { address, network, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -118,7 +118,7 @@ class SolanaService {
             });
           }
         } catch (txError) {
-          console.warn('Error fetching transaction details:', txError.message);
+          logger.warn('Error fetching Solana transaction details', { signature: signatureInfo.signature, error: txError.message });
         }
       }
 
@@ -130,7 +130,7 @@ class SolanaService {
         count: transactions.length,
       };
     } catch (error) {
-      console.error('Error getting Solana transaction history:', error);
+      logger.error('Error getting Solana transaction history', { address, network, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -149,7 +149,7 @@ class SolanaService {
         slot: slot.toString(),
       };
     } catch (error) {
-      console.error('Error getting Solana slot:', error);
+      logger.error('Error getting Solana slot', { network, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -173,7 +173,7 @@ class SolanaService {
         })),
       };
     } catch (error) {
-      console.error('Error getting Solana performance samples:', error);
+      logger.error('Error getting Solana performance samples', { network, error: error.message });
       return {
         success: false,
         error: error.message,
@@ -222,7 +222,7 @@ class SolanaService {
         },
       };
     } catch (error) {
-      console.error('Error getting Solana transaction:', error);
+      logger.error('Error getting Solana transaction', { signature, network, error: error.message });
       return {
         success: false,
         error: error.message,

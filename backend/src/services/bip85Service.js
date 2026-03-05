@@ -2,6 +2,7 @@ import * as bip39 from 'bip39';
 import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import crypto from 'crypto';
+import logger from './loggerService.js';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -47,7 +48,7 @@ class BIP85Service {
 
             return derivedMnemonic;
         } catch (error) {
-            console.error('BIP-85 derivation error:', error.message);
+            logger.error('BIP-85 derivation error', { error: error.message });
             throw new Error('Failed to derive child mnemonic: ' + error.message);
         }
     }
@@ -75,7 +76,7 @@ class BIP85Service {
                     derivationPath: `m/83696968'/39'/0'/0'/0'/${(wordCount - 12) / 6}'/${i}'`,
                 });
             } catch (error) {
-                console.error(`Failed to derive wallet ${i}:`, error.message);
+                logger.warn('Failed to derive BIP-85 child wallet', { index: i, error: error.message });
             }
         }
 
@@ -108,7 +109,7 @@ class BIP85Service {
                     purpose,
                 };
             } catch (error) {
-                console.error(`Failed to create ${purpose} wallet:`, error.message);
+                logger.warn('Failed to create wallet in hierarchy', { purpose, error: error.message });
             }
         }
 

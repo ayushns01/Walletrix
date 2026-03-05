@@ -4,6 +4,7 @@ import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import * as bip39 from 'bip39';
 import crypto from 'crypto';
+import logger from './loggerService.js';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -55,7 +56,7 @@ class MultiSigService {
                 type: 'P2SH',
             };
         } catch (error) {
-            console.error('Bitcoin multisig creation error:', error.message);
+            logger.error('Bitcoin multisig creation error', { error: error.message });
             throw new Error('Failed to create Bitcoin multisig: ' + error.message);
         }
     }
@@ -100,7 +101,7 @@ class MultiSigService {
                 type: 'P2WSH',
             };
         } catch (error) {
-            console.error('SegWit multisig creation error:', error.message);
+            logger.error('SegWit multisig creation error', { error: error.message });
             throw new Error('Failed to create SegWit multisig: ' + error.message);
         }
     }
@@ -189,7 +190,7 @@ class MultiSigService {
                 hdWallet: true,
             };
         } catch (error) {
-            console.error('HD multisig creation error:', error.message);
+            logger.error('HD multisig creation error', { error: error.message });
             throw new Error('Failed to create HD multisig: ' + error.message);
         }
     }

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './loggerService.js';
 
 class PriceService {
   constructor() {
@@ -51,7 +52,7 @@ class PriceService {
         lastUpdated: new Date(data.last_updated_at * 1000).toISOString(),
       };
     } catch (error) {
-      console.error('Error getting price:', error);
+      logger.error('Error getting price', { coinId, vsCurrency, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -129,7 +130,7 @@ class PriceService {
         prices: allPrices,
       };
     } catch (error) {
-      console.error('Error getting multiple prices:', error.message);
+      logger.error('Error getting multiple prices', { error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.response?.data?.status?.error_message || error.message,
@@ -142,7 +143,7 @@ class PriceService {
       const coinIds = Object.values(this.cryptoIds);
       return await this.getMultiplePrices(coinIds, vsCurrency);
     } catch (error) {
-      console.error('Error getting popular prices:', error);
+      logger.error('Error getting popular prices', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -193,7 +194,7 @@ class PriceService {
         },
       };
     } catch (error) {
-      console.error('Error getting coin data:', error);
+      logger.error('Error getting coin data', { coinId, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -225,7 +226,7 @@ class PriceService {
         data: prices,
       };
     } catch (error) {
-      console.error('Error getting price chart:', error);
+      logger.error('Error getting price chart', { coinId, vsCurrency, days, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -254,7 +255,7 @@ class PriceService {
         coins,
       };
     } catch (error) {
-      console.error('Error searching coins:', error);
+      logger.error('Error searching coins', { query, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -281,7 +282,7 @@ class PriceService {
         trending,
       };
     } catch (error) {
-      console.error('Error getting trending coins:', error);
+      logger.error('Error getting trending coins', { error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,
@@ -322,7 +323,7 @@ class PriceService {
         coins,
       };
     } catch (error) {
-      console.error('Error getting top coins:', error);
+      logger.error('Error getting top coins', { vsCurrency, limit, error: error.message });
       return {
         success: false,
         error: error.response?.data?.error || error.message,

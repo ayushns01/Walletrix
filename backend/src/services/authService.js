@@ -10,8 +10,22 @@ import logger from './loggerService.js';
  */
 class AuthService {
     constructor() {
-        this.accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-        this.refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+        // Enforce distinct secrets for access and refresh tokens
+        const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+        const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+
+        if (!accessSecret || accessSecret.length < 32) {
+            throw new Error('JWT_ACCESS_SECRET (or JWT_SECRET) must be set and at least 32 characters');
+        }
+        if (!refreshSecret || refreshSecret.length < 32) {
+            throw new Error('JWT_REFRESH_SECRET (or JWT_SECRET) must be set and at least 32 characters');
+        }
+        if (accessSecret === refreshSecret) {
+            logger.warn('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are the same — strongly recommend using distinct secrets');
+        }
+
+        this.accessSecret = accessSecret;
+        this.refreshSecret = refreshSecret;
         this.accessTokenExpiry = '15m';
         this.refreshTokenExpiry = '7d';
     }

@@ -6,6 +6,7 @@ import { BIP32Factory } from 'bip32';
 import crypto from 'crypto';
 import { Keypair } from '@solana/web3.js';
 import * as ed25519 from 'ed25519-hd-key';
+import logger from './loggerService.js';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -149,7 +150,7 @@ class WalletService {
         },
       };
     } catch (error) {
-      console.error('Error generating wallet:', error);
+      logger.error('Error generating wallet', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -197,7 +198,7 @@ class WalletService {
         },
       };
     } catch (error) {
-      console.error('Error importing wallet:', error);
+      logger.error('Error importing wallet from mnemonic', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -221,7 +222,7 @@ class WalletService {
         },
       };
     } catch (error) {
-      console.error('Error importing Ethereum wallet:', error);
+      logger.error('Error importing Ethereum wallet from private key', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -278,7 +279,7 @@ class WalletService {
         accounts,
       };
     } catch (error) {
-      console.error('Error deriving accounts:', error);
+      logger.error('Error deriving accounts', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -318,7 +319,7 @@ class WalletService {
         version: '2.0'
       };
     } catch (error) {
-      console.error('Error encrypting data:', error);
+      logger.error('Error encrypting data', { error: error.message });
       throw new Error('Encryption failed');
     }
   }
@@ -354,7 +355,7 @@ class WalletService {
       throw new Error('Unsupported encryption format. Please re-encrypt your data.');
 
     } catch (error) {
-      console.error('Error decrypting data:', error);
+      logger.error('Error decrypting data', { error: error.message });
       if (error.message.includes('Unsupported MAC')) {
         throw new Error('Invalid password or data has been tampered with');
       }

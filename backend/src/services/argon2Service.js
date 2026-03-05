@@ -1,4 +1,5 @@
 import argon2 from 'argon2';
+import logger from './loggerService.js';
 
 const ARGON2_CONFIG = {
   type: argon2.argon2id,
@@ -24,7 +25,7 @@ class Argon2Service {
       const hash = await argon2.hash(password, ARGON2_CONFIG);
       return hash;
     } catch (error) {
-      console.error('Argon2 hashing error:', error.message);
+      logger.error('Argon2 hashing error', { error: error.message });
       throw new Error('Password hashing failed');
     }
   }
@@ -37,7 +38,7 @@ class Argon2Service {
 
       return await argon2.verify(hash, password);
     } catch (error) {
-      console.error('Argon2 verification error:', error.message);
+      logger.error('Argon2 verification error', { error: error.message });
       return false;
     }
   }
@@ -50,7 +51,7 @@ class Argon2Service {
 
       return argon2.needsRehash(hash, ARGON2_CONFIG);
     } catch (error) {
-      console.error('Argon2 rehash check error:', error.message);
+      logger.error('Argon2 rehash check error', { error: error.message });
       return true;
     }
   }

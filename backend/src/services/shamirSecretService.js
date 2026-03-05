@@ -1,5 +1,6 @@
 import { split, combine } from 'shamirs-secret-sharing';
 import crypto from 'crypto';
+import logger from './loggerService.js';
 
 class ShamirSecretService {
 
@@ -36,7 +37,7 @@ class ShamirSecretService {
                 threshold,
             }));
         } catch (error) {
-            console.error('Shamir split error:', error.message);
+            logger.error('Shamir split error', { error: error.message });
             throw new Error('Failed to split secret: ' + error.message);
         }
     }
@@ -62,7 +63,7 @@ class ShamirSecretService {
             const recoveredBuffer = combine(shareBuffers);
             return recoveredBuffer.toString('utf8');
         } catch (error) {
-            console.error('Shamir recovery error:', error.message);
+            logger.error('Shamir recovery error', { error: error.message });
             throw new Error('Failed to recover secret. Ensure you have enough valid shares.');
         }
     }
