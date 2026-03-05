@@ -50,6 +50,15 @@ const optionalEnvVars = {
   ENCRYPTION_KEY: 'Encryption key for sensitive data',
   ALLOWED_ORIGINS: 'CORS allowed origins',
   CLERK_SECRET_KEY: 'Clerk authentication secret key',
+
+  // Telegram AI Agent Bot
+  TELEGRAM_BOT_TOKEN: 'Telegram Bot API token from @BotFather',
+  TELEGRAM_WEBHOOK_SECRET: 'Random secret to verify Telegram webhook origin',
+  BACKEND_URL: 'Public backend URL for webhook registration',
+  SERVER_SIGNING_KEY: 'Server EOA private key for bot wallet encryption',
+  SERVER_SIGNING_ADDRESS: 'Server EOA address (informational)',
+  GEMINI_API_KEY: 'Google Gemini API key for intent parsing',
+  BOT_DEFAULT_CHAIN_ID: 'Default EVM chain ID for bot transactions',
 };
 
 export const validateEnvironment = () => {

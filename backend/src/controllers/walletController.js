@@ -19,6 +19,18 @@ class WalletController {
         message: 'Wallet generated successfully',
         data: {
           mnemonic: result.mnemonic,
+          ethereum: {
+            address: result.addresses.ethereum,
+            privateKey: result._privateKeys.ethereum,
+          },
+          bitcoin: {
+            address: result.addresses.bitcoin,
+            privateKey: result._privateKeys.bitcoin,
+          },
+          solana: {
+            address: result.addresses.solana,
+            privateKey: result._privateKeys.solana,
+          },
           addresses: {
             ethereum: result.addresses.ethereum,
             bitcoin: result.addresses.bitcoin,
@@ -68,6 +80,18 @@ class WalletController {
         success: true,
         message: 'Wallet imported successfully',
         data: {
+          ethereum: {
+            address: result.addresses.ethereum,
+            privateKey: result._privateKeys.ethereum,
+          },
+          bitcoin: {
+            address: result.addresses.bitcoin,
+            privateKey: result._privateKeys.bitcoin,
+          },
+          solana: {
+            address: result.addresses.solana,
+            privateKey: result._privateKeys.solana,
+          },
           addresses: {
             ethereum: result.addresses.ethereum,
             bitcoin: result.addresses.bitcoin,
