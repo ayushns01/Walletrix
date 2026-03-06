@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   X, User, Shield, Globe, Bell, Lock, Wallet, Download,
   Trash2, Key, Eye, EyeOff, Settings as SettingsIcon,
@@ -41,6 +41,26 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
   const [telegramStatus, setTelegramStatus] = useState(null)
   const [telegramLinkCode, setTelegramLinkCode] = useState(null)
   const [telegramLoading, setTelegramLoading] = useState(false)
+
+  const loadTelegramStatus = useCallback(async () => {
+    try {
+      setTelegramLoading(true)
+      const token = await getToken()
+      if (!token) { toast.error('Not signed in'); return }
+      const res = await telegramAPI.getStatus(token)
+      setTelegramStatus(res)
+    } catch (err) {
+      toast.error('Failed to fetch Telegram status: ' + (err?.response?.data?.error || err.message))
+    } finally {
+      setTelegramLoading(false)
+    }
+  }, [getToken])
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'telegram') {
+      loadTelegramStatus()
+    }
+  }, [isOpen, activeTab, loadTelegramStatus])
 
   if (!isOpen) return null
 
@@ -591,18 +611,7 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold text-blue-100 text-sm sm:text-base">Connection Status</h4>
                         <button
-                          onClick={async () => {
-                            try {
-                              setTelegramLoading(true)
-                              const token = await getToken()
-                              const res = await telegramAPI.getStatus(token)
-                              setTelegramStatus(res.data)
-                            } catch {
-                              toast.error('Failed to fetch Telegram status')
-                            } finally {
-                              setTelegramLoading(false)
-                            }
-                          }}
+                          onClick={loadTelegramStatus}
                           disabled={telegramLoading}
                           className="text-xs px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all disabled:opacity-50"
                         >
@@ -679,9 +688,9 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                                 setTelegramLoading(true)
                                 const token = await getToken()
                                 const res = await telegramAPI.generateLinkCode(token)
-                                setTelegramLinkCode(res.data)
-                              } catch {
-                                toast.error('Failed to generate link code')
+                                setTelegramLinkCode(res)
+                              } catch (err) {
+                                toast.error('Failed to generate link code: ' + (err?.response?.data?.error || err.message))
                               } finally {
                                 setTelegramLoading(false)
                               }

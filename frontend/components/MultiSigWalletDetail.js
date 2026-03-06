@@ -348,7 +348,7 @@ export default function MultiSigWalletDetail({ walletId, onBack }) {
                             balances={{ balance: wallet.balance }}
                             onRefresh={() => fetchWalletData(currentNetwork)}
                             onSend={() => setShowCreateTx(true)}
-                            onReceive={() => toast.info('Receive modal coming soon')}
+                            onReceive={() => toast('Receive modal coming soon')}
                             currentNetwork={currentNetwork}
                         />
 

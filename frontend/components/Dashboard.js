@@ -15,7 +15,7 @@ export default function Dashboard() {
 
   const handleRefresh = async () => {
     if (refreshInProgress) {
-      toast.info('Refresh already in progress');
+      toast('Refresh already in progress');
       return;
     }
 

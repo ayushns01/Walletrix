@@ -41,7 +41,10 @@ export const walletAPI = {
   },
 
   decryptData: async (encryptedData, password) => {
-    const response = await api.post('/api/v1/wallet/decrypt', { encryptedData, password });
+    // validateStatus prevents axios from throwing on 401 (wrong password)
+    const response = await api.post('/api/v1/wallet/decrypt', { encryptedData, password }, {
+      validateStatus: (status) => status < 500,
+    });
     return response.data;
   },
 };

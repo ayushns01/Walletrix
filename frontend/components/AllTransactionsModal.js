@@ -60,7 +60,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           toast.success(`Loaded ${validTxs.length} transactions from blockchain`);
         } else {
           setAllTransactions([]);
-          toast.info('No transactions found on blockchain');
+          toast('No transactions found on blockchain');
         }
       } else if (chain === 'bitcoin') {
         const address = wallet.bitcoin?.address;
@@ -87,7 +87,7 @@ export default function AllTransactionsModal({ isOpen, onClose, transactions: in
           toast.success(`Loaded ${validTxs.length} transactions from blockchain`);
         } else {
           setAllTransactions([]);
-          toast.info('No transactions found on blockchain');
+          toast('No transactions found on blockchain');
         }
       }
     } catch (error) {

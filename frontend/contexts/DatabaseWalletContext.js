@@ -72,7 +72,7 @@ export function WalletProvider({ children }) {
 
       if (timeSinceLastActivity >= autoLockTimeout) {
         setIsLocked(true);
-        toast.info('Wallet locked due to inactivity');
+        toast('🔒 Wallet locked due to inactivity');
       }
     };
 
