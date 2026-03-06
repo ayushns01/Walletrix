@@ -31,7 +31,31 @@ export async function sendMessage(chatId, text, extra = {}) {
     });
     return response.data;
   } catch (error) {
-    logger.error('[Telegram] sendMessage failed', {
+    const errData = error.response?.data;
+    // If Telegram rejected due to bad Markdown entities, retry as plain text
+    if (errData?.error_code === 400 && errData?.description?.includes('parse entities')) {
+      logger.warn('[Telegram] Markdown parse failed, retrying as plain text', { chatId });
+      return sendPlainMessage(chatId, text);
+    }
+    logger.error('[Telegram] sendMessage failed', { chatId, error: errData || error.message });
+    return null;
+  }
+}
+
+/**
+ * Send a plain text message (no Markdown) — safe for error strings that may
+ * contain special characters like backticks, asterisks, brackets, etc.
+ */
+export async function sendPlainMessage(chatId, text) {
+  if (!telegramConfig.BOT_TOKEN) return null;
+  try {
+    const response = await axios.post(tgApi('sendMessage'), {
+      chat_id: chatId,
+      text,
+    });
+    return response.data;
+  } catch (error) {
+    logger.error('[Telegram] sendPlainMessage failed', {
       chatId,
       error: error.response?.data || error.message,
     });
