@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
@@ -63,6 +63,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
   const [guestMode, setGuestMode] = useState(false)
+  const autoUnlockAttempted = useRef(false)
 
   // Handle hydration - read localStorage only on client after mount
   useEffect(() => {
@@ -93,13 +94,16 @@ export default function Home() {
   }, [guestMode, mounted])
 
   useEffect(() => {
-    if (clerkUser && wallet && isLocked) {
+    if (clerkUser?.id && wallet && isLocked && !autoUnlockAttempted.current) {
+      autoUnlockAttempted.current = true;
       unlockWallet(clerkUser.id).catch((error) => {
         console.error('Auto-unlock failed:', error);
-        toast.error('Could not auto-unlock wallet. Please unlock manually.');
       });
     }
-  }, [clerkUser, wallet, isLocked]);
+    if (!isLocked) {
+      autoUnlockAttempted.current = false;
+    }
+  }, [clerkUser?.id, wallet, isLocked]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && wallet && !isLocked && showWalkthroughOnUnlock) {
@@ -161,14 +165,11 @@ export default function Home() {
 
   const handleWalletCreated = async () => {
     if (isAuthenticated) {
-
       if (typeof window !== 'undefined' && showWalkthroughOnUnlock) {
         window.localStorage.setItem('walletrix_show_walkthrough_on_load', 'true');
       }
-
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      // State is already set in generateWallet/importWallet — just switch view
+      setView('dashboard');
     } else {
 
       setView('welcome');

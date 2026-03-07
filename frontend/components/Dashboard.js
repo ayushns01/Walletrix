@@ -81,7 +81,7 @@ export default function Dashboard() {
   const isBitcoin = chain === 'bitcoin';
   const isSolana = chain === 'solana';
 
-  const allAssets = [
+  const allAssets = useMemo(() => [
     ...(isBitcoin ? [{
       name: 'Bitcoin',
       symbol: 'BTC',
@@ -110,7 +110,7 @@ export default function Dashboard() {
       priceData: { current_price: parseFloat(token.priceUsd || 0) },
       icon: token.symbol[0],
     })) : []),
-  ];
+  ], [isBitcoin, isEthereum, isSolana, balances, prices, tokens]);
 
   return (
     <div className="space-y-5">

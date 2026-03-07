@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { walletAPI, blockchainAPI, tokenAPI, priceAPI } from '@/lib/api';
@@ -76,7 +76,7 @@ export function WalletProvider({ children }) {
       }
     };
 
-    const intervalId = setInterval(checkInactivity, 1000);
+    const intervalId = setInterval(checkInactivity, 5000);
 
     return () => {
       clearInterval(intervalId);
@@ -88,21 +88,36 @@ export function WalletProvider({ children }) {
       return;
     }
 
-    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
 
+    let lastUpdate = Date.now();
     const handleActivity = () => {
-      setLastActivityTime(Date.now());
+      const now = Date.now();
+      if (now - lastUpdate > 2000) {
+        lastUpdate = now;
+        setLastActivityTime(now);
+      }
+    };
+
+    // Mousemove throttled separately — fires very often
+    const handleMouseMove = () => {
+      const now = Date.now();
+      if (now - lastUpdate > 5000) {
+        lastUpdate = now;
+        setLastActivityTime(now);
+      }
     };
 
     activityEvents.forEach(event => {
-      window.addEventListener(event, handleActivity);
+      window.addEventListener(event, handleActivity, { passive: true });
     });
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
     return () => {
-
       activityEvents.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });
+      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [autoLockEnabled, isLocked]);
 
@@ -157,19 +172,11 @@ export function WalletProvider({ children }) {
 
   useEffect(() => {
     let timeoutId;
+    let cancelled = false;
     const refetchData = async () => {
-
-      if (wallet && !isLocked && !refreshInProgress) {
-        setRefreshInProgress(true);
-
-        setTokens([]);
-        setBalances({
-          ethereum: '0', bitcoin: '0', solana: '0', polygon: '0',
-          arbitrum: '0', optimism: '0', bsc: '0', avalanche: '0', base: '0'
-        });
-
+      if (wallet && !isLocked && !cancelled) {
+        // Don't clear old data — keep it visible while new data loads
         await refreshAllData();
-        setRefreshInProgress(false);
       }
     };
 
@@ -178,30 +185,20 @@ export function WalletProvider({ children }) {
     }
 
     return () => {
+      cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [selectedNetwork]);
 
   useEffect(() => {
     const refreshOnChange = async () => {
-      if (wallet && !isLocked && !refreshInProgress) {
-
-        if (walletChangeTimestamp || pathname) {
-
-          const now = Date.now();
-          if (lastDataFetch && (now - lastDataFetch < 1000)) {
-            return;
-          }
-
-          setRefreshInProgress(true);
-          await refreshAllData();
-          setRefreshInProgress(false);
-        }
+      if (wallet && !isLocked && walletChangeTimestamp) {
+        await refreshAllData();
       }
     };
 
     refreshOnChange();
-  }, [pathname, walletChangeTimestamp]);
+  }, [walletChangeTimestamp]);
 
   const loadLegacyWallet = () => {
     if (typeof window !== 'undefined') {
@@ -883,6 +880,13 @@ export function WalletProvider({ children }) {
               price_change_percentage_24h: coin.change24h
             };
           }
+          if (coin.coin === 'solana') {
+            priceMap.solana = {
+              current_price: coin.price,
+              market_cap: coin.marketCap,
+              price_change_percentage_24h: coin.change24h
+            };
+          }
         });
         setPrices(priceMap);
 
@@ -912,24 +916,12 @@ export function WalletProvider({ children }) {
     setRefreshInProgress(true);
 
     try {
-
-      await fetchBalances();
-
-      if (lastDataFetch !== null && refreshId < lastDataFetch) {
-        return;
-      }
-
-      await fetchTokenBalances();
-
-      if (lastDataFetch !== null && refreshId < lastDataFetch) {
-        return;
-      }
-
-      await fetchPrices();
-
-      if (lastDataFetch !== null && refreshId < lastDataFetch) {
-        return;
-      }
+      // Fetch balances, tokens, and prices in parallel for faster load
+      await Promise.allSettled([
+        fetchBalances(),
+        fetchTokenBalances(),
+        fetchPrices(),
+      ]);
     } catch (error) {
       console.error('Error during data refresh:', error);
     } finally {

@@ -98,7 +98,7 @@ export const tokenAPI = {
   },
 
   getPopularTokens: async () => {
-    const response = await api.get('/tokens/popular');
+    const response = await api.get('/api/v1/tokens/popular');
     return response.data;
   },
 };
@@ -135,7 +135,7 @@ export const priceAPI = {
   },
 
   getTrendingCoins: async () => {
-    const response = await api.get('/prices/list/trending');
+    const response = await api.get('/api/v1/prices/list/trending');
     return response.data;
   },
 
