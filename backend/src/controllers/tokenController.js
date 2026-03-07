@@ -1,4 +1,5 @@
 import tokenService from '../services/tokenService.js';
+import logger from '../services/loggerService.js';
 
 class TokenController {
 
@@ -15,7 +16,7 @@ class TokenController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getTokenInfo:', error);
+      logger.error('Error in getTokenInfo', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get token info',
@@ -36,7 +37,7 @@ class TokenController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getTokenBalance:', error);
+      logger.error('Error in getTokenBalance', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get token balance',
@@ -67,7 +68,7 @@ class TokenController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getMultipleBalances:', error);
+      logger.error('Error in getMultipleBalances', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get token balances',
@@ -88,7 +89,7 @@ class TokenController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getPopularTokenBalances:', error);
+      logger.error('Error in getPopularTokenBalances', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get popular token balances',
@@ -101,7 +102,7 @@ class TokenController {
       const result = tokenService.getPopularTokens();
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getPopularTokens:', error);
+      logger.error('Error in getPopularTokens', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get popular tokens',

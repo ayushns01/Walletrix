@@ -1,6 +1,7 @@
 import ethereumService from '../services/ethereumService.js';
 import bitcoinService from '../services/bitcoinService.js';
 import solanaService from '../services/solanaService.js';
+import logger from '../services/loggerService.js';
 
 class BlockchainController {
 
@@ -17,7 +18,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getEthereumBalance:', error);
+      logger.error('Error in getEthereumBalance', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get Ethereum balance',
@@ -38,7 +39,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getBitcoinBalance:', error);
+      logger.error('Error in getBitcoinBalance', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get Bitcoin balance',
@@ -59,7 +60,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getSolanaBalance:', error);
+      logger.error('Error in getSolanaBalance', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get Solana balance',
@@ -80,7 +81,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getEthereumTransactions:', error);
+      logger.error('Error in getEthereumTransactions', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get transaction history',
@@ -101,7 +102,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getBitcoinTransactions:', error);
+      logger.error('Error in getBitcoinTransactions', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get transaction history',
@@ -121,7 +122,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getGasPrice:', error);
+      logger.error('Error in getGasPrice', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get gas price',
@@ -141,7 +142,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getBitcoinFeeEstimate:', error);
+      logger.error('Error in getBitcoinFeeEstimate', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get fee estimate',
@@ -172,7 +173,7 @@ class BlockchainController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getTransaction:', error);
+      logger.error('Error in getTransaction', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get transaction',

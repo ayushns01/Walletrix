@@ -1,4 +1,5 @@
 import priceService from '../services/priceService.js';
+import logger from '../services/loggerService.js';
 
 class PriceController {
 
@@ -15,7 +16,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getPrice:', error);
+      logger.error('Error in getPrice', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get price',
@@ -42,7 +43,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getMultiplePrices:', error);
+      logger.error('Error in getMultiplePrices', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get prices',
@@ -62,7 +63,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getPopularPrices:', error);
+      logger.error('Error in getPopularPrices', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get popular prices',
@@ -82,7 +83,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getCoinData:', error);
+      logger.error('Error in getCoinData', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get coin data',
@@ -103,7 +104,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getPriceChart:', error);
+      logger.error('Error in getPriceChart', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get price chart',
@@ -130,7 +131,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in searchCoins:', error);
+      logger.error('Error in searchCoins', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to search coins',
@@ -148,7 +149,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getTrendingCoins:', error);
+      logger.error('Error in getTrendingCoins', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get trending coins',
@@ -168,7 +169,7 @@ class PriceController {
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error in getTopCoins:', error);
+      logger.error('Error in getTopCoins', { error: error.message });
       res.status(500).json({
         success: false,
         error: 'Failed to get top coins',
