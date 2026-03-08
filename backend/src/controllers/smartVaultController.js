@@ -6,14 +6,16 @@ import logger from '../services/loggerService.js';
  * SmartVaultController
  * HTTP request handlers for ERC-4337 Smart Vault operations.
  */
+
 class SmartVaultController {
     /**
      * POST /api/v1/smart-vault/deploy
      * Register a new Smart Vault for a wallet.
      */
+
     async deploy(req, res) {
         try {
-            const { walletId, ownerAddress, salt, chainId } = req.body;
+         const { walletId, ownerAddress, salt, chainId } = req.body;
 
             if (!walletId || !ownerAddress || salt === undefined || !chainId) {
                 return res.status(400).json({
