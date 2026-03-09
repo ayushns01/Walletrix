@@ -1,9 +1,11 @@
 'use client'
 
 import { useWallet } from '@/contexts/DatabaseWalletContext';
-import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, Bot } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@clerk/nextjs';
+import { telegramAPI } from '@/lib/api';
 
 export default function Dashboard() {
   const {
@@ -12,6 +14,28 @@ export default function Dashboard() {
   } = useWallet();
   const [refreshing, setRefreshing] = useState(false);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [botWallet, setBotWallet] = useState(null); // { address, ethBalance }
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchBotStatus() {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const status = await telegramAPI.getStatus(token);
+        if (!status.linked || !status.botWallet) return;
+        const balData = await telegramAPI.getBotBalance(token);
+        if (!cancelled && balData.success) {
+          setBotWallet({ address: balData.address, ethBalance: balData.ethBalance });
+        }
+      } catch {
+        // silently skip if bot not set up
+      }
+    }
+    fetchBotStatus();
+    return () => { cancelled = true; };
+  }, [getToken]);
 
   const handleRefresh = async () => {
     if (refreshInProgress) {
@@ -256,6 +280,43 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Telegram Bot Wallet */}
+      {botWallet && (
+        <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">
+          <div className="flex items-center gap-2 mb-4">
+            <Bot className="w-4 h-4 text-sky-400" />
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Telegram Bot Wallet</h3>
+            <span className="ml-auto text-xs px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded-full">Sepolia</span>
+          </div>
+          <div className="bg-slate-700/40 rounded-xl p-4 border border-slate-600/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm">ETH Balance</p>
+                  <p className="text-slate-400 text-xs">Sepolia testnet</p>
+                </div>
+              </div>
+              <p className="text-white font-semibold">{parseFloat(botWallet.ethBalance).toFixed(6)} <span className="text-slate-400 text-sm">ETH</span></p>
+            </div>
+            <div className="pt-2 border-t border-slate-600/30">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-slate-400 text-xs">Address</p>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(botWallet.address); toast.success('Bot address copied!'); }}
+                  className="text-xs text-sky-400 hover:text-sky-300 font-medium px-2 py-0.5 bg-sky-500/20 rounded-lg hover:bg-sky-500/30 transition-all"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-slate-200 font-mono text-xs break-all">{botWallet.address}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {}
       <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-5 border border-slate-700/50">

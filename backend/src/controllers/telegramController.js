@@ -6,7 +6,7 @@
 
 import prisma from '../lib/prisma.js';
 import { sendMessage } from '../services/telegramService.js';
-import { createBotWallet } from '../services/telegramExecutionService.js';
+import { createBotWallet, getBotWalletBalance } from '../services/telegramExecutionService.js';
 import { LINKED_MESSAGE } from '../config/prompts.js';
 import logger from '../services/loggerService.js';
 
@@ -156,5 +156,26 @@ export async function getTelegramStatus(req, res) {
   } catch (error) {
     logger.error('[Telegram] getTelegramStatus error', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to get status' });
+  }
+}
+
+/**
+ * Get the bot wallet's current ETH balance on Sepolia.
+ *
+ * GET /api/v1/telegram/bot-balance
+ */
+export async function getBotBalance(req, res) {
+  try {
+    const clerkUserId = req.clerkUserId;
+    const user = await prisma.user.findUnique({ where: { email: clerkUserId } });
+    if (!user || !user.telegramId) {
+      return res.status(404).json({ success: false, error: 'No linked Telegram account' });
+    }
+
+    const data = await getBotWalletBalance(user.id);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    logger.error('[Telegram] getBotBalance error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch bot balance' });
   }
 }

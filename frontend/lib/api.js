@@ -366,6 +366,13 @@ export const telegramAPI = {
     return response.data;
   },
 
+  getBotBalance: async (token) => {
+    const response = await api.get('/api/v1/telegram/bot-balance', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
   generateLinkCode: async (token) => {
     const response = await api.post('/api/v1/telegram/link/generate', {}, {
       headers: { Authorization: `Bearer ${token}` },

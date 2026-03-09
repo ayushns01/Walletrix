@@ -10,6 +10,7 @@ import {
   generateLinkCode,
   unlinkTelegram,
   getTelegramStatus,
+  getBotBalance,
 } from '../controllers/telegramController.js';
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.post('/link/generate', generateLinkCode);
 
 // POST /api/v1/telegram/unlink  — Remove Telegram link
 router.post('/unlink', unlinkTelegram);
+
+// GET  /api/v1/telegram/bot-balance  — Bot wallet ETH balance on Sepolia
+router.get('/bot-balance', getBotBalance);
 
 export default router;
