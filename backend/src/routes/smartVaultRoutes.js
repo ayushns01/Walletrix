@@ -1,7 +1,10 @@
 import express from 'express';
 import smartVaultController from '../controllers/smartVaultController.js';
+import { requireClerkAuth } from '../middleware/clerkAuth.js';
 
 const router = express.Router();
+
+router.use(requireClerkAuth);
 
 // ── Vault Lifecycle ──
 router.post('/deploy', smartVaultController.deploy);

@@ -1,16 +1,12 @@
+import { verifyToken } from '@clerk/backend';
 import logger from '../services/loggerService.js';
 
 /**
  * Clerk Auth Middleware
- * Extracts the Clerk user ID from the Authorization header.
- *
- * In development, Clerk JWTs are self-contained — we decode the payload
- * to extract the `sub` (subject = Clerk user ID) without needing the
- * Clerk SDK on the backend.
- *
+ * Verifies the JWT signature using Clerk's backend SDK, then extracts the user ID.
  * Sets `req.clerkUserId` for downstream handlers.
  */
-export const requireClerkAuth = (req, res, next) => {
+export const requireClerkAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -23,24 +19,13 @@ export const requireClerkAuth = (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Decode the JWT payload (base64url) without verification
-        // Clerk tokens are verified by Clerk's infrastructure
-        const parts = token.split('.');
-        if (parts.length !== 3) {
-            return res.status(401).json({ success: false, error: 'Invalid token format' });
-        }
-
-        const payload = JSON.parse(
-            Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
-        );
+        // Verify the JWT signature cryptographically using Clerk's JWKS
+        const payload = await verifyToken(token, {
+            secretKey: process.env.CLERK_SECRET_KEY,
+        });
 
         if (!payload.sub) {
             return res.status(401).json({ success: false, error: 'Invalid token: no subject' });
-        }
-
-        // Check token expiration
-        if (payload.exp && payload.exp * 1000 < Date.now()) {
-            return res.status(401).json({ success: false, error: 'Token expired' });
         }
 
         req.clerkUserId = payload.sub;

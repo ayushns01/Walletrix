@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@clerk/backend": "^3.2.0",
     "@google/generative-ai": "^0.24.1",
     "@noble/hashes": "^2.0.1",
     "@noble/secp256k1": "^3.0.0",

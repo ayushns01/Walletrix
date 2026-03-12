@@ -30,27 +30,44 @@ function deriveKey() {
 }
 
 /**
- * Encrypt a private key string with AES-256-CBC.
+ * Encrypt a private key string with AES-256-GCM (authenticated encryption).
  * @param {string} privateKey  — hex private key (0x...)
- * @returns {string}           — "iv:ciphertext" (hex:hex)
+ * @returns {string}           — "iv:authTag:ciphertext" (hex:hex:hex)
  */
 export function encryptPrivateKey(privateKey) {
   const key = deriveKey();
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const iv = crypto.randomBytes(12); // 96-bit IV for GCM
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   let encrypted = cipher.update(privateKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  return `${iv.toString('hex')}:${encrypted}`;
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
 }
 
 /**
  * Decrypt an encrypted private key string.
- * @param {string} encryptedStr — "iv:ciphertext" from encryptPrivateKey()
+ * Supports both new GCM format ("iv:authTag:ciphertext") and legacy CBC format ("iv:ciphertext").
+ * @param {string} encryptedStr — from encryptPrivateKey()
  * @returns {string}             — original hex private key
  */
 export function decryptPrivateKey(encryptedStr) {
   const key = deriveKey();
-  const [ivHex, ciphertext] = encryptedStr.split(':');
+  const parts = encryptedStr.split(':');
+
+  if (parts.length === 3) {
+    // GCM format: iv:authTag:ciphertext
+    const [ivHex, authTagHex, ciphertext] = parts;
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  }
+
+  // Legacy CBC format: iv:ciphertext (for existing wallets)
+  const [ivHex, ciphertext] = parts;
   const iv = Buffer.from(ivHex, 'hex');
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
