@@ -14,20 +14,26 @@ export const securityHeaders = (req, res, next) => {
     );
 
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
 
-    res.setHeader('Expect-CT', 'max-age=86400, enforce');
+    // Note: COEP require-corp and CORP same-origin removed — they block
+    // cross-origin API requests from the frontend (different origin).
+
+    // Expect-CT removed — deprecated and enforced by all modern browsers by default.
 
     next();
 };
 
 
 export const contentSecurityPolicy = (req, res, next) => {
+    // Allow unsafe-inline only for Swagger docs; stricter CSP elsewhere
+    const isSwaggerPath = req.path.startsWith('/api/docs') || req.path.startsWith('/api-docs');
+    const scriptSrc = isSwaggerPath ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'";
+    const styleSrc = isSwaggerPath ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'";
+
     const cspDirectives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline'",
+        scriptSrc,
+        styleSrc,
         "img-src 'self' data: https:",
         "font-src 'self'",
         "connect-src 'self' https://api.coingecko.com https://*.etherscan.io https://*.infura.io",

@@ -69,7 +69,7 @@ export async function sendPlainMessage(chatId, text) {
  * @returns {boolean}
  */
 export function verifyWebhookSecret(headerValue) {
-  if (!telegramConfig.WEBHOOK_SECRET) return true; // no secret configured, allow all
+  if (!telegramConfig.WEBHOOK_SECRET) return false; // no secret configured, reject by default
   return headerValue === telegramConfig.WEBHOOK_SECRET;
 }
 
