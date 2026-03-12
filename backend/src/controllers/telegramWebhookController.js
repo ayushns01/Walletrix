@@ -21,11 +21,14 @@ import logger from '../services/loggerService.js';
 // ─────────────────────────────────────────────────────────────
 const pendingIntents = new Map();
 
-// Clear stale pending intents every 2 minutes
+// Clear stale pending intents and rate-limit entries every 2 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of pendingIntents.entries()) {
     if (val.expiresAt < now) pendingIntents.delete(key);
+  }
+  for (const [key, entry] of rateLimitMap.entries()) {
+    if (now - entry.windowStart > 120000) rateLimitMap.delete(key);
   }
 }, 2 * 60 * 1000);
 

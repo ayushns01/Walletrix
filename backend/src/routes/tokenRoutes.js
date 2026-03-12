@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/info/:tokenAddress', tokenController.getTokenInfo);
 
-router.get('/balance/:tokenAddress/:address', tokenController.getTokenBalance);
+router.get('/balance/:tokenAddress/:walletAddress', tokenController.getTokenBalance);
 
 router.post('/balances/multiple', tokenController.getMultipleBalances);
 
