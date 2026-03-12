@@ -6,13 +6,15 @@ import { Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function NotificationBell({ currentWalletId }) {
-    const { getToken } = useAuth();
+    const { getToken, isSignedIn } = useAuth();
     const router = useRouter();
     const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchUnreadCount = async () => {
+        if (!isSignedIn) return;
         try {
             const token = await getToken();
+            if (!token) return;
             const url = currentWalletId
                 ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count?walletId=${currentWalletId}`
                 : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count`;
@@ -33,10 +35,11 @@ export default function NotificationBell({ currentWalletId }) {
     };
 
     useEffect(() => {
+        if (!isSignedIn) return;
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [isSignedIn]);
 
     useEffect(() => {
         fetchUnreadCount();

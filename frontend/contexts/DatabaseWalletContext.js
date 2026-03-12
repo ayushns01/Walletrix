@@ -304,7 +304,7 @@ export function WalletProvider({ children }) {
           throw new Error('No Ethereum address found');
         }
 
-        const balanceResponse = await blockchainAPI.getEthereumBalance(address, targetNetwork);
+        const balanceResponse = await blockchainAPI.getEthereumBalance(address, networkName);
         if (balanceResponse.success) {
           const balance = balanceResponse.balance?.eth || balanceResponse.data?.balance || '0';
           return parseFloat(balance);
@@ -664,16 +664,17 @@ export function WalletProvider({ children }) {
 
       const data = await response.json();
 
-      if (data.success) {
-
-        setUserWallets(prev => prev.filter(w => w.id !== walletId));
+      const handleWalletRemoved = (message) => {
+        let remainingWallets;
+        setUserWallets(prev => {
+          remainingWallets = prev.filter(w => w.id !== walletId);
+          return remainingWallets;
+        });
 
         if (activeWalletId === walletId) {
-          const remainingWallets = userWallets.filter(w => w.id !== walletId);
-          if (remainingWallets.length > 0) {
-            await switchWallet(remainingWallets[0].id);
+          if (remainingWallets && remainingWallets.length > 0) {
+            switchWallet(remainingWallets[0].id);
           } else {
-
             setActiveWalletId(null);
             localStorage.removeItem('walletrix_active_wallet_id');
             setWallet(null);
@@ -681,25 +682,16 @@ export function WalletProvider({ children }) {
           }
         }
 
-        toast.success('Wallet deleted successfully');
+        toast.success(message);
         return { success: true };
+      };
+
+      if (data.success) {
+        return handleWalletRemoved('Wallet deleted successfully');
       } else {
 
         if (data.error && data.error.includes('not found')) {
-          setUserWallets(prev => prev.filter(w => w.id !== walletId));
-          if (activeWalletId === walletId) {
-            const remainingWallets = userWallets.filter(w => w.id !== walletId);
-            if (remainingWallets.length > 0) {
-              await switchWallet(remainingWallets[0].id);
-            } else {
-              setActiveWalletId(null);
-              localStorage.removeItem('walletrix_active_wallet_id');
-              setWallet(null);
-              setIsLocked(true);
-            }
-          }
-          toast.success('Wallet removed from list');
-          return { success: true };
+          return handleWalletRemoved('Wallet removed from list');
         }
 
         toast.error(data.error || 'Failed to delete wallet');
@@ -917,11 +909,13 @@ export function WalletProvider({ children }) {
 
     try {
       // Fetch balances, tokens, and prices in parallel for faster load
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         fetchBalances(),
         fetchTokenBalances(),
         fetchPrices(),
       ]);
+      const hasFailure = results.some(r => r.status === 'rejected');
+      return !hasFailure;
     } catch (error) {
       console.error('Error during data refresh:', error);
     } finally {
@@ -930,9 +924,9 @@ export function WalletProvider({ children }) {
   };
 
   const refreshData = async () => {
-    await refreshAllData();
+    const allOk = await refreshAllData();
     if (!refreshInProgress) {
-      toast.success('Data refreshed');
+      toast.success(allOk ? 'Data refreshed' : 'Data partially refreshed');
     }
   };
 

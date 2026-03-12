@@ -88,7 +88,7 @@ export const tokenAPI = {
   },
 
   getMultipleBalances: async (address, tokenAddresses) => {
-    const response = await api.post('/api/v1/tokens/balances/multiple', { address, tokenAddresses });
+    const response = await api.post('/api/v1/tokens/balances/multiple', { walletAddress: address, tokenAddresses });
     return response.data;
   },
 
@@ -224,7 +224,6 @@ export const transactionAPI = {
       const tx = {
         to,
         value: ethers.parseEther(amount.toString()),
-        gasLimit: 21000,
         maxFeePerGas: feeData.maxFeePerGas,
         maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
       };
@@ -319,7 +318,9 @@ export const transactionAPI = {
       const connection = new Connection(rpcUrl, 'confirmed');
 
       const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'hex'));
-      const fromKeypair = Keypair.fromSecretKey(privateKeyBytes);
+      const fromKeypair = privateKeyBytes.length === 32
+        ? Keypair.fromSeed(privateKeyBytes)
+        : Keypair.fromSecretKey(privateKeyBytes);
 
       const toPublicKey = new PublicKey(to);
       const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);

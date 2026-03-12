@@ -21,14 +21,14 @@ export default function ImportWallet({ onComplete }) {
   const handleImport = async () => {
 
     if (!mnemonic || mnemonic.trim() === '') {
-      toast.error('⚠️ Please enter your 12-word recovery phrase');
+      toast.error('⚠️ Please enter your recovery phrase');
       return;
     }
 
     const words = mnemonic.trim().split(/\s+/);
 
-    if (words.length !== 12) {
-      toast.error(`❌ Recovery phrase must be exactly 12 words. You entered ${words.length} words.`);
+    if (words.length !== 12 && words.length !== 24) {
+      toast.error(`❌ Recovery phrase must be 12 or 24 words. You entered ${words.length} words.`);
       return;
     }
 
