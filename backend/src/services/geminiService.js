@@ -11,6 +11,7 @@ import logger from './loggerService.js';
 
 let genAI = null;
 let model = null;
+let fallbackModel = null;
 let geminiQuotaExceeded = false;
 
 function getModel() {
@@ -20,11 +21,26 @@ function getModel() {
     }
     genAI = new GoogleGenerativeAI(telegramConfig.GEMINI_API_KEY);
     model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
+      model: 'gemini-2.5-flash',
       systemInstruction: INTENT_SYSTEM_PROMPT,
     });
   }
   return model;
+}
+
+function getFallbackModel() {
+  if (!fallbackModel) {
+    if (!telegramConfig.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+    if (!genAI) {
+      genAI = new GoogleGenerativeAI(telegramConfig.GEMINI_API_KEY);
+    }
+    fallbackModel = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+    });
+  }
+  return fallbackModel;
 }
 
 // ─── Regex-based intent parser ───────────────────────────────────────────────
@@ -41,7 +57,15 @@ function parseIntentWithRegex(message) {
   const msg = message.trim().toLowerCase();
 
   // ── Balance intent ───────────────────────────────────────────────────────
-  if (/\bbalance\b/.test(msg) || /\bhow much\b/.test(msg) || /\bmy wallet\b/.test(msg)) {
+  if (
+    /\bbalance\b/.test(msg) ||
+    /\bhow much\b/.test(msg) ||
+    /\bmy wallet\b/.test(msg) ||
+    /\bhow much do i have\b/.test(msg) ||
+    /\bwhat do i have\b/.test(msg) ||
+    /\bfunds\b/.test(msg) ||
+    /\bportfolio\b/.test(msg)
+  ) {
     return {
       intent: 'balance',
       details: { tokenSymbol: 'ETH', amount: null, recipientAddress: null, chain: null },
@@ -51,7 +75,7 @@ function parseIntentWithRegex(message) {
 
   // ── Transfer intent ──────────────────────────────────────────────────────
   // Patterns: "send X ETH to 0x...", "transfer X ETH to 0x...", "pay 0x... X ETH"
-  const hasSendKeyword = /\b(send|transfer|pay|wire)\b/.test(msg);
+  const hasSendKeyword = /\b(send|transfer|pay|wire|move)\b/.test(msg);
   const addressMatch = ETH_ADDRESS_RE.exec(message); // keep original case for address
   const amountMatch = AMOUNT_RE.exec(msg);
   const tokenMatch = TOKEN_RE.exec(message);
@@ -73,6 +97,25 @@ function parseIntentWithRegex(message) {
         confidence: 0.97,
       };
     }
+  }
+
+  // Partial transfer requests should still map to transfer intent so the bot
+  // can ask the user for missing fields conversationally.
+  if (hasSendKeyword) {
+    const tokenSymbol = tokenMatch ? tokenMatch[1].toUpperCase() : 'ETH';
+    const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
+    const recipientAddress = addressMatch ? addressMatch[0] : null;
+
+    return {
+      intent: 'transfer',
+      details: {
+        tokenSymbol,
+        amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+        recipientAddress,
+        chain: null,
+      },
+      confidence: 0.8,
+    };
   }
 
   return null; // no regex match — let Gemini try
@@ -117,7 +160,7 @@ async function parseIntentWithGemini(userMessage) {
       geminiQuotaExceeded = true;
       logger.warn('[Gemini] Quota exceeded — switching to regex-only mode');
     } else {
-      logger.error('[Gemini] parseIntent failed', { message: userMessage, error: error.message });
+      logger.error('[Gemini] parseIntent failed', { userMessage, errorDetail: error.message });
     }
     return null;
   }
@@ -158,4 +201,51 @@ export async function parseIntent(userMessage) {
     details: { tokenSymbol: 'ETH', amount: null, recipientAddress: null, chain: null },
     confidence: 0,
   };
+}
+
+/**
+ * Generate a conversational fallback response for messages that do not map
+ * cleanly to a supported intent.
+ */
+export async function generateFallbackReply(userMessage, conversationHistory = []) {
+  if (geminiQuotaExceeded) return null;
+
+  try {
+    const mdl = getFallbackModel();
+    const historyBlock = Array.isArray(conversationHistory) && conversationHistory.length > 0
+      ? conversationHistory.slice(-8).map((entry) => `${entry.role}: ${entry.text}`).join('\n')
+      : 'No recent history.';
+
+    const prompt = `You are Walletrix Telegram wallet assistant.
+Reply in 1-3 short lines, plain text only.
+Be helpful and conversational.
+Supported tasks: check balance, send ETH/ERC20, link account, help.
+If user is unrelated to wallet actions, gently steer them back to wallet actions.
+Recent conversation:\n${historyBlock}
+User message: "${userMessage}"`;
+
+    const result = await mdl.generateContent(prompt);
+    const text = result.response.text().trim();
+    if (!text) return null;
+
+    const normalized = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    try {
+      const maybeJson = JSON.parse(normalized);
+      if (maybeJson && typeof maybeJson === 'object' && 'intent' in maybeJson) {
+        return null;
+      }
+    } catch {
+      // Not JSON — this is what we want.
+    }
+
+    return normalized;
+  } catch (error) {
+    if (error.status === 429) {
+      geminiQuotaExceeded = true;
+      logger.warn('[Gemini] Quota exceeded during fallback reply — switching to regex-only mode');
+    } else {
+      logger.error('[Gemini] fallback reply failed', { userMessage, errorDetail: error.message });
+    }
+    return null;
+  }
 }

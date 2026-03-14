@@ -64,6 +64,22 @@ model TelegramBotWallet {
   @@map("telegram_bot_wallets")
 }
 
+/// Persistent conversational state for Telegram bot interactions.
+/// Used to preserve context between messages and across process restarts.
+model ConversationSession {
+  id           String   @id @default(cuid())
+  telegramId   String   @unique @map("telegram_id")
+  chatContext  Json?    @map("chat_context")
+  transferDraft Json?   @map("transfer_draft")
+  pendingIntent Json?   @map("pending_intent")
+  expiresAt    DateTime? @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([expiresAt])
+  @@map("conversation_sessions")
+}
+
 /// Represents a wallet (EOA) derived from BIP-39 or imported via private key.
 /// This is the foundation — on EVM chains, a SmartAccount can optionally be
 /// deployed on top of this wallet to enable ERC-4337 features.
