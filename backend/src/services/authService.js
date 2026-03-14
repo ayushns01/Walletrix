@@ -1,7 +1,16 @@
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import prisma from '../lib/prisma.js';
 import argon2Service from './argon2Service.js';
 import logger from './loggerService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure env is loaded even if this module initializes before index.js dotenv.config()
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 /**
  * AuthService
