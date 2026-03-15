@@ -11,6 +11,7 @@ import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { telegramAPI } from '@/lib/api'
+import TelegramAddressListManager from '@/components/TelegramAddressListManager'
 
 export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStartTutorial }) {
   const { user: clerkUser } = useUser()
@@ -734,6 +735,12 @@ export default function Settings({ isOpen, onClose, onOpenAccountDetails, onStar
                         )}
                       </div>
                     )}
+
+                    <TelegramAddressListManager
+                      isVisible={isOpen && activeTab === 'telegram'}
+                      linked={Boolean(telegramStatus?.linked)}
+                      getToken={getToken}
+                    />
 
                     {/* Info Card */}
                     <div className="glass-effect rounded-xl p-4 sm:p-6 border border-blue-500/20">

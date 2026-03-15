@@ -387,6 +387,34 @@ export const telegramAPI = {
     });
     return response.data;
   },
+
+  getRecipients: async (token) => {
+    const response = await api.get('/api/v1/telegram/recipients', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  saveRecipient: async (token, payload) => {
+    const response = await api.post('/api/v1/telegram/recipients', payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  updateRecipient: async (token, recipientId, payload) => {
+    const response = await api.patch(`/api/v1/telegram/recipients/${recipientId}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  deleteRecipient: async (token, recipientId) => {
+    const response = await api.delete(`/api/v1/telegram/recipients/${recipientId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 };
 
 export default api;
