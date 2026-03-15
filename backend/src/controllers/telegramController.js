@@ -5,10 +5,29 @@
  */
 
 import prisma from '../lib/prisma.js';
-import { sendMessage } from '../services/telegramService.js';
 import { createBotWallet, getBotWalletBalance } from '../services/telegramExecutionService.js';
-import { LINKED_MESSAGE } from '../config/prompts.js';
+import {
+  deleteSavedRecipientById,
+  listSavedRecipients,
+  saveSavedRecipient,
+} from '../services/savedRecipientService.js';
 import logger from '../services/loggerService.js';
+
+async function findAuthenticatedUser(clerkUserId) {
+  return prisma.user.findUnique({ where: { email: clerkUserId } });
+}
+
+async function findOrCreateAuthenticatedUser(clerkUserId) {
+  return prisma.user.upsert({
+    where: { email: clerkUserId },
+    update: {},
+    create: {
+      email: clerkUserId,
+      name: 'Clerk User',
+      passwordHash: 'clerk-managed',
+    },
+  });
+}
 
 /**
  * Generate a link code for the authenticated user.
@@ -19,17 +38,7 @@ import logger from '../services/loggerService.js';
 export async function generateLinkCode(req, res) {
   try {
     const clerkUserId = req.clerkUserId;
-
-    // Find or create user
-    const user = await prisma.user.upsert({
-      where: { email: clerkUserId },
-      update: {},
-      create: {
-        email: clerkUserId,
-        name: 'Clerk User',
-        passwordHash: 'clerk-managed',
-      },
-    });
+    const user = await findOrCreateAuthenticatedUser(clerkUserId);
 
     // Check if already linked
     if (user.telegramId) {
@@ -107,7 +116,7 @@ export async function applyLinkCode(telegramId, code) {
 export async function unlinkTelegram(req, res) {
   try {
     const clerkUserId = req.clerkUserId;
-    const user = await prisma.user.findUnique({ where: { email: clerkUserId } });
+    const user = await findAuthenticatedUser(clerkUserId);
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     if (!user.telegramId) {
@@ -167,7 +176,7 @@ export async function getTelegramStatus(req, res) {
 export async function getBotBalance(req, res) {
   try {
     const clerkUserId = req.clerkUserId;
-    const user = await prisma.user.findUnique({ where: { email: clerkUserId } });
+    const user = await findAuthenticatedUser(clerkUserId);
     if (!user || !user.telegramId) {
       return res.status(404).json({ success: false, error: 'No linked Telegram account' });
     }
@@ -177,5 +186,79 @@ export async function getBotBalance(req, res) {
   } catch (error) {
     logger.error('[Telegram] getBotBalance error', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to fetch bot balance' });
+  }
+}
+
+/**
+ * List the authenticated user's saved recipients.
+ *
+ * GET /api/v1/telegram/recipients
+ */
+export async function getSavedRecipients(req, res) {
+  try {
+    const clerkUserId = req.clerkUserId;
+    const user = await findAuthenticatedUser(clerkUserId);
+
+    if (!user) {
+      return res.status(200).json({ success: true, recipients: [] });
+    }
+
+    const recipients = await listSavedRecipients(user.id);
+    return res.status(200).json({ success: true, recipients });
+  } catch (error) {
+    logger.error('[Telegram] getSavedRecipients error', { error: error.message });
+    return res.status(500).json({ success: false, error: 'Failed to load saved recipients' });
+  }
+}
+
+/**
+ * Create or update a saved recipient for the authenticated user.
+ *
+ * POST /api/v1/telegram/recipients
+ */
+export async function upsertSavedRecipient(req, res) {
+  try {
+    const clerkUserId = req.clerkUserId;
+    const user = await findOrCreateAuthenticatedUser(clerkUserId);
+    const { name, address } = req.body || {};
+
+    const result = await saveSavedRecipient(user.id, { name, address });
+    return res.status(result.created ? 201 : 200).json({
+      success: true,
+      created: result.created,
+      recipient: result.recipient,
+    });
+  } catch (error) {
+    const statusCode = /required|valid|reserved|fewer/i.test(error.message || '') ? 400 : 500;
+    logger.error('[Telegram] upsertSavedRecipient error', { error: error.message });
+    return res.status(statusCode).json({
+      success: false,
+      error: statusCode === 400 ? error.message : 'Failed to save recipient',
+    });
+  }
+}
+
+/**
+ * Delete a saved recipient for the authenticated user.
+ *
+ * DELETE /api/v1/telegram/recipients/:recipientId
+ */
+export async function deleteSavedRecipient(req, res) {
+  try {
+    const clerkUserId = req.clerkUserId;
+    const user = await findAuthenticatedUser(clerkUserId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const removed = await deleteSavedRecipientById(user.id, req.params.recipientId);
+    if (!removed) {
+      return res.status(404).json({ success: false, error: 'Saved recipient not found' });
+    }
+
+    return res.status(200).json({ success: true, deleted: true });
+  } catch (error) {
+    logger.error('[Telegram] deleteSavedRecipient error', { error: error.message });
+    return res.status(500).json({ success: false, error: 'Failed to delete recipient' });
   }
 }
