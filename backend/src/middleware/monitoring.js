@@ -1,4 +1,5 @@
 import logger, { logRequest, logPerformance, logSecurity } from '../services/loggerService.js';
+import { getConversationSessionPersistenceStatus } from '../services/conversationSessionService.js';
 
 export function requestLogger(req, res, next) {
   const startTime = Date.now();
@@ -191,6 +192,7 @@ export function getSecurityEvents() {
 export function getHealthStatus() {
   const memory = process.memoryUsage();
   const uptime = process.uptime();
+  const conversationSessionPersistence = getConversationSessionPersistenceStatus();
 
   return {
     status: 'healthy',
@@ -210,6 +212,9 @@ export function getHealthStatus() {
         ? ((metrics.requests.successful / metrics.requests.total) * 100).toFixed(2) + '%'
         : '0%',
       averageResponseTime: metrics.performance.averageResponseTime.toFixed(2) + 'ms',
+    },
+    persistence: {
+      conversationSession: conversationSessionPersistence,
     },
     environment: process.env.NODE_ENV || 'development',
   };
