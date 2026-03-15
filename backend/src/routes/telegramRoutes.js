@@ -11,6 +11,9 @@ import {
   unlinkTelegram,
   getTelegramStatus,
   getBotBalance,
+  getSavedRecipients,
+  upsertSavedRecipient,
+  deleteSavedRecipient,
 } from '../controllers/telegramController.js';
 
 const router = express.Router();
@@ -28,5 +31,14 @@ router.post('/unlink', unlinkTelegram);
 
 // GET  /api/v1/telegram/bot-balance  — Bot wallet ETH balance on Sepolia
 router.get('/bot-balance', getBotBalance);
+
+// GET  /api/v1/telegram/recipients  — List saved recipients
+router.get('/recipients', getSavedRecipients);
+
+// POST /api/v1/telegram/recipients  — Create or update a saved recipient
+router.post('/recipients', upsertSavedRecipient);
+
+// DELETE /api/v1/telegram/recipients/:recipientId  — Remove a saved recipient
+router.delete('/recipients/:recipientId', deleteSavedRecipient);
 
 export default router;
