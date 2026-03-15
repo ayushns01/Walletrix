@@ -35,7 +35,7 @@ export async function sendMessage(chatId, text, extra = {}) {
     // If Telegram rejected due to bad Markdown entities, retry as plain text
     if (errData?.error_code === 400 && errData?.description?.includes('parse entities')) {
       logger.warn('[Telegram] Markdown parse failed, retrying as plain text', { chatId });
-      return sendPlainMessage(chatId, text);
+      return sendPlainMessage(chatId, text, extra);
     }
     logger.error('[Telegram] sendMessage failed', { chatId, error: errData || error.message });
     return null;
@@ -46,12 +46,13 @@ export async function sendMessage(chatId, text, extra = {}) {
  * Send a plain text message (no Markdown) — safe for error strings that may
  * contain special characters like backticks, asterisks, brackets, etc.
  */
-export async function sendPlainMessage(chatId, text) {
+export async function sendPlainMessage(chatId, text, extra = {}) {
   if (!telegramConfig.BOT_TOKEN) return null;
   try {
     const response = await axios.post(tgApi('sendMessage'), {
       chat_id: chatId,
       text,
+      ...extra,
     });
     return response.data;
   } catch (error) {

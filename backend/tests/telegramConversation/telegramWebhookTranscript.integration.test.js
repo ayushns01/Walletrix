@@ -3,6 +3,7 @@ const mockState = {
   sessionsByTelegramId: new Map(),
   lastRecipientByUserId: new Map(),
   savedRecipientsByUserId: new Map(),
+  activityLogsByUserId: new Map(),
 };
 
 function mockGetSavedRecipients(userId) {
@@ -11,6 +12,14 @@ function mockGetSavedRecipients(userId) {
     mockState.savedRecipientsByUserId.set(key, []);
   }
   return mockState.savedRecipientsByUserId.get(key);
+}
+
+function mockGetActivityLogs(userId) {
+  const key = String(userId);
+  if (!mockState.activityLogsByUserId.has(key)) {
+    mockState.activityLogsByUserId.set(key, []);
+  }
+  return mockState.activityLogsByUserId.get(key);
 }
 
 function mockEnsureLinkedUser(telegramId) {
@@ -63,7 +72,32 @@ jest.mock('../../src/lib/prisma.js', () => ({
         return { toAddress, timestamp: new Date() };
       }),
     },
+    activityLog: {
+      create: jest.fn(async ({ data }) => {
+        const logs = mockGetActivityLogs(data.userId);
+        const created = {
+          id: `activity-${logs.length + 1}`,
+          createdAt: new Date(),
+          ...data,
+        };
+        logs.unshift(created);
+        return created;
+      }),
+      findMany: jest.fn(async ({ where, take }) => {
+        const logs = [...mockGetActivityLogs(where.userId)];
+        const filtered = Array.isArray(where?.action?.in)
+          ? logs.filter((log) => where.action.in.includes(log.action))
+          : logs;
+        return filtered
+          .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+          .slice(0, take || filtered.length);
+      }),
+    },
     savedRecipient: {
+      findFirst: jest.fn(async ({ where }) => {
+        const recipients = mockGetSavedRecipients(where.userId);
+        return recipients.find((recipient) => recipient.id === where.id) || null;
+      }),
       findUnique: jest.fn(async ({ where }) => {
         const { userId, normalizedName } = where.userId_normalizedName;
         return mockGetSavedRecipients(userId).find((recipient) => recipient.normalizedName === normalizedName) || null;
@@ -73,7 +107,26 @@ jest.mock('../../src/lib/prisma.js', () => ({
         if (where?.normalizedName?.in) {
           return recipients.filter((recipient) => where.normalizedName.in.includes(recipient.normalizedName));
         }
-        return recipients.sort((left, right) => left.name.localeCompare(right.name));
+        return recipients.sort((left, right) => (
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+          || left.name.localeCompare(right.name)
+        ));
+      }),
+      update: jest.fn(async ({ where, data }) => {
+        for (const [userId, recipients] of mockState.savedRecipientsByUserId.entries()) {
+          const existingIndex = recipients.findIndex((recipient) => recipient.id === where.id);
+          if (existingIndex === -1) continue;
+
+          recipients[existingIndex] = {
+            ...recipients[existingIndex],
+            ...data,
+            updatedAt: data.updatedAt || new Date(),
+          };
+          mockState.savedRecipientsByUserId.set(userId, recipients);
+          return recipients[existingIndex];
+        }
+
+        return null;
       }),
       upsert: jest.fn(async ({ where, update, create }) => {
         const { userId, normalizedName } = where.userId_normalizedName;
@@ -261,6 +314,7 @@ describe('telegramWebhookController transcript integration', () => {
     mockState.sessionsByTelegramId.clear();
     mockState.lastRecipientByUserId.clear();
     mockState.savedRecipientsByUserId.clear();
+    mockState.activityLogsByUserId.clear();
     outgoing.length = 0;
 
     jest.clearAllMocks();
@@ -307,6 +361,28 @@ describe('telegramWebhookController transcript integration', () => {
 
     await sendIncomingText('yes', { telegramId, chatId: 502 });
     expect(outgoing.some((msg) => msg.includes('Transaction Sent'))).toBe(true);
+    expect(mockGetActivityLogs(`user-${telegramId}`)[0]?.action).toBe('TELEGRAM_TRANSFER_CONFIRMED');
+  });
+
+  it('shows recent and last transfer history after sending', async () => {
+    const telegramId = 1203;
+    mockEnsureLinkedUser(telegramId);
+
+    await sendIncomingText('send 0.4 eth to 0x1111111111111111111111111111111111111111', { telegramId, chatId: 503 });
+    expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.4 ETH*");
+
+    await sendIncomingText('yes', { telegramId, chatId: 503 });
+    expect(outgoing.some((msg) => msg.includes('Transaction Sent'))).toBe(true);
+
+    outgoing.length = 0;
+    await sendIncomingText('show my recent transfers', { telegramId, chatId: 503 });
+    expect(outgoing[outgoing.length - 1]).toContain('Recent Transfers');
+    expect(outgoing[outgoing.length - 1]).toContain('0.4 ETH');
+
+    outgoing.length = 0;
+    await sendIncomingText('/last', { telegramId, chatId: 503 });
+    expect(outgoing[outgoing.length - 1]).toContain('Last Transfer');
+    expect(outgoing[outgoing.length - 1]).toContain('Confirmed');
   });
 
   it('handles natural address-list phrasing for save, list, send, and delete', async () => {
@@ -359,6 +435,30 @@ describe('telegramWebhookController transcript integration', () => {
     await sendIncomingText('Alice', { telegramId, chatId: 523 });
     expect(outgoing[outgoing.length - 1]).toContain('*Alice*');
     expect(outgoing[outgoing.length - 1]).toContain('0x6666666666666666666666666666666666666666');
+  });
+
+  it('accepts a digit-based address-list name as a bare recipient reply', async () => {
+    const telegramId = 1234;
+    const user = mockEnsureLinkedUser(telegramId);
+    mockGetSavedRecipients(user.id).push({
+      id: 'recipient-2',
+      userId: user.id,
+      name: 'Contact 1',
+      normalizedName: 'contact 1',
+      address: '0x7777777777777777777777777777777777777777',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await sendIncomingText('i want to send eth', { telegramId, chatId: 524 });
+    expect(outgoing[outgoing.length - 1]).toContain('How much would you like to send');
+
+    await sendIncomingText('0.2', { telegramId, chatId: 524 });
+    expect(outgoing[outgoing.length - 1]).toContain('Who should receive it');
+
+    await sendIncomingText('Contact 1', { telegramId, chatId: 524 });
+    expect(outgoing[outgoing.length - 1]).toContain('*Contact 1*');
+    expect(outgoing[outgoing.length - 1]).toContain('0x7777777777777777777777777777777777777777');
   });
 
   it('supports confirm and cancel decisions for pending transfer', async () => {

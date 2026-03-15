@@ -54,6 +54,14 @@ export function createTransferConversationHandlers(deps) {
     extractTransferFields,
     getMissingTransferFields,
     buildMissingFieldPrompt,
+    getPrimaryQuickReplyMarkup,
+    getAmountCollectionQuickReplyMarkup,
+    getRecipientCollectionQuickReplyMarkup,
+    getTokenCollectionQuickReplyMarkup,
+    getConfirmQuickReplyMarkup,
+    getRecipientQuickReplyNames,
+    touchSavedRecipientById,
+    recordTelegramTransferEvent,
   } = deps;
 
   async function handlePendingConfirmation({ chatId, telegramId, text, pending, user }) {
@@ -73,26 +81,47 @@ export function createTransferConversationHandlers(deps) {
           lastAmount: parseFloat(result.amount),
           lastTokenSymbol: result.token,
         });
+        await recordTelegramTransferEvent(user.id, {
+          status: 'confirmed',
+          txHash: result.txHash,
+          fromAddress: result.from,
+          toAddress: result.to,
+          amount: result.amount,
+          tokenSymbol: result.token,
+          recipientLabel: pending.intent.details?.recipientLabel || null,
+          chainId: result.chainId || null,
+        });
         setScene(telegramId, 'idle', 'ready', { lastIntent: 'transfer' });
         return sendBotMessage(chatId, telegramId,
-          `✅ *Transaction Sent!*\n\nAmount: ${result.amount} ${result.token}\nTo: \`${result.to}\`\nHash: \`${result.txHash}\``
+          `✅ *Transaction Sent!*\n\nAmount: ${result.amount} ${result.token}\nTo: \`${result.to}\`\nHash: \`${result.txHash}\``,
+          getPrimaryQuickReplyMarkup()
         );
       } catch (error) {
         logger.error('[TelegramBot] executeTransfer failed', { telegramId, error: error.message });
+        await recordTelegramTransferEvent(user.id, {
+          status: 'failed',
+          toAddress: pending.intent.details?.recipientAddress || null,
+          amount: pending.intent.details?.amount ?? null,
+          tokenSymbol: pending.intent.details?.tokenSymbol || null,
+          recipientLabel: pending.intent.details?.recipientLabel || null,
+          chainId: pending.intent.details?.chain || null,
+          errorMessage: error.message || 'Transfer failed',
+        });
         const reason = buildTransferExecutionFailureReason(error.message || '');
         setScene(telegramId, 'transfer', 'failed');
-        return sendBotPlain(chatId, telegramId, reason);
+        return sendBotPlain(chatId, telegramId, reason, getPrimaryQuickReplyMarkup());
       }
     }
 
     if (answer === 'no' || answer === 'n' || answer === 'cancel') {
       setPendingIntent(telegramId, null);
       setScene(telegramId, 'idle', 'ready');
-      return sendBotPlain(chatId, telegramId, '❌ Transaction cancelled.');
+      return sendBotPlain(chatId, telegramId, '❌ Transaction cancelled.', getPrimaryQuickReplyMarkup());
     }
 
     return sendBotPlain(chatId, telegramId,
-      '⏳ You have a pending transaction confirmation.\n\nReply with:\n• yes (to send)\n• no (to cancel)'
+      '⏳ You have a pending transaction confirmation.\n\nReply with:\n• yes (to send)\n• no (to cancel)',
+      getConfirmQuickReplyMarkup()
     );
   }
 
@@ -103,7 +132,7 @@ export function createTransferConversationHandlers(deps) {
     if (lowered === 'cancel' || lowered === 'stop' || lowered === 'nevermind') {
       setTransferDraft(telegramId, null);
       setScene(telegramId, 'idle', 'ready');
-      return sendBotPlain(chatId, telegramId, '✅ Transfer draft cancelled.');
+      return sendBotPlain(chatId, telegramId, '✅ Transfer draft cancelled.', getPrimaryQuickReplyMarkup());
     }
 
     const extracted = extractTransferFields(text);
@@ -127,6 +156,7 @@ export function createTransferConversationHandlers(deps) {
     } else if (savedRecipient) {
       draft.intent.details.recipientAddress = savedRecipient.address;
       draft.intent.details.recipientLabel = savedRecipient.name;
+      await touchSavedRecipientById(user.id, savedRecipient.id);
     }
 
     const context = getContext(telegramId);
@@ -145,14 +175,22 @@ export function createTransferConversationHandlers(deps) {
       } else {
         setTransferDraft(telegramId, { ...draft, expiresAt: Date.now() + 2 * 60 * 1000 });
         setScene(telegramId, 'transfer', 'collecting_recipientAddress');
-        return sendBotPlain(chatId, telegramId, 'I could not find a previous recipient address. Please send a 0x... address.');
+        const suggestedNames = await getRecipientQuickReplyNames(user.id);
+        return sendBotPlain(chatId, telegramId, 'I could not find a previous recipient address. Please send a 0x... address.', getRecipientCollectionQuickReplyMarkup({
+          hasPreviousRecipient: false,
+          savedRecipientNames: suggestedNames,
+        }));
       }
     }
 
     if (!draft.intent.details.recipientAddress && currentStep === 'collecting_recipientAddress' && aliasCandidate) {
       setTransferDraft(telegramId, { ...draft, expiresAt: Date.now() + 2 * 60 * 1000 });
       setScene(telegramId, 'transfer', 'collecting_recipientAddress');
-      return sendBotPlain(chatId, telegramId, `I could not find "${aliasCandidate}" in your address list. Send a wallet address, or save it first with "save 0x... as ${aliasCandidate}".`);
+      const suggestedNames = await getRecipientQuickReplyNames(user.id);
+      return sendBotPlain(chatId, telegramId, `I could not find "${aliasCandidate}" in your address list. Send a wallet address, or save it first with "save 0x... as ${aliasCandidate}".`, getRecipientCollectionQuickReplyMarkup({
+        hasPreviousRecipient: false,
+        savedRecipientNames: suggestedNames,
+      }));
     }
 
     if (!draft.intent.details.tokenSymbol) {
@@ -163,7 +201,17 @@ export function createTransferConversationHandlers(deps) {
     if (missing.length > 0) {
       setTransferDraft(telegramId, { ...draft, expiresAt: Date.now() + 2 * 60 * 1000 });
       setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
+      const step = missing[0];
+      const suggestedNames = step === 'recipientAddress' ? await getRecipientQuickReplyNames(user.id) : [];
+      const quickReplyMarkup = step === 'recipientAddress'
+        ? getRecipientCollectionQuickReplyMarkup({
+            hasPreviousRecipient: Boolean(context?.lastRecipientAddress),
+            savedRecipientNames: suggestedNames,
+          })
+        : step === 'tokenSymbol'
+          ? getTokenCollectionQuickReplyMarkup()
+          : getAmountCollectionQuickReplyMarkup();
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing), quickReplyMarkup);
     }
 
     setTransferDraft(telegramId, null);
@@ -179,7 +227,7 @@ export function createTransferConversationHandlers(deps) {
       tokenSymbol,
       recipientAddress,
       recipientLabel,
-    }));
+    }), getConfirmQuickReplyMarkup());
   }
 
   async function handleTransferCollectionGuardrails({ chatId, telegramId, text }) {
@@ -200,7 +248,7 @@ export function createTransferConversationHandlers(deps) {
         },
         expiresAt: Date.now() + 2 * 60 * 1000,
       });
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['amount']));
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['amount']), getAmountCollectionQuickReplyMarkup());
     }
 
     if (step === 'recipientAddress' && !extracted.recipientAddress && !detectPreviousRecipientReference(text)) {
@@ -212,7 +260,12 @@ export function createTransferConversationHandlers(deps) {
         },
         expiresAt: Date.now() + 2 * 60 * 1000,
       });
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['recipientAddress']));
+      const userId = context?.userId || null;
+      const suggestedNames = userId ? await getRecipientQuickReplyNames(userId) : [];
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['recipientAddress']), getRecipientCollectionQuickReplyMarkup({
+        hasPreviousRecipient: Boolean(context?.lastRecipientAddress),
+        savedRecipientNames: suggestedNames,
+      }));
     }
 
     if (step === 'tokenSymbol' && !extracted.tokenSymbol && !detectPreviousTokenReference(text)) {
@@ -224,7 +277,7 @@ export function createTransferConversationHandlers(deps) {
         },
         expiresAt: Date.now() + 2 * 60 * 1000,
       });
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['tokenSymbol']));
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['tokenSymbol']), getTokenCollectionQuickReplyMarkup());
     }
 
     return null;
@@ -252,7 +305,20 @@ export function createTransferConversationHandlers(deps) {
         expiresAt: Date.now() + 2 * 60 * 1000,
       });
       setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
+      const step = missing[0];
+      const userId = getContext(telegramId)?.userId || null;
+      const suggestedNames = step === 'recipientAddress' && userId
+        ? await getRecipientQuickReplyNames(userId)
+        : [];
+      const quickReplyMarkup = step === 'recipientAddress'
+        ? getRecipientCollectionQuickReplyMarkup({
+            hasPreviousRecipient: Boolean(getContext(telegramId)?.lastRecipientAddress),
+            savedRecipientNames: suggestedNames,
+          })
+        : step === 'tokenSymbol'
+          ? getTokenCollectionQuickReplyMarkup()
+          : getAmountCollectionQuickReplyMarkup();
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing), quickReplyMarkup);
     }
 
     setPendingIntent(telegramId, {
@@ -264,7 +330,7 @@ export function createTransferConversationHandlers(deps) {
       expiresAt: Date.now() + 2 * 60 * 1000,
     });
     setScene(telegramId, 'transfer', 'confirm');
-    return sendBotMessage(chatId, telegramId, buildTransferConfirmMessage(details));
+    return sendBotMessage(chatId, telegramId, buildTransferConfirmMessage(details), getConfirmQuickReplyMarkup());
   }
 
   return {

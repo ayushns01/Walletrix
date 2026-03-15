@@ -78,6 +78,8 @@ Available commands:
 /start — Link this bot to your Walletrix account
 /balance — Check your bot wallet balance  
 /addresses — Show your address list
+/recent — Show your recent Telegram transfers
+/last — Show your last Telegram transfer
 /help — Show this message
 /unlink — Unlink your account
 
@@ -85,6 +87,8 @@ Or just type naturally:
 • "Send 0.01 ETH to 0x123..."
 • "Send 0.01 ETH to Alice"
 • "Save 0x123... as Alice"
+• "Show my recent transfers"
+• "What was my last transfer?"
 • "Transfer 5 USDC to vitalik.eth"
 • "What's my balance?"
 `;
@@ -99,4 +103,4 @@ Your dedicated bot wallet address is:
 \`${address}\`
 
 Fund this address with ETH (or tokens) to enable transactions.
-Use /help, /balance, or /addresses whenever you need them.`;
+Use /help, /balance, /addresses, or /recent whenever you need them.`;
