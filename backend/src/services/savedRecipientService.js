@@ -71,13 +71,23 @@ function buildSavedRecipientNameVariants(name) {
 
   if (!normalized) return [];
 
-  const variants = [normalized];
+  const variants = new Set([normalized]);
+
   const compact = normalized.replace(/\s+/g, '');
   if (compact && compact !== normalized) {
-    variants.push(compact);
+    variants.add(compact);
   }
 
-  return variants;
+  const strippedPrefix = normalized.replace(/^(?:contact|recipient)\s+/, '');
+  if (strippedPrefix && strippedPrefix !== normalized) {
+    variants.add(strippedPrefix);
+    const strippedCompact = strippedPrefix.replace(/\s+/g, '');
+    if (strippedCompact && strippedCompact !== strippedPrefix) {
+      variants.add(strippedCompact);
+    }
+  }
+
+  return [...variants];
 }
 
 export function normalizeSavedRecipientName(name) {
@@ -203,7 +213,6 @@ export function isListSavedRecipientsIntent(text) {
 
 function sanitizeAliasCandidate(value) {
   return cleanQuotedValue(value)
-    .replace(/^(?:contact|recipient)\s+(?=[a-z][a-z0-9 _.'-]*$)/i, '')
     .replace(/\s+(?:please|pls|now)$/i, '')
     .trim();
 }
@@ -222,11 +231,11 @@ export function extractSavedRecipientAliasCandidate(text, { allowBareName = fals
   if (!allowBareName) return null;
   if (/\b(send|transfer|pay|balance|help|start|unlink|cancel|confirm)\b/i.test(message)) return null;
   if (/\b(actually|make|change|set|update|amount|token|address)\b/i.test(message)) return null;
-  if (/\d/.test(message)) return null;
 
   const candidate = sanitizeAliasCandidate(message);
   if (!candidate || candidate.length > 50) return null;
   if (!/[a-z]/i.test(candidate)) return null;
+  if (/^\d+(?:\.\d+)?$/.test(candidate)) return null;
   if (candidate.split(/\s+/).length > 3) return null;
 
   return candidate;
@@ -290,13 +299,91 @@ export async function saveSavedRecipient(userId, { name, address }) {
   };
 }
 
+export async function updateSavedRecipientById(userId, recipientId, { name, address }) {
+  const nameValidation = validateSavedRecipientName(name);
+  if (!nameValidation.ok) {
+    throw new Error(nameValidation.error);
+  }
+
+  const normalizedAddress = normalizeSavedRecipientAddress(address);
+  if (!normalizedAddress) {
+    throw new Error('Recipient address must be a valid 0x address or ENS name.');
+  }
+
+  const existing = await prisma.savedRecipient.findFirst({
+    where: {
+      id: recipientId,
+      userId,
+    },
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const conflictingRecipient = await prisma.savedRecipient.findFirst({
+    where: {
+      userId,
+      normalizedName: nameValidation.normalized,
+      NOT: { id: recipientId },
+    },
+  });
+
+  if (conflictingRecipient) {
+    throw new Error('That name is already in your address list.');
+  }
+
+  const record = await prisma.savedRecipient.update({
+    where: { id: recipientId },
+    data: {
+      name: nameValidation.formatted,
+      normalizedName: nameValidation.normalized,
+      address: normalizedAddress,
+    },
+  });
+
+  return {
+    recipient: mapSavedRecipient(record),
+  };
+}
+
 export async function listSavedRecipients(userId) {
+  return listSavedRecipientsWithOptions(userId);
+}
+
+export async function listSavedRecipientsWithOptions(userId, { limit = null } = {}) {
   const recipients = await prisma.savedRecipient.findMany({
     where: { userId },
-    orderBy: { name: 'asc' },
+    orderBy: [
+      { updatedAt: 'desc' },
+      { name: 'asc' },
+    ],
+    ...(limit ? { take: limit } : {}),
   });
 
   return recipients.map(mapSavedRecipient);
+}
+
+export async function touchSavedRecipientById(userId, recipientId) {
+  if (!recipientId) return null;
+
+  const existing = await prisma.savedRecipient.findFirst({
+    where: {
+      id: recipientId,
+      userId,
+    },
+  });
+
+  if (!existing) return null;
+
+  const record = await prisma.savedRecipient.update({
+    where: { id: recipientId },
+    data: {
+      updatedAt: new Date(),
+    },
+  });
+
+  return mapSavedRecipient(record);
 }
 
 export async function findSavedRecipientByName(userId, name) {

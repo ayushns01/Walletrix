@@ -14,6 +14,7 @@ import {
   getSavedRecipients,
   upsertSavedRecipient,
   deleteSavedRecipient,
+  updateSavedRecipient,
 } from '../controllers/telegramController.js';
 
 const router = express.Router();
@@ -37,6 +38,9 @@ router.get('/recipients', getSavedRecipients);
 
 // POST /api/v1/telegram/recipients  — Create or update a saved recipient
 router.post('/recipients', upsertSavedRecipient);
+
+// PATCH /api/v1/telegram/recipients/:recipientId  — Update a saved recipient
+router.patch('/recipients/:recipientId', updateSavedRecipient);
 
 // DELETE /api/v1/telegram/recipients/:recipientId  — Remove a saved recipient
 router.delete('/recipients/:recipientId', deleteSavedRecipient);

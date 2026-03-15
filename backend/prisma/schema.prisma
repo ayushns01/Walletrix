@@ -32,6 +32,7 @@ model User {
   activityLogs      ActivityLog[]
   telegramLinkCode  TelegramLinkCode?
   telegramBotWallet TelegramBotWallet?
+  savedRecipients   SavedRecipient[]
 
   @@map("users")
 }
@@ -78,6 +79,23 @@ model ConversationSession {
 
   @@index([expiresAt])
   @@map("conversation_sessions")
+}
+
+/// User-managed saved recipients for Telegram/app send flows.
+model SavedRecipient {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  name           String
+  normalizedName String   @map("normalized_name")
+  address        String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("saved_recipients")
 }
 
 /// Represents a wallet (EOA) derived from BIP-39 or imported via private key.

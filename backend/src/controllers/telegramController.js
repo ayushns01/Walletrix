@@ -10,6 +10,7 @@ import {
   deleteSavedRecipientById,
   listSavedRecipients,
   saveSavedRecipient,
+  updateSavedRecipientById,
 } from '../services/savedRecipientService.js';
 import logger from '../services/loggerService.js';
 
@@ -260,5 +261,38 @@ export async function deleteSavedRecipient(req, res) {
   } catch (error) {
     logger.error('[Telegram] deleteSavedRecipient error', { error: error.message });
     return res.status(500).json({ success: false, error: 'Failed to delete recipient' });
+  }
+}
+
+/**
+ * Update a saved recipient for the authenticated user.
+ *
+ * PATCH /api/v1/telegram/recipients/:recipientId
+ */
+export async function updateSavedRecipient(req, res) {
+  try {
+    const clerkUserId = req.clerkUserId;
+    const user = await findAuthenticatedUser(clerkUserId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const { name, address } = req.body || {};
+    const result = await updateSavedRecipientById(user.id, req.params.recipientId, { name, address });
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Saved recipient not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      recipient: result.recipient,
+    });
+  } catch (error) {
+    const statusCode = /required|valid|reserved|fewer|already/i.test(error.message || '') ? 400 : 500;
+    logger.error('[Telegram] updateSavedRecipient error', { error: error.message });
+    return res.status(statusCode).json({
+      success: false,
+      error: statusCode === 400 ? error.message : 'Failed to update recipient',
+    });
   }
 }
