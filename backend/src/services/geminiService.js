@@ -6,41 +6,44 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import telegramConfig from '../config/telegram.js';
-import { INTENT_SYSTEM_PROMPT } from '../config/prompts.js';
+import {
+  INTENT_CLASSIFIER_SYSTEM_PROMPT,
+  TRANSFER_SLOT_EXTRACTION_SYSTEM_PROMPT,
+  CONVERSATIONAL_REPLY_SYSTEM_PROMPT,
+} from '../config/prompts.js';
 import logger from './loggerService.js';
 
 let genAI = null;
-let model = null;
-let fallbackModel = null;
+const modelCache = new Map();
 let geminiQuotaExceeded = false;
 
-function getModel() {
-  if (!model) {
-    if (!telegramConfig.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-    genAI = new GoogleGenerativeAI(telegramConfig.GEMINI_API_KEY);
-    model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: INTENT_SYSTEM_PROMPT,
-    });
+const MODEL_NAME = 'gemini-2.5-flash';
+
+function getClient() {
+  if (!telegramConfig.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
   }
-  return model;
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI(telegramConfig.GEMINI_API_KEY);
+  }
+  return genAI;
 }
 
-function getFallbackModel() {
-  if (!fallbackModel) {
-    if (!telegramConfig.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-    if (!genAI) {
-      genAI = new GoogleGenerativeAI(telegramConfig.GEMINI_API_KEY);
-    }
-    fallbackModel = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+function getModel(kind) {
+  if (!modelCache.has(kind)) {
+    const client = getClient();
+    const systemPrompts = {
+      intent: INTENT_CLASSIFIER_SYSTEM_PROMPT,
+      transfer_slots: TRANSFER_SLOT_EXTRACTION_SYSTEM_PROMPT,
+      conversation: CONVERSATIONAL_REPLY_SYSTEM_PROMPT,
+    };
+    const model = client.getGenerativeModel({
+      model: MODEL_NAME,
+      systemInstruction: systemPrompts[kind] || '',
     });
+    modelCache.set(kind, model);
   }
-  return fallbackModel;
+  return modelCache.get(kind);
 }
 
 // ─── Regex-based intent parser ───────────────────────────────────────────────
@@ -48,6 +51,79 @@ function getFallbackModel() {
 const ETH_ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
 const AMOUNT_RE = /(\d+(?:\.\d+)?)/;
 const TOKEN_RE = /\b(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)\b/i;
+const ENS_RE = /\b([a-z0-9-]+\.eth)\b/i;
+const TRANSFER_ACTION_RE = /\b(send|transfer|pay|wire|move|ship)\b/i;
+
+function clampConfidence(value) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function isQuotaError(error) {
+  return error?.status === 429 || error?.response?.status === 429;
+}
+
+function parseJsonResponse(rawText) {
+  if (!rawText) return null;
+  const cleaned = rawText
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+
+  if (!cleaned) return null;
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+}
+
+function buildUnknownIntent() {
+  return {
+    intent: 'unknown',
+    details: { tokenSymbol: 'ETH', amount: null, recipientAddress: null, chain: null },
+    confidence: 0,
+  };
+}
+
+function buildConversationHistoryBlock(conversationHistory = [], userMessage = '') {
+  const history = Array.isArray(conversationHistory) ? conversationHistory.slice(-8) : [];
+  const normalizedUserMessage = String(userMessage || '').trim();
+  const lastEntry = history[history.length - 1];
+
+  if (
+    normalizedUserMessage
+    && lastEntry?.role === 'user'
+    && String(lastEntry.text || '').trim() === normalizedUserMessage
+  ) {
+    history.pop();
+  }
+
+  if (history.length === 0) {
+    return 'No recent history';
+  }
+
+  return history.map((entry) => `${entry.role}: ${entry.text}`).join('\n');
+}
+
+function extractTransferFieldsWithRegex(message) {
+  const amountMatch = AMOUNT_RE.exec(message);
+  const tokenMatch = TOKEN_RE.exec(message);
+  const addressMatch = ETH_ADDRESS_RE.exec(message);
+  const ensMatch = ENS_RE.exec(message);
+
+  const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
+  const tokenSymbol = tokenMatch ? tokenMatch[1].toUpperCase() : null;
+  const recipientAddress = addressMatch ? addressMatch[0] : (ensMatch ? ensMatch[1] : null);
+
+  return {
+    tokenSymbol,
+    amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+    recipientAddress,
+    chain: null,
+  };
+}
 
 /**
  * Attempt to parse the message using regex patterns.
@@ -75,23 +151,17 @@ function parseIntentWithRegex(message) {
 
   // ── Transfer intent ──────────────────────────────────────────────────────
   // Patterns: "send X ETH to 0x...", "transfer X ETH to 0x...", "pay 0x... X ETH"
-  const hasSendKeyword = /\b(send|transfer|pay|wire|move)\b/.test(msg);
-  const addressMatch = ETH_ADDRESS_RE.exec(message); // keep original case for address
-  const amountMatch = AMOUNT_RE.exec(msg);
-  const tokenMatch = TOKEN_RE.exec(message);
+  const hasSendKeyword = TRANSFER_ACTION_RE.test(msg);
+  const extracted = extractTransferFieldsWithRegex(message);
 
-  if (hasSendKeyword && addressMatch && amountMatch) {
-    const tokenSymbol = tokenMatch ? tokenMatch[1].toUpperCase() : 'ETH';
-    const amount = parseFloat(amountMatch[1]);
-    const recipientAddress = addressMatch[0];
-
-    if (!isNaN(amount) && amount > 0) {
+  if (hasSendKeyword && extracted.recipientAddress && extracted.amount) {
+    if (!Number.isNaN(extracted.amount) && extracted.amount > 0) {
       return {
         intent: 'transfer',
         details: {
-          tokenSymbol,
-          amount,
-          recipientAddress,
+          tokenSymbol: extracted.tokenSymbol || 'ETH',
+          amount: extracted.amount,
+          recipientAddress: extracted.recipientAddress,
           chain: null,
         },
         confidence: 0.97,
@@ -102,16 +172,12 @@ function parseIntentWithRegex(message) {
   // Partial transfer requests should still map to transfer intent so the bot
   // can ask the user for missing fields conversationally.
   if (hasSendKeyword) {
-    const tokenSymbol = tokenMatch ? tokenMatch[1].toUpperCase() : 'ETH';
-    const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
-    const recipientAddress = addressMatch ? addressMatch[0] : null;
-
     return {
       intent: 'transfer',
       details: {
-        tokenSymbol,
-        amount: Number.isFinite(amount) && amount > 0 ? amount : null,
-        recipientAddress,
+        tokenSymbol: extracted.tokenSymbol || 'ETH',
+        amount: extracted.amount,
+        recipientAddress: extracted.recipientAddress,
         chain: null,
       },
       confidence: 0.8,
@@ -129,21 +195,18 @@ async function parseIntentWithGemini(userMessage) {
   }
 
   try {
-    const mdl = getModel();
+    const mdl = getModel('intent');
     const result = await mdl.generateContent(userMessage);
-    const rawText = result.response.text().trim();
-
-    // Strip markdown code fences if Gemini wraps in ```json ... ```
-    const jsonText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(jsonText);
+    const parsed = parseJsonResponse(result.response.text());
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
 
     const intent = ['transfer', 'balance', 'unknown'].includes(parsed.intent)
       ? parsed.intent
       : 'unknown';
 
-    const confidence = typeof parsed.confidence === 'number'
-      ? Math.max(0, Math.min(1, parsed.confidence))
-      : 0;
+    const confidence = clampConfidence(parsed.confidence);
 
     return {
       intent,
@@ -156,11 +219,45 @@ async function parseIntentWithGemini(userMessage) {
       confidence,
     };
   } catch (error) {
-    if (error.status === 429) {
+    if (isQuotaError(error)) {
       geminiQuotaExceeded = true;
       logger.warn('[Gemini] Quota exceeded — switching to regex-only mode');
     } else {
       logger.error('[Gemini] parseIntent failed', { userMessage, errorDetail: error.message });
+    }
+    return null;
+  }
+}
+
+async function parseTransferSlotsWithGemini(userMessage, conversationHistory = []) {
+  if (geminiQuotaExceeded) return null;
+
+  try {
+    const mdl = getModel('transfer_slots');
+    const historyBlock = buildConversationHistoryBlock(conversationHistory, userMessage);
+
+    const result = await mdl.generateContent(
+      `Recent conversation:\n${historyBlock}\n\nUser message: "${userMessage}"`
+    );
+    const parsed = parseJsonResponse(result.response.text());
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    return {
+      tokenSymbol: parsed.tokenSymbol ? String(parsed.tokenSymbol).toUpperCase() : null,
+      amount: typeof parsed.amount === 'number' && parsed.amount > 0 ? parsed.amount : null,
+      recipientAddress: parsed.recipientAddress || null,
+      chain: parsed.chain || null,
+      confidence: clampConfidence(parsed.confidence),
+    };
+  } catch (error) {
+    if (isQuotaError(error)) {
+      geminiQuotaExceeded = true;
+      logger.warn('[Gemini] Quota exceeded during transfer slot extraction');
+    } else {
+      logger.error('[Gemini] transfer slot extraction failed', {
+        userMessage,
+        errorDetail: error.message,
+      });
     }
     return null;
   }
@@ -180,49 +277,85 @@ async function parseIntentWithGemini(userMessage) {
  * }>}
  */
 export async function parseIntent(userMessage) {
-  // 1. Try fast regex parsing first
+  const classified = await classifyIntent(userMessage);
+  if (classified.intent !== 'transfer') {
+    return classified;
+  }
+
+  const regexFields = extractTransferFieldsWithRegex(userMessage);
+  const details = {
+    tokenSymbol: classified.details?.tokenSymbol || regexFields.tokenSymbol || 'ETH',
+    amount: classified.details?.amount || regexFields.amount || null,
+    recipientAddress: classified.details?.recipientAddress || regexFields.recipientAddress || null,
+    chain: classified.details?.chain || null,
+  };
+
+  return {
+    ...classified,
+    details,
+  };
+}
+
+/**
+ * Classify the high-level user intent.
+ * Regex first, Gemini second.
+ */
+export async function classifyIntent(userMessage) {
   const regexResult = parseIntentWithRegex(userMessage);
   if (regexResult) {
     logger.info('[Intent] Parsed via regex', { intent: regexResult.intent, confidence: regexResult.confidence });
     return regexResult;
   }
 
-  // 2. Fall back to Gemini for ambiguous messages
   const geminiResult = await parseIntentWithGemini(userMessage);
   if (geminiResult) {
     logger.info('[Intent] Parsed via Gemini', { intent: geminiResult.intent, confidence: geminiResult.confidence });
     return geminiResult;
   }
 
-  // 3. Unknown intent
   logger.info('[Intent] Could not parse message', { message: userMessage });
+  return buildUnknownIntent();
+}
+
+/**
+ * Extract transfer slots (amount/token/recipient) from ambiguous messages.
+ * Used when we already know user likely wants transfer but details are partial.
+ */
+export async function extractTransferSlots(userMessage, conversationHistory = []) {
+  const regexFields = extractTransferFieldsWithRegex(userMessage);
+  if (regexFields.amount || regexFields.tokenSymbol || regexFields.recipientAddress) {
+    return {
+      ...regexFields,
+      tokenSymbol: regexFields.tokenSymbol || null,
+      confidence: 0.82,
+    };
+  }
+
+  const modelFields = await parseTransferSlotsWithGemini(userMessage, conversationHistory);
+  if (modelFields) {
+    return modelFields;
+  }
+
   return {
-    intent: 'unknown',
-    details: { tokenSymbol: 'ETH', amount: null, recipientAddress: null, chain: null },
     confidence: 0,
+    tokenSymbol: null,
+    amount: null,
+    recipientAddress: null,
+    chain: null,
   };
 }
 
 /**
- * Generate a conversational fallback response for messages that do not map
- * cleanly to a supported intent.
+ * Generate a conversational response for non-executable chat turns.
  */
-export async function generateFallbackReply(userMessage, conversationHistory = []) {
+export async function generateConversationalReply(userMessage, conversationHistory = []) {
   if (geminiQuotaExceeded) return null;
 
   try {
-    const mdl = getFallbackModel();
-    const historyBlock = Array.isArray(conversationHistory) && conversationHistory.length > 0
-      ? conversationHistory.slice(-8).map((entry) => `${entry.role}: ${entry.text}`).join('\n')
-      : 'No recent history.';
+    const mdl = getModel('conversation');
+    const historyBlock = buildConversationHistoryBlock(conversationHistory, userMessage);
 
-    const prompt = `You are Walletrix Telegram wallet assistant.
-Reply in 1-3 short lines, plain text only.
-Be helpful and conversational.
-Supported tasks: check balance, send ETH/ERC20, link account, help.
-If user is unrelated to wallet actions, gently steer them back to wallet actions.
-Recent conversation:\n${historyBlock}
-User message: "${userMessage}"`;
+    const prompt = `Recent conversation:\n${historyBlock}\n\nUser message: "${userMessage}"`;
 
     const result = await mdl.generateContent(prompt);
     const text = result.response.text().trim();
@@ -238,14 +371,21 @@ User message: "${userMessage}"`;
       // Not JSON — this is what we want.
     }
 
-    return normalized;
+    return normalized.slice(0, 600);
   } catch (error) {
-    if (error.status === 429) {
+    if (isQuotaError(error)) {
       geminiQuotaExceeded = true;
-      logger.warn('[Gemini] Quota exceeded during fallback reply — switching to regex-only mode');
+      logger.warn('[Gemini] Quota exceeded during conversational reply');
     } else {
-      logger.error('[Gemini] fallback reply failed', { userMessage, errorDetail: error.message });
+      logger.error('[Gemini] conversational reply failed', { userMessage, errorDetail: error.message });
     }
     return null;
   }
+}
+
+/**
+ * Backward-compatible alias for existing callers.
+ */
+export async function generateFallbackReply(userMessage, conversationHistory = []) {
+  return generateConversationalReply(userMessage, conversationHistory);
 }
