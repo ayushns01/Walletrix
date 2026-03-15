@@ -9,14 +9,37 @@
 
 import prisma from '../lib/prisma.js';
 import { sendMessage, sendPlainMessage, verifyWebhookSecret, isCommand, extractCommand } from '../services/telegramService.js';
-import { parseIntent, generateFallbackReply } from '../services/geminiService.js';
+import {
+  parseIntent,
+  extractTransferSlots,
+  generateConversationalReply,
+} from '../services/geminiService.js';
 import { executeTransfer, getBotWalletBalance } from '../services/telegramExecutionService.js';
 import {
   loadConversationSession,
   saveConversationSession,
   clearConversationSession,
 } from '../services/conversationSessionService.js';
+import {
+  decideConversationAction,
+  extractHeuristicTransferFields,
+  shouldAttemptTransferSlotExtraction,
+} from '../services/telegramConversation/orchestrator.js';
+import { createTransferConversationHandlers } from '../services/telegramConversation/transferHandlers.js';
+import { createSceneStateHandlers } from '../services/telegramConversation/sceneState.js';
+import {
+  isListSavedRecipientsIntent,
+  isSavedRecipientSaveIntent,
+  listSavedRecipients,
+  parseSavedRecipientDeleteRequest,
+  parseSavedRecipientSaveRequest,
+  removeSavedRecipientByName,
+  resolveSavedRecipientFromText,
+  extractSavedRecipientAliasCandidate,
+  saveSavedRecipient,
+} from '../services/savedRecipientService.js';
 import { applyLinkCode } from './telegramController.js';
+import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
 import logger from '../services/loggerService.js';
 
@@ -28,8 +51,8 @@ const pendingIntents = new Map();
 const transferDrafts = new Map();
 const chatContexts = new Map();
 
-// Clear stale pending intents and rate-limit entries every 2 minutes
-setInterval(() => {
+// Clear stale pending intents and rate-limit entries every 2 minutes.
+const conversationCleanupTicker = setInterval(() => {
   const now = Date.now();
   for (const [key, val] of pendingIntents.entries()) {
     if (val.expiresAt < now) pendingIntents.delete(key);
@@ -45,6 +68,10 @@ setInterval(() => {
     if (now - entry.windowStart > 120000) rateLimitMap.delete(key);
   }
 }, 2 * 60 * 1000);
+
+if (typeof conversationCleanupTicker.unref === 'function') {
+  conversationCleanupTicker.unref();
+}
 
 // ─────────────────────────────────────────────────────────────
 //  Helpers
@@ -63,74 +90,19 @@ async function getUserByTelegramId(telegramId) {
  * Allows max 10 messages per minute.
  */
 const rateLimitMap = new Map();
-const ETH_ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
-const AMOUNT_RE = /(\d+(?:\.\d+)?)/;
-const TOKEN_RE = /\b(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)\b/i;
-const ENS_RE = /\b([a-z0-9-]+\.eth)\b/i;
 const GREETING_RE = /^(hi|hello|hey|yo|hola|hii+)\b/i;
 const CAPABILITIES_RE = /\b(what can you do|how can you help|help me|what do you do|commands?)\b/i;
 const THANKS_RE = /\b(thanks|thank you|thx)\b/i;
 const HOW_ARE_YOU_RE = /\b(how are you|how's it going|how r u)\b/i;
 const WHO_ARE_YOU_RE = /\b(who are you|what are you)\b/i;
-const TRANSFER_ACTION_RE = /\b(send|transfer|pay|wire|move|make a transaction|send it|ship it)\b/i;
 const CONVERSATION_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+const CONVERSATIONAL_V2_ENABLED = telegramConfig.TELEGRAM_CONVERSATIONAL_V2;
 
-const SCENE_ALLOWED_STEPS = {
-  idle: new Set(['ready']),
-  onboarding: new Set(['start']),
-  balance: new Set(['requested', 'fetching']),
-  help: new Set(['shown']),
-  conversation: new Set(['understanding', 'smalltalk', 'fallback']),
-  transfer: new Set([
-    'collecting_amount',
-    'collecting_recipientAddress',
-    'collecting_tokenSymbol',
-    'confirm',
-    'executing',
-    'failed',
-  ]),
-};
-
-const SCENE_ALLOWED_TRANSITIONS = {
-  idle: new Set(['idle', 'onboarding', 'balance', 'help', 'conversation', 'transfer']),
-  onboarding: new Set(['onboarding', 'idle', 'conversation']),
-  balance: new Set(['balance', 'idle', 'conversation', 'help']),
-  help: new Set(['help', 'idle', 'conversation', 'transfer', 'balance']),
-  conversation: new Set(['conversation', 'idle', 'transfer', 'balance', 'help', 'onboarding']),
-  transfer: new Set(['transfer', 'idle', 'conversation', 'help', 'balance']),
-};
-
-function normalizeTransferStep(currentStep) {
-  if (currentStep === 'collecting_recipient') return 'collecting_recipientAddress';
-  return currentStep;
-}
-
-function getDefaultStepForScene(scene) {
-  const defaults = {
-    idle: 'ready',
-    onboarding: 'start',
-    balance: 'requested',
-    help: 'shown',
-    conversation: 'understanding',
-    transfer: 'collecting_amount',
-  };
-  return defaults[scene] || 'ready';
-}
-
-function isKnownScene(scene) {
-  return Boolean(scene && SCENE_ALLOWED_STEPS[scene]);
-}
-
-function isAllowedSceneStep(scene, currentStep) {
-  if (!isKnownScene(scene)) return false;
-  const normalizedStep = scene === 'transfer' ? normalizeTransferStep(currentStep) : currentStep;
-  return SCENE_ALLOWED_STEPS[scene].has(normalizedStep);
-}
-
-function canTransitionScene(fromScene, toScene) {
-  if (!isKnownScene(toScene)) return false;
-  if (!isKnownScene(fromScene)) return true;
-  return SCENE_ALLOWED_TRANSITIONS[fromScene]?.has(toScene) || false;
+if (process.env.NODE_ENV !== 'test') {
+  logger.info('[TelegramBot] Conversational mode', {
+    conversationalV2Enabled: CONVERSATIONAL_V2_ENABLED,
+    analysingDelayMs: telegramConfig.TELEGRAM_ANALYSING_DELAY_MS,
+  });
 }
 
 function checkRateLimit(telegramId) {
@@ -171,16 +143,7 @@ function detectPreviousTokenReference(text) {
 }
 
 function extractTransferFields(text) {
-  const amountMatch = AMOUNT_RE.exec(text);
-  const tokenMatch = TOKEN_RE.exec(text);
-  const addressMatch = ETH_ADDRESS_RE.exec(text);
-  const ensMatch = ENS_RE.exec(text);
-
-  return {
-    amount: amountMatch ? parseFloat(amountMatch[1]) : null,
-    tokenSymbol: tokenMatch ? tokenMatch[1].toUpperCase() : null,
-    recipientAddress: addressMatch ? addressMatch[0] : (ensMatch ? ensMatch[1] : null),
-  };
+  return extractHeuristicTransferFields(text);
 }
 
 function getContext(telegramId) {
@@ -192,95 +155,30 @@ function getConversationHistory(telegramId) {
   return Array.isArray(context?.history) ? context.history : [];
 }
 
-function sanitizeSceneState(telegramId, { persist = true } = {}) {
-  const key = String(telegramId);
-  const context = getContext(key);
-  if (!context) return;
+function isCasualConversationTurn(text) {
+  const trimmed = String(text || '').trim();
+  return (
+    GREETING_RE.test(trimmed)
+    || CAPABILITIES_RE.test(trimmed)
+    || THANKS_RE.test(trimmed)
+    || HOW_ARE_YOU_RE.test(trimmed)
+    || WHO_ARE_YOU_RE.test(trimmed)
+  );
+}
 
-  const hasDraft = transferDrafts.has(key);
-  const hasPending = pendingIntents.has(key);
-  const next = { ...context };
-  let changed = false;
-
-  if (!isKnownScene(next.scene)) {
-    next.scene = 'conversation';
-    next.currentStep = 'understanding';
-    next.recoveryReason = 'unknown_scene';
-    changed = true;
-  }
-
-  if (next.scene === 'transfer' && !hasDraft && !hasPending) {
-    next.scene = 'idle';
-    next.currentStep = 'ready';
-    next.recoveryReason = 'orphan_transfer_scene';
-    changed = true;
-  }
-
-  if (!isAllowedSceneStep(next.scene, next.currentStep)) {
-    next.currentStep = getDefaultStepForScene(next.scene);
-    next.recoveryReason = next.recoveryReason || 'invalid_scene_step';
-    changed = true;
-  }
-
-  if (next.scene === 'transfer') {
-    const normalizedStep = normalizeTransferStep(next.currentStep);
-    if (normalizedStep !== next.currentStep) {
-      next.currentStep = normalizedStep;
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    next.lastInteractionAt = Date.now();
-    next.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-    chatContexts.set(key, next);
-    if (persist) {
-      persistConversationState(key);
-    }
-  }
+function isFreshWalletTask(text) {
+  const normalized = String(text || '').trim().toLowerCase();
+  return (
+    /\b(send|transfer|pay|balance|contacts?|addresses?|help|save|add|delete|remove|show|list)\b/.test(normalized)
+    || isListSavedRecipientsIntent(normalized)
+    || isSavedRecipientSaveIntent(normalized)
+  );
 }
 
 function isConversationStale(telegramId) {
   const context = getContext(telegramId);
   if (!context?.lastInteractionAt) return false;
   return (Date.now() - context.lastInteractionAt) > CONVERSATION_IDLE_TIMEOUT_MS;
-}
-
-function setScene(telegramId, scene, currentStep = 'idle', extra = {}) {
-  const key = String(telegramId);
-  const context = getContext(key) || {};
-  const fromScene = context.scene;
-
-  let nextScene = scene;
-  let nextStep = scene === 'transfer' ? normalizeTransferStep(currentStep) : currentStep;
-
-  if (!canTransitionScene(fromScene, nextScene)) {
-    logger.warn('[TelegramBot] Invalid scene transition, recovering', {
-      telegramId: key,
-      fromScene: fromScene || 'none',
-      requestedScene: nextScene,
-      requestedStep: nextStep,
-    });
-    nextScene = 'conversation';
-    nextStep = 'understanding';
-    extra = { ...extra, recoveryReason: 'invalid_transition', recoveredFromScene: fromScene || null };
-  }
-
-  if (!isAllowedSceneStep(nextScene, nextStep)) {
-    logger.warn('[TelegramBot] Invalid scene step, using default', {
-      telegramId: key,
-      scene: nextScene,
-      requestedStep: nextStep,
-    });
-    nextStep = getDefaultStepForScene(nextScene);
-  }
-
-  updateContext(telegramId, {
-    scene: nextScene,
-    currentStep: nextStep,
-    lastInteractionAt: Date.now(),
-    ...extra,
-  });
 }
 
 function getConversationStateForPersistence(telegramId) {
@@ -318,13 +216,32 @@ function persistConversationState(telegramId) {
 
 async function hydrateContext(telegramId) {
   const key = String(telegramId);
-  if (chatContexts.has(key) || transferDrafts.has(key) || pendingIntents.has(key)) return;
+  const existingContext = chatContexts.get(key) || null;
+  const hasScenefulContext = Boolean(
+    existingContext && (
+      existingContext.scene
+      || existingContext.currentStep
+      || existingContext.lastInteractionAt
+      || existingContext.lastRecipientAddress
+      || existingContext.lastAmount
+      || existingContext.lastTokenSymbol
+    )
+  );
+
+  if (hasScenefulContext || transferDrafts.has(key) || pendingIntents.has(key)) return false;
 
   const session = await loadConversationSession(key);
-  if (!session) return;
+  if (!session) return false;
 
   if (session.chatContext) {
-    chatContexts.set(key, session.chatContext);
+    const mergedContext = {
+      ...session.chatContext,
+      history: Array.isArray(existingContext?.history)
+        ? existingContext.history
+        : (Array.isArray(session.chatContext.history) ? session.chatContext.history : []),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    };
+    chatContexts.set(key, mergedContext);
   }
   if (session.transferDraft) {
     transferDrafts.set(key, session.transferDraft);
@@ -332,6 +249,15 @@ async function hydrateContext(telegramId) {
   if (session.pendingIntent) {
     pendingIntents.set(key, session.pendingIntent);
   }
+
+  logger.info('[TelegramBot] Conversation session hydrated', {
+    telegramId: key,
+    hasChatContext: Boolean(session.chatContext),
+    hasTransferDraft: Boolean(session.transferDraft),
+    hasPendingIntent: Boolean(session.pendingIntent),
+  });
+
+  return true;
 }
 
 function updateContext(telegramId, patch) {
@@ -345,6 +271,27 @@ function updateContext(telegramId, patch) {
 
   chatContexts.set(key, merged);
   persistConversationState(key);
+}
+
+function syncDraftDetailsContext(telegramId, draft) {
+  const key = String(telegramId);
+  const existing = getContext(key);
+  if (!existing && !draft) return;
+
+  const nextContext = {
+    ...(existing || {}),
+    draftDetails: draft?.intent?.details
+      ? {
+          tokenSymbol: draft.intent.details.tokenSymbol || null,
+          amount: draft.intent.details.amount ?? null,
+          recipientAddress: draft.intent.details.recipientAddress || null,
+          chain: draft.intent.details.chain || null,
+        }
+      : null,
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+  };
+
+  chatContexts.set(key, nextContext);
 }
 
 function appendUserMessageHistory(telegramId, text) {
@@ -383,6 +330,74 @@ function appendAssistantMessageHistory(telegramId, text) {
   updateContext(telegramId, { history: nextHistory });
 }
 
+function getConversationRuntimeState(telegramId) {
+  const key = String(telegramId);
+  const context = getContext(key) || {};
+  return {
+    scene: context.scene || null,
+    currentStep: context.currentStep || null,
+    hasDraft: transferDrafts.has(key),
+    hasPending: pendingIntents.has(key),
+  };
+}
+
+function logConversationDecision({
+  telegramId,
+  intent,
+  confidence,
+  action,
+  slotExtractionAttempted,
+  slotExtractionUsed,
+}) {
+  const state = getConversationRuntimeState(telegramId);
+  logger.info('[TelegramBot] Conversation decision', {
+    telegramId: String(telegramId),
+    scene: state.scene,
+    currentStep: state.currentStep,
+    hasDraft: state.hasDraft,
+    hasPending: state.hasPending,
+    intent,
+    confidence,
+    actionType: action?.type || null,
+    actionReason: action?.reason || null,
+    missingCount: Array.isArray(action?.missing) ? action.missing.length : 0,
+    slotExtractionAttempted,
+    slotExtractionUsed,
+    conversationalV2Enabled: CONVERSATIONAL_V2_ENABLED,
+  });
+}
+
+async function parseIntentWithAdaptiveIndicator(chatId, text) {
+  const delayMs = telegramConfig.TELEGRAM_ANALYSING_DELAY_MS;
+  let indicatorTimer = null;
+  let indicatorSent = false;
+
+  if (delayMs >= 0) {
+    indicatorTimer = setTimeout(() => {
+      indicatorSent = true;
+      sendPlainMessage(chatId, '🤔 Analysing...').catch((error) => {
+        logger.warn('[TelegramBot] Failed to send analysing indicator', {
+          chatId,
+          error: error.message,
+        });
+      });
+    }, delayMs);
+  }
+
+  try {
+    return await parseIntent(text);
+  } finally {
+    if (indicatorTimer) {
+      clearTimeout(indicatorTimer);
+    }
+    logger.debug?.('[TelegramBot] Parsing indicator state', {
+      chatId,
+      indicatorSent,
+      delayMs,
+    });
+  }
+}
+
 async function sendBotPlain(chatId, telegramId, text) {
   appendAssistantMessageHistory(telegramId, text);
   return sendPlainMessage(chatId, text);
@@ -406,6 +421,7 @@ function setTransferDraft(telegramId, draft) {
   } else {
     transferDrafts.delete(key);
   }
+  syncDraftDetailsContext(key, draft);
   persistConversationState(key);
 }
 
@@ -418,6 +434,39 @@ function setPendingIntent(telegramId, pending) {
   }
   persistConversationState(key);
 }
+
+function setContextRaw(telegramId, nextContext, { persist = true } = {}) {
+  const key = String(telegramId);
+  chatContexts.set(key, nextContext);
+  if (persist) {
+    persistConversationState(key);
+  }
+}
+
+const sceneStateHandlers = createSceneStateHandlers({
+  logger,
+  getContext,
+  updateContext,
+  setContextRaw,
+  hasTransferDraft: (telegramId) => transferDrafts.has(String(telegramId)),
+  hasPendingIntent: (telegramId) => pendingIntents.has(String(telegramId)),
+  getTransferDraft: (telegramId) => transferDrafts.get(String(telegramId)),
+  getPendingIntent: (telegramId) => pendingIntents.get(String(telegramId)),
+  setTransferDraft,
+  setPendingIntent,
+  sendBotPlain,
+  sendBotMessage,
+  getMissingTransferFields,
+  buildMissingFieldPrompt,
+});
+
+const {
+  sanitizeSceneState,
+  setScene,
+  enterScene,
+  exitScene,
+  routeByActiveScene,
+} = sceneStateHandlers;
 
 async function clearConversationState(telegramId) {
   const key = String(telegramId);
@@ -464,7 +513,7 @@ function buildMissingFieldPrompt(missing) {
     return 'Got it. How much would you like to send? (for example: 0.0001)';
   }
   if (missing[0] === 'recipientAddress') {
-    return 'Who should receive it? You can send an address (0x...) or say "use previous recipient".';
+    return 'Who should receive it? You can send an address, an ENS name, a name from your address list like "Alice", or say "use previous recipient".';
   }
   if (missing[0] === 'tokenSymbol') {
     return 'Which token should I send? (ETH, USDC, USDT, DAI, WETH)';
@@ -472,123 +521,39 @@ function buildMissingFieldPrompt(missing) {
   return 'Please share the missing transaction details.';
 }
 
+function buildSavedRecipientsListMessage(recipients) {
+  if (!Array.isArray(recipients) || recipients.length === 0) {
+    return 'Your address list is empty.\n\nSave one with "save 0x... as Alice".';
+  }
+
+  const lines = recipients.slice(0, 12).map((recipient) => `• *${recipient.name}* — \`${recipient.address}\``);
+  const suffix = recipients.length > 12
+    ? `\n\nShowing 12 of ${recipients.length} saved addresses.`
+    : '';
+
+  return `👥 *Address List*\n\n${lines.join('\n')}${suffix}`;
+}
+
 function getSmallTalkResponse(text) {
   const trimmed = text.trim();
   if (GREETING_RE.test(trimmed)) {
-    return 'Hey! I can help with your wallet actions. Try things like:\n• "check my balance"\n• "send 0.0001 ETH to 0x..."\n• "send ETH to previous recipient"';
+    return 'Hey. Want to check balance, send crypto, or open your address list?';
   }
 
   if (CAPABILITIES_RE.test(trimmed)) {
-    return 'I can help you:\n• Check bot wallet balance\n• Send ETH or supported tokens\n• Reuse your previous recipient address\n\nYou can talk naturally. Example: "I want to send 0.0001 ETH to previous recipient"';
+    return 'I can check balance, send crypto, and use your address list.\nTry: "send 0.01 ETH to Alice".';
   }
 
   if (HOW_ARE_YOU_RE.test(trimmed)) {
-    return 'I am doing great and ready to help with your wallet. Tell me what you want to do, for example: "send 0.0001 ETH to previous recipient".';
+    return 'Doing well. What do you need?';
   }
 
   if (WHO_ARE_YOU_RE.test(trimmed)) {
-    return 'I am your Walletrix wallet assistant on Telegram. I can check balance and help you send ETH/tokens step by step.';
+    return 'I am your Walletrix bot. I can check balance, send crypto, and manage your address list.';
   }
 
   if (THANKS_RE.test(trimmed)) {
-    return 'You are welcome. If you want, tell me what to do next and I will guide you step by step.';
-  }
-
-  return null;
-}
-
-function enterScene(telegramId, scene, currentStep, extra = {}) {
-  const context = getContext(telegramId) || {};
-  setScene(telegramId, scene, currentStep, {
-    previousScene: context.scene || null,
-    sceneEnteredAt: Date.now(),
-    ...extra,
-  });
-}
-
-function exitScene(telegramId, toScene = 'idle', toStep = 'ready', extra = {}) {
-  const context = getContext(telegramId) || {};
-  setScene(telegramId, toScene, toStep, {
-    lastScene: context.scene || null,
-    sceneExitedAt: Date.now(),
-    ...extra,
-  });
-}
-
-function buildStepSeededTransferDraft(context, currentStep) {
-  const step = String(currentStep || '').replace('collecting_', '');
-  const details = {
-    tokenSymbol: context?.lastTokenSymbol || 'ETH',
-    amount: context?.lastAmount || null,
-    recipientAddress: context?.lastRecipientAddress || null,
-    chain: null,
-  };
-
-  if (step === 'amount') details.amount = null;
-  if (step === 'recipientAddress') details.recipientAddress = null;
-  if (step === 'tokenSymbol') details.tokenSymbol = null;
-
-  return {
-    intent: {
-      intent: 'transfer',
-      details,
-      confidence: 0.7,
-    },
-    expiresAt: Date.now() + 2 * 60 * 1000,
-  };
-}
-
-async function routeByActiveScene(chatId, telegramId, user, text) {
-  const context = getContext(telegramId) || {};
-  const scene = isKnownScene(context.scene) ? context.scene : 'idle';
-  const step = scene === 'transfer'
-    ? normalizeTransferStep(context.currentStep || getDefaultStepForScene('transfer'))
-    : (context.currentStep || getDefaultStepForScene(scene));
-
-  if (scene !== 'transfer') {
-    return null;
-  }
-
-  const pending = pendingIntents.get(String(telegramId));
-  const draft = transferDrafts.get(String(telegramId));
-
-  if (step === 'confirm' && !pending) {
-    if (draft) {
-      const missing = getMissingTransferFields(draft.intent?.details || {});
-      if (missing.length === 0) {
-        setTransferDraft(telegramId, null);
-        setPendingIntent(telegramId, {
-          intent: draft.intent,
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        enterScene(telegramId, 'transfer', 'confirm', { recoveryReason: 'rehydrated_confirm_from_draft' });
-
-        const { amount, tokenSymbol, recipientAddress } = draft.intent.details;
-        return sendBotMessage(chatId, telegramId,
-          `📤 *Confirm Transaction*\n\nI'll send *${amount} ${tokenSymbol.toUpperCase()}* to:\n\`${recipientAddress}\`\n\nReply *yes* to confirm or *no* to cancel.\n\n⚠️ This will be sent from your bot wallet.`
-        );
-      }
-    }
-
-    exitScene(telegramId, 'conversation', 'understanding', { recoveryReason: 'confirm_without_pending' });
-    return sendBotPlain(chatId, telegramId, 'I had an incomplete confirmation state, so I reset to normal chat. Tell me the transfer again and I will continue.');
-  }
-
-  if (typeof step === 'string' && step.startsWith('collecting_') && !draft) {
-    const seededDraft = buildStepSeededTransferDraft(context, step);
-    const missing = getMissingTransferFields(seededDraft.intent.details);
-    setTransferDraft(telegramId, seededDraft);
-    enterScene(telegramId, 'transfer', `collecting_${missing[0]}`, { recoveryReason: 'rehydrated_collecting_step' });
-    return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
-  }
-
-  if (scene === 'transfer' && !pending && !draft && /^(yes|y|confirm|no|n|cancel)$/i.test(text.trim())) {
-    exitScene(telegramId, 'conversation', 'understanding', { recoveryReason: 'confirmation_without_transfer_state' });
-    return sendBotPlain(chatId, telegramId, 'There is no pending transfer right now. Tell me what you want to send and I will prepare it.');
-  }
-
-  if (!user) {
-    exitScene(telegramId, 'onboarding', 'start', { recoveryReason: 'scene_requires_link' });
+    return 'Anytime. What next?';
   }
 
   return null;
@@ -607,7 +572,7 @@ async function handleStart(chatId, telegramId, messageText) {
       const wallet = await prisma.telegramBotWallet.findUnique({ where: { userId: user.id } });
       setScene(telegramId, 'idle', 'ready');
       return sendBotMessage(chatId, telegramId,
-        `✅ You're already linked!\n\nYour bot wallet: \`${wallet?.address || 'not set'}\`\n\nType /help to see what I can do.`
+        `✅ You're already linked.\n\nBot wallet: \`${wallet?.address || 'not set'}\`\n\nUse /balance, /addresses, or just tell me what you need.`
       );
     }
 
@@ -665,6 +630,15 @@ async function handleHelp(chatId, telegramId) {
   return sendBotMessage(chatId, telegramId, HELP_MESSAGE);
 }
 
+async function handleContacts(chatId, telegramId) {
+  const user = await getUserByTelegramId(telegramId);
+  if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+
+  const recipients = await listSavedRecipients(user.id);
+  setScene(telegramId, 'idle', 'ready', { lastIntent: 'contacts' });
+  return sendBotMessage(chatId, telegramId, buildSavedRecipientsListMessage(recipients));
+}
+
 async function handleUnlink(chatId, telegramId) {
   try {
     const user = await getUserByTelegramId(telegramId);
@@ -684,6 +658,27 @@ async function handleUnlink(chatId, telegramId) {
   }
 }
 
+const transferConversationHandlers = createTransferConversationHandlers({
+  executeTransfer,
+  logger,
+  sendBotPlain,
+  sendBotMessage,
+  setPendingIntent,
+  setTransferDraft,
+  setScene,
+  updateContext,
+  getContext,
+  resolvePreviousRecipientAddress,
+  detectPreviousAmountReference,
+  detectPreviousTokenReference,
+  detectPreviousRecipientReference,
+  resolveSavedRecipientFromText,
+  extractSavedRecipientAliasCandidate,
+  extractTransferFields,
+  getMissingTransferFields,
+  buildMissingFieldPrompt,
+});
+
 // ─────────────────────────────────────────────────────────────
 //  Free text handler (Gemini intent parsing + confirmation)
 // ─────────────────────────────────────────────────────────────
@@ -693,11 +688,18 @@ async function handleFreeText(chatId, telegramId, text) {
     await hydrateContext(telegramId);
     sanitizeSceneState(telegramId);
     if (isConversationStale(telegramId)) {
+      const hadActiveTransfer = (
+        transferDrafts.has(String(telegramId))
+        || pendingIntents.has(String(telegramId))
+        || getContext(telegramId)?.scene === 'transfer'
+      );
       await resetConversationFlow(telegramId, 'idle_timeout');
-      return sendBotPlain(chatId, telegramId, 'I reset our previous draft after inactivity. Tell me what you want to do and I will continue from there.');
+      if (hadActiveTransfer && !isCasualConversationTurn(text) && !isFreshWalletTask(text)) {
+        return sendBotPlain(chatId, telegramId, 'That earlier transfer expired. Start a new one when you are ready.');
+      }
     }
 
-    setScene(telegramId, 'conversation', 'understanding', { lastUserMessage: text.slice(0, 300) });
+    appendUserMessageHistory(telegramId, text);
     const user = await getUserByTelegramId(telegramId);
 
     // Not linked — check if they pasted a link code
@@ -720,183 +722,100 @@ async function handleFreeText(chatId, telegramId, text) {
       return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
     }
 
-    const sceneRoutedResponse = await routeByActiveScene(chatId, telegramId, user, text);
-    if (sceneRoutedResponse) {
-      return sceneRoutedResponse;
+    const saveRecipientRequest = parseSavedRecipientSaveRequest(text);
+    if (saveRecipientRequest) {
+      try {
+        const result = await saveSavedRecipient(user.id, saveRecipientRequest);
+        setScene(telegramId, 'idle', 'ready', { lastIntent: 'save_recipient' });
+        return sendBotMessage(
+          chatId,
+          telegramId,
+          result.created
+            ? `✅ Saved *${result.recipient.name}*.\n\nYou can now say things like "send 0.01 ETH to ${result.recipient.name}".`
+            : `✅ Updated *${result.recipient.name}*.\n\nNew address: \`${result.recipient.address}\``
+        );
+      } catch (error) {
+        return sendBotPlain(chatId, telegramId, `❌ ${error.message}`);
+      }
+    }
+    if (isSavedRecipientSaveIntent(text)) {
+      return sendBotPlain(chatId, telegramId, 'Save an address like: "save 0x... as Alice".');
     }
 
-    // Check for pending confirmation ("yes" / "no")
+    if (isListSavedRecipientsIntent(text)) {
+      return handleContacts(chatId, telegramId);
+    }
+
+    const deleteRecipientRequest = parseSavedRecipientDeleteRequest(text);
+    if (deleteRecipientRequest) {
+      const removed = await removeSavedRecipientByName(user.id, deleteRecipientRequest.name);
+      setScene(telegramId, 'idle', 'ready', { lastIntent: 'delete_recipient' });
+      return sendBotMessage(
+        chatId,
+        telegramId,
+        removed
+          ? `🗑️ Removed *${removed.name}* from your address list.`
+          : `I could not find "${deleteRecipientRequest.name}" in your address list.`
+      );
+    }
+
+    if (CONVERSATIONAL_V2_ENABLED) {
+      const sceneRoutedResponse = await routeByActiveScene(chatId, telegramId, user, text);
+      if (sceneRoutedResponse) {
+        return sceneRoutedResponse;
+      }
+    }
+
     const pending = pendingIntents.get(String(telegramId));
-    if (pending) {
-      const answer = text.trim().toLowerCase();
-      if (answer === 'yes' || answer === 'y' || answer === 'confirm') {
-        setPendingIntent(telegramId, null);
-        setScene(telegramId, 'transfer', 'executing');
-        await sendBotPlain(chatId, telegramId, '⏳ Executing transaction...');
-
-        try {
-          const result = await executeTransfer(pending.intent, user);
-          updateContext(telegramId, {
-            lastRecipientAddress: result.to,
-            lastAmount: parseFloat(result.amount),
-            lastTokenSymbol: result.token,
-          });
-          setScene(telegramId, 'idle', 'ready', { lastIntent: 'transfer' });
-          return sendBotMessage(chatId, telegramId,
-            `✅ *Transaction Sent!*\n\nAmount: ${result.amount} ${result.token}\nTo: \`${result.to}\`\nHash: \`${result.txHash}\``
-          );
-        } catch (error) {
-          logger.error('[TelegramBot] executeTransfer failed', { telegramId, error: error.message });
-          const msg = error.message || '';
-          let reason;
-          if (msg.includes('insufficient funds')) {
-            reason = '❌ Insufficient funds.\n\nYour bot wallet does not have enough ETH to cover the amount + gas fees.\n\nCheck your balance with /balance and top up the wallet first.';
-          } else if (msg.includes('Bot wallet not found')) {
-            reason = '❌ Bot wallet not found. Try /unlink and re-link your account.';
-          } else if (msg.includes('nonce')) {
-            reason = '❌ Nonce conflict — please wait a moment and try again.';
-          } else if (msg.includes('gas')) {
-            reason = '❌ Gas estimation failed — the transaction parameters may be invalid.';
-          } else if (msg.includes('network') || msg.includes('could not detect') || msg.includes('RPC')) {
-            reason = '❌ Network error — could not reach the blockchain RPC. Please try again.';
-          } else if (msg.includes('invalid address') || msg.includes('bad address')) {
-            reason = '❌ Invalid recipient address. Please double-check and try again.';
-          } else if (msg.includes('not supported') || msg.includes('not available')) {
-            reason = `❌ ${msg.split('(')[0].trim()}`;
-          } else {
-            reason = `❌ Transaction failed: ${msg.split('(')[0].trim()}`;
-          }
-          setScene(telegramId, 'transfer', 'failed');
-          return sendBotPlain(chatId, telegramId, reason);
-        }
-      }
-
-      if (answer === 'no' || answer === 'n' || answer === 'cancel') {
-        setPendingIntent(telegramId, null);
-        setScene(telegramId, 'idle', 'ready');
-        return sendBotPlain(chatId, telegramId, '❌ Transaction cancelled.');
-      }
-
-      return sendBotPlain(chatId, telegramId,
-        '⏳ You have a pending transaction confirmation.\n\nReply with:\n• yes (to send)\n• no (to cancel)'
-      );
+    const pendingResponse = await transferConversationHandlers.handlePendingConfirmation({
+      chatId,
+      telegramId,
+      text,
+      pending,
+      user,
+    });
+    if (pendingResponse) {
+      return pendingResponse;
     }
 
-    // Check for in-progress conversational transfer draft
     const draft = transferDrafts.get(String(telegramId));
-    if (draft) {
-      const lowered = text.trim().toLowerCase();
-      if (lowered === 'cancel' || lowered === 'stop' || lowered === 'nevermind') {
-        setTransferDraft(telegramId, null);
-        setScene(telegramId, 'idle', 'ready');
-        return sendBotPlain(chatId, telegramId, '✅ Transfer draft cancelled.');
-      }
-
-      const extracted = extractTransferFields(text);
-      if (extracted.amount && extracted.amount > 0) draft.intent.details.amount = extracted.amount;
-      if (extracted.tokenSymbol) draft.intent.details.tokenSymbol = extracted.tokenSymbol;
-      if (extracted.recipientAddress) draft.intent.details.recipientAddress = extracted.recipientAddress;
-
-      const context = getContext(telegramId);
-      if (!draft.intent.details.amount && detectPreviousAmountReference(text) && context?.lastAmount) {
-        draft.intent.details.amount = context.lastAmount;
-      }
-      if (!draft.intent.details.tokenSymbol && detectPreviousTokenReference(text) && context?.lastTokenSymbol) {
-        draft.intent.details.tokenSymbol = context.lastTokenSymbol;
-      }
-
-      if (!draft.intent.details.recipientAddress && detectPreviousRecipientReference(text)) {
-        const lastRecipient = await resolvePreviousRecipientAddress(user.id, telegramId);
-        if (lastRecipient) {
-          draft.intent.details.recipientAddress = lastRecipient;
-        } else {
-          setTransferDraft(telegramId, { ...draft, expiresAt: Date.now() + 2 * 60 * 1000 });
-          setScene(telegramId, 'transfer', 'collecting_recipientAddress');
-          return sendBotPlain(chatId, telegramId, 'I could not find a previous recipient address. Please send a 0x... address.');
-        }
-      }
-
-      if (!draft.intent.details.tokenSymbol) {
-        draft.intent.details.tokenSymbol = 'ETH';
-      }
-
-      const missing = getMissingTransferFields(draft.intent.details);
-      if (missing.length > 0) {
-        setTransferDraft(telegramId, { ...draft, expiresAt: Date.now() + 2 * 60 * 1000 });
-        setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
-      }
-
-      setTransferDraft(telegramId, null);
-      setPendingIntent(telegramId, {
-        intent: draft.intent,
-        expiresAt: Date.now() + 2 * 60 * 1000,
-      });
-      setScene(telegramId, 'transfer', 'confirm');
-
-      const { amount, tokenSymbol, recipientAddress } = draft.intent.details;
-      return sendBotMessage(chatId, telegramId,
-        `📤 *Confirm Transaction*\n\nI'll send *${amount} ${tokenSymbol.toUpperCase()}* to:\n\`${recipientAddress}\`\n\nReply *yes* to confirm or *no* to cancel.\n\n⚠️ This will be sent from your bot wallet.`
-      );
+    const draftResponse = await transferConversationHandlers.handleTransferDraftCollection({
+      chatId,
+      telegramId,
+      text,
+      draft,
+      user,
+    });
+    if (draftResponse) {
+      return draftResponse;
     }
 
-    // Scene guardrails: if we are in a transfer collection step but draft was
-    // cleared unexpectedly, keep the user in flow instead of falling back.
-    const context = getContext(telegramId) || {};
-    if (context.scene === 'transfer' && typeof context.currentStep === 'string' && context.currentStep.startsWith('collecting_')) {
-      const step = context.currentStep.replace('collecting_', '');
-      const extracted = extractTransferFields(text);
-
-      if (step === 'amount' && !(extracted.amount && extracted.amount > 0) && !detectPreviousAmountReference(text)) {
-        setTransferDraft(telegramId, {
-          intent: {
-            intent: 'transfer',
-            details: { tokenSymbol: context?.lastTokenSymbol || 'ETH', amount: null, recipientAddress: null, chain: null },
-            confidence: 0.7,
-          },
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['amount']));
-      }
-
-      if (step === 'recipientAddress' && !extracted.recipientAddress && !detectPreviousRecipientReference(text)) {
-        setTransferDraft(telegramId, {
-          intent: {
-            intent: 'transfer',
-            details: { tokenSymbol: context?.lastTokenSymbol || 'ETH', amount: context?.lastAmount || null, recipientAddress: null, chain: null },
-            confidence: 0.7,
-          },
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['recipientAddress']));
-      }
-
-      if (step === 'tokenSymbol' && !extracted.tokenSymbol && !detectPreviousTokenReference(text)) {
-        setTransferDraft(telegramId, {
-          intent: {
-            intent: 'transfer',
-            details: { tokenSymbol: null, amount: context?.lastAmount || null, recipientAddress: context?.lastRecipientAddress || null, chain: null },
-            confidence: 0.7,
-          },
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['tokenSymbol']));
-      }
+    const guardrailResponse = await transferConversationHandlers.handleTransferCollectionGuardrails({
+      chatId,
+      telegramId,
+      text,
+    });
+    if (guardrailResponse) {
+      return guardrailResponse;
     }
 
-    // Friendly small-talk responses so the bot feels conversational.
-    const smallTalkReply = getSmallTalkResponse(text);
-    if (smallTalkReply) {
-      setScene(telegramId, 'conversation', 'smalltalk');
-      return sendBotPlain(chatId, telegramId, smallTalkReply);
+    if (CONVERSATIONAL_V2_ENABLED) {
+      setScene(telegramId, 'conversation', 'understanding', { lastUserMessage: text.slice(0, 300) });
+
+      // Friendly small-talk responses so the bot feels conversational.
+      const smallTalkReply = getSmallTalkResponse(text);
+      if (smallTalkReply) {
+        setScene(telegramId, 'conversation', 'smalltalk');
+        return sendBotPlain(chatId, telegramId, smallTalkReply);
+      }
     }
 
     // Parse intent
-    await sendBotPlain(chatId, telegramId, '🤔 Analysing...');
-
     let intent;
     try {
-      intent = await parseIntent(text);
+      intent = CONVERSATIONAL_V2_ENABLED
+        ? await parseIntentWithAdaptiveIndicator(chatId, text)
+        : await parseIntent(text);
     } catch (err) {
       logger.error('[TelegramBot] parseIntent threw', { telegramId, error: err.message });
       return sendBotPlain(chatId, telegramId, '❌ Failed to understand your message. Please try again.');
@@ -904,82 +823,94 @@ async function handleFreeText(chatId, telegramId, text) {
 
     logger.info('[TelegramBot] Parsed intent', { telegramId, intent });
 
-    if (intent.intent === 'unknown' || intent.confidence < 0.65) {
-      const extracted = extractTransferFields(text);
-      if (TRANSFER_ACTION_RE.test(text) || extracted.amount || extracted.recipientAddress || extracted.tokenSymbol) {
-        const details = {
-          tokenSymbol: extracted.tokenSymbol || 'ETH',
-          amount: extracted.amount && extracted.amount > 0 ? extracted.amount : null,
-          recipientAddress: extracted.recipientAddress || null,
-          chain: null,
-        };
-        const missing = getMissingTransferFields(details);
-        setTransferDraft(telegramId, {
-          intent: {
-            intent: 'transfer',
-            details,
-            confidence: 0.7,
+    const heuristicExtracted = extractTransferFields(text);
+    let extracted = { ...heuristicExtracted };
+    let slotExtractionAttempted = false;
+    let slotExtractionUsed = false;
+    let resolvedSavedRecipient = null;
+    const shouldTryTransferSlotExtraction = shouldAttemptTransferSlotExtraction(text, heuristicExtracted);
+
+    if (!intent.details?.recipientAddress && !heuristicExtracted.recipientAddress) {
+      resolvedSavedRecipient = await resolveSavedRecipientFromText(user.id, text);
+      if (resolvedSavedRecipient) {
+        extracted.recipientAddress = resolvedSavedRecipient.address;
+        intent = {
+          ...intent,
+          details: {
+            ...intent.details,
+            recipientAddress: resolvedSavedRecipient.address,
+            recipientLabel: resolvedSavedRecipient.name,
           },
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
+        };
       }
-
-      const fallbackReply = await generateFallbackReply(text, getConversationHistory(telegramId));
-      if (fallbackReply) {
-        setScene(telegramId, 'conversation', 'fallback');
-        return sendBotPlain(chatId, telegramId, fallbackReply);
-      }
-
-      return sendBotPlain(chatId, telegramId,
-        "🤷 I didn't understand that as a crypto command.\n\nTry:\n• \"Send 0.01 ETH to 0x123...\"\n• \"Check my balance\"\n\nType /help for all commands."
-      );
     }
 
-    if (intent.intent === 'balance') {
+    if (
+      CONVERSATIONAL_V2_ENABLED
+      && (intent.intent === 'unknown' || intent.confidence < 0.65)
+      && shouldTryTransferSlotExtraction
+    ) {
+      slotExtractionAttempted = true;
+      const modelExtracted = await extractTransferSlots(text, getConversationHistory(telegramId));
+      if (modelExtracted && (modelExtracted.amount || modelExtracted.recipientAddress || modelExtracted.tokenSymbol)) {
+        slotExtractionUsed = true;
+        extracted = {
+          tokenSymbol: modelExtracted.tokenSymbol || heuristicExtracted.tokenSymbol,
+          amount: modelExtracted.amount || heuristicExtracted.amount,
+          recipientAddress: modelExtracted.recipientAddress || extracted.recipientAddress || heuristicExtracted.recipientAddress,
+          chain: modelExtracted.chain || heuristicExtracted.chain || null,
+        };
+      }
+    }
+
+    const action = decideConversationAction({
+      text,
+      intent: intent.intent,
+      confidence: intent.confidence,
+      details: intent.details,
+      extracted,
+    });
+
+    logConversationDecision({
+      telegramId,
+      intent: intent.intent,
+      confidence: intent.confidence,
+      action,
+      slotExtractionAttempted,
+      slotExtractionUsed,
+    });
+
+    if (action.type === 'request_balance') {
       setScene(telegramId, 'balance', 'requested');
       return handleBalance(chatId, telegramId);
     }
 
-    if (intent.intent === 'transfer') {
-      const details = {
-        tokenSymbol: intent.details.tokenSymbol || 'ETH',
-        amount: intent.details.amount || null,
-        recipientAddress: intent.details.recipientAddress || null,
-        chain: intent.details.chain || null,
-      };
-
-      const missing = getMissingTransferFields(details);
-      if (missing.length > 0) {
-        setTransferDraft(telegramId, {
-          intent: {
-            intent: 'transfer',
-            details,
-            confidence: intent.confidence,
-          },
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        });
-        setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
-
-        return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
+    if (action.type === 'prepare_transfer') {
+      if (resolvedSavedRecipient && !action.details.recipientLabel) {
+        action.details.recipientLabel = resolvedSavedRecipient.name;
       }
-
-      // Store pending intent with 2-minute TTL
-      setPendingIntent(telegramId, {
-        intent: {
-          intent: 'transfer',
-          details,
-          confidence: intent.confidence,
-        },
-        expiresAt: Date.now() + 2 * 60 * 1000,
+      const preparedTransferResponse = await transferConversationHandlers.handlePreparedTransferAction({
+        chatId,
+        telegramId,
+        action,
+        intentConfidence: intent.confidence,
       });
-      setScene(telegramId, 'transfer', 'confirm');
-
-      return sendBotMessage(chatId, telegramId,
-        `📤 *Confirm Transaction*\n\nI'll send *${details.amount} ${details.tokenSymbol.toUpperCase()}* to:\n\`${details.recipientAddress}\`\n\nReply *yes* to confirm or *no* to cancel.\n\n⚠️ This will be sent from your bot wallet.`
-      );
+      if (preparedTransferResponse) {
+        return preparedTransferResponse;
+      }
     }
+
+    if (CONVERSATIONAL_V2_ENABLED) {
+      const fallbackReply = await generateConversationalReply(text, getConversationHistory(telegramId));
+      if (fallbackReply) {
+        setScene(telegramId, 'conversation', 'fallback');
+        return sendBotPlain(chatId, telegramId, fallbackReply);
+      }
+    }
+
+    return sendBotPlain(chatId, telegramId,
+      'I did not catch that.\n\nTry "balance", "send 0.01 ETH to Alice", or "/addresses".'
+    );
 
   } catch (error) {
     logger.error('[TelegramBot] handleFreeText unexpected error', { telegramId, error: error.message });
@@ -1024,9 +955,6 @@ export async function handleWebhook(req, res) {
       return sendPlainMessage(chatId, '⏱️ Slow down! You\'re sending too many messages. Please wait a minute.');
     }
 
-    // Track user turns for command and non-command paths.
-    appendUserMessageHistory(telegramId, text);
-
     // Route to handler
     if (isCommand(text)) {
       const cmd = extractCommand(text);
@@ -1034,8 +962,10 @@ export async function handleWebhook(req, res) {
         case 'start':   return handleStart(chatId, telegramId, text);
         case 'balance': return handleBalance(chatId, telegramId);
         case 'help':    return handleHelp(chatId, telegramId);
+        case 'contacts':
+        case 'addresses': return handleContacts(chatId, telegramId);
         case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `❓ Unknown command: /${cmd}\n\nType /help for available commands.`);
+        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, or /addresses.`);
       }
     } else {
       return handleFreeText(chatId, telegramId, text);
