@@ -11,6 +11,7 @@ import compression from 'compression';
 import rateLimiters from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import logger, { morganStream } from './services/loggerService.js';
+import { startTelegramNotificationMonitor } from './services/telegramNotificationService.js';
 import {
   requestLogger,
   metricsCollector,
@@ -209,6 +210,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
     });
 
     startMetricsLogging(60);
+    startTelegramNotificationMonitor();
   });
 }
 

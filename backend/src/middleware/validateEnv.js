@@ -59,6 +59,10 @@ const optionalEnvVars = {
   SERVER_SIGNING_ADDRESS: 'Server EOA address (informational)',
   GEMINI_API_KEY: 'Google Gemini API key for intent parsing',
   BOT_DEFAULT_CHAIN_ID: 'Default EVM chain ID for bot transactions',
+  TELEGRAM_NOTIFICATION_MONITOR_ENABLED: 'Enable Telegram wallet notifications monitor',
+  TELEGRAM_NOTIFICATION_POLL_MS: 'Polling interval for Telegram wallet notifications',
+  TELEGRAM_LOW_BALANCE_THRESHOLD_ETH: 'ETH threshold for low gas balance warnings',
+  TELEGRAM_FUNDED_MIN_DELTA_ETH: 'Minimum balance increase to treat as wallet funding',
 };
 
 export const validateEnvironment = () => {

@@ -174,9 +174,11 @@ function getProvider(chainId) {
  *
  * @param {object} intent         — Parsed TransactionIntent from geminiService
  * @param {object} user           — Prisma User record (must have id)
+ * @param {object} [options]
+ * @param {(payload: { txHash: string, from: string, to: string, amount: string, token: string, chainId: number }) => Promise<void>|void} [options.onBroadcast]
  * @returns {{ txHash: string, from: string, to: string, amount: string, token: string }}
  */
-export async function executeTransfer(intent, user) {
+export async function executeTransfer(intent, user, options = {}) {
   const { tokenSymbol, amount, recipientAddress, chain } = intent.details;
 
   if (!amount || amount <= 0) throw new Error('Invalid amount');
@@ -218,6 +220,17 @@ export async function executeTransfer(intent, user) {
   }
 
   logger.info('[TelegramBot] Transaction broadcast', { txHash: tx.hash });
+
+  if (typeof options.onBroadcast === 'function') {
+    await options.onBroadcast({
+      txHash: tx.hash,
+      from: botWallet.address,
+      to: toAddress,
+      amount: amount.toString(),
+      token: tokenSymbol.toUpperCase(),
+      chainId,
+    });
+  }
 
   // Wait for 1 confirmation
   await tx.wait(1);

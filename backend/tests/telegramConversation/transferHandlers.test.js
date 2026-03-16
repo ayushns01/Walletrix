@@ -1,3 +1,13 @@
+jest.mock('../../src/services/telegramNotificationService.js', () => ({
+  __esModule: true,
+  buildTransferSubmittedMessage: jest.fn(({ amount, token, to, txHash }) => (
+    `🚀 Transfer submitted.\n\nAmount: ${amount} ${token}\nTo: ${to}\nHash: ${txHash}\n\nI will confirm again once it lands on-chain.`
+  )),
+  buildTransferConfirmedMessage: jest.fn(({ amount, token, to, txHash }) => (
+    `✅ Transfer confirmed.\n\nAmount: ${amount} ${token}\nTo: ${to}\nHash: ${txHash}`
+  )),
+}));
+
 import {
   buildTransferExecutionFailureReason,
   createTransferConversationHandlers,
@@ -70,7 +80,12 @@ describe('transferHandlers', () => {
     expect(deps.setScene).toHaveBeenCalledWith('123', 'transfer', 'executing');
     expect(deps.setScene).toHaveBeenCalledWith('123', 'idle', 'ready', { lastIntent: 'transfer' });
     expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', '⏳ Executing transaction...');
-    expect(deps.sendBotMessage).toHaveBeenCalledTimes(1);
+    expect(deps.sendBotPlain).toHaveBeenLastCalledWith(
+      10,
+      '123',
+      expect.stringContaining('Transfer confirmed')
+    );
+    expect(deps.sendBotMessage).not.toHaveBeenCalled();
     expect(deps.recordTelegramTransferEvent).toHaveBeenCalledWith('u1', expect.objectContaining({
       status: 'confirmed',
       txHash: '0xabc',
@@ -93,6 +108,137 @@ describe('transferHandlers', () => {
     expect(deps.setPendingIntent).toHaveBeenCalledWith('123', null);
     expect(deps.setScene).toHaveBeenCalledWith('123', 'idle', 'ready');
     expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', '❌ Transaction cancelled.');
+  });
+
+  it('updates the amount during pending confirmation and refreshes the confirm message', async () => {
+    const deps = createDeps();
+    deps.extractTransferFields.mockReturnValue({
+      amount: 0.2,
+      tokenSymbol: null,
+      recipientAddress: null,
+    });
+    const handlers = createTransferConversationHandlers(deps);
+
+    const response = await handlers.handlePendingConfirmation({
+      chatId: 10,
+      telegramId: '123',
+      text: 'change amount to 0.2',
+      pending: {
+        intent: {
+          intent: 'transfer',
+          details: {
+            amount: 0.5,
+            tokenSymbol: 'ETH',
+            recipientAddress: '0x1111111111111111111111111111111111111111',
+            recipientLabel: null,
+            chain: null,
+          },
+        },
+      },
+      user: { id: 'u1' },
+    });
+
+    expect(response).toEqual({ ok: true });
+    expect(deps.setPendingIntent).toHaveBeenCalledWith('123', expect.objectContaining({
+      intent: expect.objectContaining({
+        details: expect.objectContaining({
+          amount: 0.2,
+          tokenSymbol: 'ETH',
+        }),
+      }),
+    }));
+    expect(deps.setScene).toHaveBeenCalledWith('123', 'transfer', 'confirm');
+    expect(deps.sendBotMessage).toHaveBeenCalledWith(
+      10,
+      '123',
+      expect.stringContaining("I'll send *0.2 ETH*")
+    );
+  });
+
+  it('updates the recipient to a saved address-list entry during pending confirmation', async () => {
+    const deps = createDeps();
+    deps.resolveSavedRecipientFromText.mockResolvedValue({
+      id: 'recipient-1',
+      name: 'Alice',
+      address: '0x2222222222222222222222222222222222222222',
+    });
+    const handlers = createTransferConversationHandlers(deps);
+
+    const response = await handlers.handlePendingConfirmation({
+      chatId: 10,
+      telegramId: '123',
+      text: 'change recipient to Alice',
+      pending: {
+        intent: {
+          intent: 'transfer',
+          details: {
+            amount: 0.5,
+            tokenSymbol: 'ETH',
+            recipientAddress: '0x1111111111111111111111111111111111111111',
+            recipientLabel: null,
+            chain: null,
+          },
+        },
+      },
+      user: { id: 'u1' },
+    });
+
+    expect(response).toEqual({ ok: true });
+    expect(deps.touchSavedRecipientById).toHaveBeenCalledWith('u1', 'recipient-1');
+    expect(deps.setPendingIntent).toHaveBeenCalledWith('123', expect.objectContaining({
+      intent: expect.objectContaining({
+        details: expect.objectContaining({
+          recipientAddress: '0x2222222222222222222222222222222222222222',
+          recipientLabel: 'Alice',
+        }),
+      }),
+    }));
+    expect(deps.sendBotMessage).toHaveBeenCalledWith(
+      10,
+      '123',
+      expect.stringContaining('*Alice*')
+    );
+  });
+
+  it('switches back to collection when a confirm-step edit removes a required field', async () => {
+    const deps = createDeps();
+    deps.extractTransferFields.mockReturnValue({
+      amount: null,
+      tokenSymbol: null,
+      recipientAddress: null,
+    });
+    const handlers = createTransferConversationHandlers(deps);
+
+    const response = await handlers.handlePendingConfirmation({
+      chatId: 10,
+      telegramId: '123',
+      text: 'change amount',
+      pending: {
+        intent: {
+          intent: 'transfer',
+          details: {
+            amount: 0.5,
+            tokenSymbol: 'ETH',
+            recipientAddress: '0x1111111111111111111111111111111111111111',
+            recipientLabel: null,
+            chain: null,
+          },
+        },
+      },
+      user: { id: 'u1' },
+    });
+
+    expect(response).toEqual({ ok: true });
+    expect(deps.setPendingIntent).toHaveBeenCalledWith('123', null);
+    expect(deps.setTransferDraft).toHaveBeenCalledWith('123', expect.objectContaining({
+      intent: expect.objectContaining({
+        details: expect.objectContaining({
+          amount: null,
+        }),
+      }),
+    }));
+    expect(deps.setScene).toHaveBeenCalledWith('123', 'transfer', 'collecting_amount');
+    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', 'missing: amount');
   });
 
   it('handles pending confirmation failure path', async () => {

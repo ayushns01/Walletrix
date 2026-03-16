@@ -226,17 +226,69 @@ jest.mock('../../src/services/geminiService.js', () => ({
 
 jest.mock('../../src/services/telegramExecutionService.js', () => ({
   __esModule: true,
-  executeTransfer: jest.fn(async (intent) => ({
-    to: intent.details.recipientAddress,
-    amount: String(intent.details.amount),
-    token: intent.details.tokenSymbol || 'ETH',
-    txHash: '0xtxhash',
-  })),
+  executeTransfer: jest.fn(async (intent, _user, options = {}) => {
+    if (typeof options.onBroadcast === 'function') {
+      await options.onBroadcast({
+        to: intent.details.recipientAddress,
+        from: '0xbot',
+        amount: String(intent.details.amount),
+        token: intent.details.tokenSymbol || 'ETH',
+        txHash: '0xtxhash',
+        chainId: 11155111,
+      });
+    }
+
+    return {
+      to: intent.details.recipientAddress,
+      amount: String(intent.details.amount),
+      token: intent.details.tokenSymbol || 'ETH',
+      txHash: '0xtxhash',
+      chainId: 11155111,
+    };
+  }),
   getBotWalletBalance: jest.fn(async () => ({
     address: '0x1111111111111111111111111111111111111111',
     ethBalance: '1.2345',
     chainId: 11155111,
   })),
+}));
+
+jest.mock('../../src/services/ethereumService.js', () => ({
+  __esModule: true,
+  default: {
+    getTransaction: jest.fn(async (txHash, network) => {
+      if (txHash === '0xtxhash' && network === 'sepolia') {
+        return {
+          success: true,
+          transaction: {
+            hash: txHash,
+            to: '0x1111111111111111111111111111111111111111',
+            value: '0.4',
+            status: 'success',
+            confirmations: 2,
+          },
+        };
+      }
+
+      if (txHash === '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' && network === 'mainnet') {
+        return {
+          success: true,
+          transaction: {
+            hash: txHash,
+            to: '0x4444444444444444444444444444444444444444',
+            value: '0.02',
+            status: 'pending',
+            confirmations: 0,
+          },
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Transaction not found',
+      };
+    }),
+  },
 }));
 
 jest.mock('../../src/services/conversationSessionService.js', () => ({
@@ -381,7 +433,8 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.2 ETH*");
 
     await sendIncomingText('yes', { telegramId, chatId: 502 });
-    expect(outgoing.some((msg) => msg.includes('Transaction Sent'))).toBe(true);
+    expect(outgoing.some((msg) => msg.includes('Transfer submitted'))).toBe(true);
+    expect(outgoing.some((msg) => msg.includes('Transfer confirmed'))).toBe(true);
     expect(mockGetActivityLogs(`user-${telegramId}`)[0]?.action).toBe('TELEGRAM_TRANSFER_CONFIRMED');
   });
 
@@ -393,7 +446,7 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.4 ETH*");
 
     await sendIncomingText('yes', { telegramId, chatId: 503 });
-    expect(outgoing.some((msg) => msg.includes('Transaction Sent'))).toBe(true);
+    expect(outgoing.some((msg) => msg.includes('Transfer confirmed'))).toBe(true);
 
     outgoing.length = 0;
     await sendIncomingText('show my recent transfers', { telegramId, chatId: 503 });
@@ -404,6 +457,25 @@ describe('telegramWebhookController transcript integration', () => {
     await sendIncomingText('/last', { telegramId, chatId: 503 });
     expect(outgoing[outgoing.length - 1]).toContain('Last Transfer');
     expect(outgoing[outgoing.length - 1]).toContain('Confirmed');
+  });
+
+  it('shows tx status for the latest transfer and an explicit hash', async () => {
+    const telegramId = 1204;
+    mockEnsureLinkedUser(telegramId);
+
+    await sendIncomingText('send 0.4 eth to 0x1111111111111111111111111111111111111111', { telegramId, chatId: 504 });
+    await sendIncomingText('yes', { telegramId, chatId: 504 });
+
+    outgoing.length = 0;
+    await sendIncomingText('/status', { telegramId, chatId: 504 });
+    expect(outgoing[outgoing.length - 1]).toContain('Transaction Status');
+    expect(outgoing[outgoing.length - 1]).toContain('Confirmed');
+    expect(outgoing[outgoing.length - 1]).toContain('0xtxhash');
+
+    outgoing.length = 0;
+    await sendIncomingText('status of 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', { telegramId, chatId: 504 });
+    expect(outgoing[outgoing.length - 1]).toContain('Pending');
+    expect(outgoing[outgoing.length - 1]).toContain('Ethereum Mainnet');
   });
 
   it('handles natural address-list phrasing for save, list, send, and delete', async () => {
@@ -493,6 +565,42 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain('Transaction cancelled');
   });
 
+  it('lets the user edit amount, token, and recipient from the confirm step', async () => {
+    const telegramId = 1304;
+    const user = mockEnsureLinkedUser(telegramId);
+    mockGetSavedRecipients(user.id).push({
+      id: 'recipient-3',
+      userId: user.id,
+      name: 'Alice',
+      normalizedName: 'alice',
+      address: '0x8888888888888888888888888888888888888888',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await sendIncomingText('send 0.5 eth to 0x1111111111111111111111111111111111111111', { telegramId, chatId: 505 });
+    expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.5 ETH*");
+
+    await sendIncomingText('change amount to 0.2', { telegramId, chatId: 505 });
+    expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.2 ETH*");
+
+    await sendIncomingText('use USDC instead', { telegramId, chatId: 505 });
+    expect(outgoing[outgoing.length - 1]).toContain("I'll send *0.2 USDC*");
+
+    await sendIncomingText('change recipient to Alice', { telegramId, chatId: 505 });
+    expect(outgoing[outgoing.length - 1]).toContain('*Alice*');
+    expect(outgoing[outgoing.length - 1]).toContain('0x8888888888888888888888888888888888888888');
+
+    await sendIncomingText('yes', { telegramId, chatId: 505 });
+    expect(outgoing.some((msg) => msg.includes('Transfer confirmed'))).toBe(true);
+    expect(mockGetActivityLogs(`user-${telegramId}`)[0]?.details).toEqual(expect.objectContaining({
+      amount: '0.2',
+      tokenSymbol: 'USDC',
+      recipientLabel: 'Alice',
+      toAddress: '0x8888888888888888888888888888888888888888',
+    }));
+  });
+
   it('restores draft flow from persisted session state (restart recovery path)', async () => {
     const telegramId = 1404;
     mockEnsureLinkedUser(telegramId);
@@ -579,7 +687,7 @@ describe('telegramWebhookController transcript integration', () => {
     });
 
     await sendIncomingText('yes', { telegramId, chatId: 507 });
-    expect(outgoing[outgoing.length - 1]).toContain('Transaction Sent');
+    expect(outgoing[outgoing.length - 1]).toContain('Transfer confirmed');
     expect(outgoing.some((msg) => msg.includes('Confirm Transaction'))).toBe(false);
   });
 

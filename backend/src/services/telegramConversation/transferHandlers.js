@@ -1,9 +1,208 @@
+import {
+  buildTransferConfirmedMessage,
+  buildTransferSubmittedMessage,
+} from '../telegramNotificationService.js';
+
 function buildTransferConfirmMessage(details) {
   const recipientSummary = details.recipientLabel
     ? `*${details.recipientLabel}*\n\`${details.recipientAddress}\``
     : `\`${details.recipientAddress}\``;
 
-  return `📤 *Confirm Transaction*\n\nI'll send *${details.amount} ${details.tokenSymbol.toUpperCase()}* to:\n${recipientSummary}\n\nReply *yes* to confirm or *no* to cancel.\n\n⚠️ This will be sent from your bot wallet.`;
+  return `📤 *Confirm Transaction*\n\nI'll send *${details.amount} ${details.tokenSymbol.toUpperCase()}* to:\n${recipientSummary}\n\nReply *yes* to confirm or *no* to cancel.\nYou can also say things like "change amount to 0.2" or "use USDC instead".\n\n⚠️ This will be sent from your bot wallet.`;
+}
+
+const BARE_AMOUNT_RE = /^\d+(?:\.\d+)?$/;
+const BARE_TOKEN_RE = /^(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)$/i;
+
+function formatEditedFieldList(fields) {
+  if (fields.length === 1) return fields[0];
+  if (fields.length === 2) return `${fields[0]} and ${fields[1]}`;
+  return `${fields.slice(0, -1).join(', ')}, and ${fields[fields.length - 1]}`;
+}
+
+function buildTransferUpdatedMessage(changedFields, details) {
+  const prefix = changedFields.length > 0
+    ? `✏️ Updated ${formatEditedFieldList(changedFields)}.\n\n`
+    : '';
+
+  return `${prefix}${buildTransferConfirmMessage(details)}`;
+}
+
+async function applyPendingTransferEdits({
+  chatId,
+  telegramId,
+  text,
+  pending,
+  user,
+  deps,
+}) {
+  const {
+    sendBotPlain,
+    sendBotMessage,
+    setPendingIntent,
+    setTransferDraft,
+    setScene,
+    getContext,
+    resolvePreviousRecipientAddress,
+    detectPreviousAmountReference,
+    detectPreviousTokenReference,
+    detectPreviousRecipientReference,
+    resolveSavedRecipientFromText,
+    extractSavedRecipientAliasCandidate,
+    extractTransferFields,
+    getMissingTransferFields,
+    buildMissingFieldPrompt,
+    touchSavedRecipientById,
+  } = deps;
+
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return null;
+
+  const extracted = extractTransferFields(text);
+  const rawBareAliasCandidate = extractSavedRecipientAliasCandidate(text, { allowBareName: true });
+  const bareAmount = BARE_AMOUNT_RE.test(trimmed);
+  const bareToken = BARE_TOKEN_RE.test(trimmed);
+  const bareAliasCandidate = (!extracted.amount && !extracted.tokenSymbol)
+    ? rawBareAliasCandidate
+    : null;
+  const amountEditRequested = bareAmount
+    || /\b(?:amount|make|set|update|adjust)\b/i.test(trimmed)
+    || detectPreviousAmountReference(text);
+  const tokenEditRequested = bareToken
+    || /\b(?:token|coin|switch|use)\b/i.test(trimmed)
+    || detectPreviousTokenReference(text);
+  const recipientEditRequested = detectPreviousRecipientReference(text)
+    || Boolean(extracted.recipientAddress)
+    || Boolean(bareAliasCandidate)
+    || /\b(?:recipient|address)\b/i.test(trimmed);
+  const hasEditSignal = /\b(?:actually|instead|change|make|set|update|use|switch|adjust)\b/i.test(trimmed)
+    || bareAmount
+    || bareToken
+    || amountEditRequested
+    || tokenEditRequested
+    || recipientEditRequested;
+
+  if (!hasEditSignal) return null;
+
+  const context = getContext(telegramId) || {};
+  const details = {
+    ...pending.intent?.details,
+  };
+  const changedFields = [];
+  const changedFieldSet = new Set();
+  const missingRequested = [];
+  const missingRequestedSet = new Set();
+
+  const markChanged = (field) => {
+    if (!changedFieldSet.has(field)) {
+      changedFieldSet.add(field);
+      changedFields.push(field);
+    }
+  };
+  const markMissing = (field) => {
+    if (!missingRequestedSet.has(field)) {
+      missingRequestedSet.add(field);
+      missingRequested.push(field);
+    }
+  };
+
+  if (detectPreviousAmountReference(text) && context?.lastAmount) {
+    details.amount = context.lastAmount;
+    markChanged('amount');
+  } else if (extracted.amount && extracted.amount > 0) {
+    if (amountEditRequested || /\b(?:actually|instead|change|make|set|update|adjust)\b/i.test(trimmed)) {
+      details.amount = extracted.amount;
+      markChanged('amount');
+    }
+  } else if (amountEditRequested && !detectPreviousAmountReference(text)) {
+    details.amount = null;
+    markMissing('amount');
+  }
+
+  if (detectPreviousTokenReference(text) && context?.lastTokenSymbol) {
+    details.tokenSymbol = context.lastTokenSymbol;
+    markChanged('token');
+  } else if (extracted.tokenSymbol) {
+    if (tokenEditRequested || /\b(?:actually|instead|change|make|set|update|adjust)\b/i.test(trimmed)) {
+      details.tokenSymbol = extracted.tokenSymbol;
+      markChanged('token');
+    }
+  } else if (tokenEditRequested && !detectPreviousTokenReference(text) && /\b(?:token|coin|switch)\b/i.test(trimmed)) {
+    details.tokenSymbol = null;
+    markMissing('tokenSymbol');
+  }
+
+  let resolvedSavedRecipient = null;
+  let aliasCandidate = null;
+  const shouldTrySavedRecipientResolution = !extracted.recipientAddress && (
+    recipientEditRequested
+    || (!extracted.amount && !extracted.tokenSymbol)
+  );
+
+  if (shouldTrySavedRecipientResolution) {
+    resolvedSavedRecipient = await resolveSavedRecipientFromText(user.id, text, { allowBareName: true });
+    aliasCandidate = resolvedSavedRecipient
+      ? null
+      : bareAliasCandidate;
+  }
+
+  if (detectPreviousRecipientReference(text)) {
+    const previousRecipient = await resolvePreviousRecipientAddress(user.id, telegramId);
+    if (previousRecipient) {
+      details.recipientAddress = previousRecipient;
+      details.recipientLabel = context?.lastRecipientLabel || null;
+      markChanged('recipient');
+    } else {
+      return sendBotPlain(chatId, telegramId, 'I could not find a previous recipient address. Please send a 0x... address or a name from your address list.');
+    }
+  } else if (extracted.recipientAddress) {
+    details.recipientAddress = extracted.recipientAddress;
+    details.recipientLabel = null;
+    markChanged('recipient');
+  } else if (resolvedSavedRecipient) {
+    details.recipientAddress = resolvedSavedRecipient.address;
+    details.recipientLabel = resolvedSavedRecipient.name;
+    await touchSavedRecipientById(user.id, resolvedSavedRecipient.id);
+    markChanged('recipient');
+  } else if (recipientEditRequested && aliasCandidate) {
+    return sendBotPlain(chatId, telegramId, `I could not find "${aliasCandidate}" in your address list. Send a wallet address, or save it first with "save 0x... as ${aliasCandidate}".`);
+  } else if (recipientEditRequested) {
+    details.recipientAddress = null;
+    details.recipientLabel = null;
+    markMissing('recipientAddress');
+  }
+
+  if (changedFields.length === 0 && missingRequested.length === 0) {
+    return null;
+  }
+
+  const missing = missingRequested.length > 0
+    ? missingRequested
+    : getMissingTransferFields(details);
+
+  if (missing.length > 0) {
+    setPendingIntent(telegramId, null);
+    setTransferDraft(telegramId, {
+      intent: {
+        ...pending.intent,
+        details,
+      },
+      expiresAt: Date.now() + 2 * 60 * 1000,
+    });
+    setScene(telegramId, 'transfer', `collecting_${missing[0]}`);
+    return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(missing));
+  }
+
+  setPendingIntent(telegramId, {
+    ...pending,
+    intent: {
+      ...pending.intent,
+      details,
+    },
+    expiresAt: Date.now() + 2 * 60 * 1000,
+  });
+  setScene(telegramId, 'transfer', 'confirm');
+  return sendBotMessage(chatId, telegramId, buildTransferUpdatedMessage(changedFields, details));
 }
 
 export function buildTransferExecutionFailureReason(message = '') {
@@ -68,7 +267,16 @@ export function createTransferConversationHandlers(deps) {
       await sendBotPlain(chatId, telegramId, '⏳ Executing transaction...');
 
       try {
-        const result = await executeTransfer(pending.intent, user);
+        const result = await executeTransfer(pending.intent, user, {
+          onBroadcast: async (broadcast) => {
+            await sendBotPlain(chatId, telegramId, buildTransferSubmittedMessage({
+              amount: broadcast.amount,
+              token: broadcast.token,
+              to: broadcast.to,
+              txHash: broadcast.txHash,
+            }));
+          },
+        });
         updateContext(telegramId, {
           lastRecipientAddress: result.to,
           lastRecipientLabel: pending.intent.details?.recipientLabel || null,
@@ -86,9 +294,12 @@ export function createTransferConversationHandlers(deps) {
           chainId: result.chainId || null,
         });
         setScene(telegramId, 'idle', 'ready', { lastIntent: 'transfer' });
-        return sendBotMessage(chatId, telegramId,
-          `✅ *Transaction Sent!*\n\nAmount: ${result.amount} ${result.token}\nTo: \`${result.to}\`\nHash: \`${result.txHash}\``
-        );
+        return sendBotPlain(chatId, telegramId, buildTransferConfirmedMessage({
+          amount: result.amount,
+          token: result.token,
+          to: result.to,
+          txHash: result.txHash,
+        }));
       } catch (error) {
         logger.error('[TelegramBot] executeTransfer failed', { telegramId, error: error.message });
         await recordTelegramTransferEvent(user.id, {
@@ -110,6 +321,18 @@ export function createTransferConversationHandlers(deps) {
       setPendingIntent(telegramId, null);
       setScene(telegramId, 'idle', 'ready');
       return sendBotPlain(chatId, telegramId, '❌ Transaction cancelled.');
+    }
+
+    const editResponse = await applyPendingTransferEdits({
+      chatId,
+      telegramId,
+      text,
+      pending,
+      user,
+      deps,
+    });
+    if (editResponse) {
+      return editResponse;
     }
 
     return sendBotPlain(chatId, telegramId,
