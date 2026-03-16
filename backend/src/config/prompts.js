@@ -80,6 +80,7 @@ Available commands:
 /addresses — Show your address list
 /recent — Show your recent Telegram transfers
 /last — Show your last Telegram transfer
+/status — Check the status of your latest transfer or a tx hash
 /help — Show this message
 /unlink — Unlink your account
 
@@ -89,6 +90,8 @@ Or just type naturally:
 • "Save 0x123... as Alice"
 • "Show my recent transfers"
 • "What was my last transfer?"
+• "Status of my last transfer"
+• "/status 0xabc..."
 • "Transfer 5 USDC to vitalik.eth"
 • "What's my balance?"
 `;
@@ -103,4 +106,4 @@ Your dedicated bot wallet address is:
 \`${address}\`
 
 Fund this address with ETH (or tokens) to enable transactions.
-Use /help, /balance, /addresses, or /recent whenever you need them.`;
+Use /help, /balance, /addresses, /recent, or /status whenever you need them.`;

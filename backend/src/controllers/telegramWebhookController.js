@@ -48,6 +48,12 @@ import {
   isRecentTransfersIntent,
   recordTelegramTransferEvent,
 } from '../services/telegramHistoryService.js';
+import {
+  buildTransferStatusMessage,
+  extractTxHashFromText,
+  isTransferStatusIntent,
+  lookupTelegramTransferStatus,
+} from '../services/telegramTxStatusService.js';
 import { applyLinkCode } from './telegramController.js';
 import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
@@ -138,7 +144,7 @@ function getPrimaryQuickReplyMarkup() {
     [
       ['Check balance', 'Send crypto'],
       ['Address list', 'Recent transfers'],
-      ['Help'],
+      ['Tx status', 'Help'],
     ],
     { placeholder: 'Check balance, send crypto, or manage your address list' }
   );
@@ -215,11 +221,12 @@ function isCasualConversationTurn(text) {
 function isFreshWalletTask(text) {
   const normalized = String(text || '').trim().toLowerCase();
   return (
-    /\b(send|transfer|pay|balance|contacts?|addresses?|help|save|add|delete|remove|show|list|recent|history|last|transactions?)\b/.test(normalized)
+    /\b(send|transfer|pay|balance|contacts?|addresses?|help|save|add|delete|remove|show|list|recent|history|last|transactions?|status|track|hash)\b/.test(normalized)
     || isListSavedRecipientsIntent(normalized)
     || isSavedRecipientSaveIntent(normalized)
     || isRecentTransfersIntent(normalized)
     || isLastTransferIntent(normalized)
+    || isTransferStatusIntent(normalized)
   );
 }
 
@@ -705,6 +712,16 @@ async function handleLastTransfer(chatId, telegramId) {
   return sendBotMessage(chatId, telegramId, buildLastTransferMessage(lastTransfer));
 }
 
+async function handleTransferStatus(chatId, telegramId, text = '') {
+  const user = await getUserByTelegramId(telegramId);
+  if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+
+  const txHash = extractTxHashFromText(text);
+  const statusResult = await lookupTelegramTransferStatus(user.id, { txHash });
+  setScene(telegramId, 'idle', 'ready', { lastIntent: 'tx_status' });
+  return sendBotMessage(chatId, telegramId, buildTransferStatusMessage(statusResult));
+}
+
 async function handleUnlink(chatId, telegramId) {
   try {
     const user = await getUserByTelegramId(telegramId);
@@ -817,6 +834,13 @@ async function handleFreeText(chatId, telegramId, text) {
       || isLastTransferIntent(text)
     ) {
       return handleLastTransfer(chatId, telegramId);
+    }
+
+    if (
+      ['tx status', 'transaction status', 'status'].includes(normalizedText)
+      || isTransferStatusIntent(text)
+    ) {
+      return handleTransferStatus(chatId, telegramId, text);
     }
 
     if (normalizedText === 'send crypto' || normalizedText === 'send') {
@@ -1096,8 +1120,9 @@ export async function handleWebhook(req, res) {
         case 'history':
         case 'transfers': return handleRecentTransfers(chatId, telegramId);
         case 'last': return handleLastTransfer(chatId, telegramId);
+        case 'status': return handleTransferStatus(chatId, telegramId, text);
         case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, or /recent.`);
+        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, or /status.`);
       }
     } else {
       return handleFreeText(chatId, telegramId, text);

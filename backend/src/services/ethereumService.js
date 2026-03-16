@@ -9,6 +9,9 @@ class EthereumService {
       sepolia: null,
       'polygon-mainnet': null,
       'polygon-mumbai': null,
+      'arbitrum-one': null,
+      'optimism-mainnet': null,
+      'base-mainnet': null,
     };
 
     this.networkConfigs = {
@@ -16,6 +19,9 @@ class EthereumService {
       sepolia: { rpc: process.env.ETHEREUM_SEPOLIA_RPC || 'https://ethereum-sepolia.publicnode.com', chainId: 11155111 },
       'polygon-mainnet': { rpc: process.env.POLYGON_MAINNET_RPC || 'https://polygon-rpc.com', chainId: 137 },
       'polygon-mumbai': { rpc: process.env.POLYGON_MUMBAI_RPC || 'https://rpc-mumbai.maticvigil.com', chainId: 80001 },
+      'arbitrum-one': { rpc: process.env.ARBITRUM_ONE_RPC || 'https://arb1.arbitrum.io/rpc', chainId: 42161 },
+      'optimism-mainnet': { rpc: process.env.OPTIMISM_MAINNET_RPC || 'https://mainnet.optimism.io', chainId: 10 },
+      'base-mainnet': { rpc: process.env.BASE_MAINNET_RPC || 'https://mainnet.base.org', chainId: 8453 },
     };
 
     this._initialized = false;
