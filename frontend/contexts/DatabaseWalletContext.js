@@ -12,6 +12,7 @@ export function WalletProvider({ children }) {
 
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
+  const previousClerkUserIdRef = useRef(null);
 
   const pathname = usePathname();
 
@@ -54,6 +55,17 @@ export function WalletProvider({ children }) {
     }
     return true;
   });
+
+  const clearWalletRuntimeState = useCallback(() => {
+    setActiveWalletId(null);
+    setWallet(null);
+    setIsLocked(true);
+    setBalances({});
+    setTokens([]);
+    setPrices({});
+    setWalletChangeTimestamp(null);
+    setLastDataFetch(null);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -131,6 +143,15 @@ export function WalletProvider({ children }) {
     const loadClerkUserWallets = async () => {
       if (isSignedIn && clerkUser && isUserLoaded) {
         try {
+          const currentClerkUserId = clerkUser.id;
+          const previousClerkUserId = previousClerkUserIdRef.current;
+
+          if (previousClerkUserId && previousClerkUserId !== currentClerkUserId) {
+            setUserWallets([]);
+            clearWalletRuntimeState();
+          }
+
+          previousClerkUserIdRef.current = currentClerkUserId;
           const token = await getToken();
           if (token) {
             setAuthToken(token);
@@ -147,6 +168,7 @@ export function WalletProvider({ children }) {
           console.error('Error loading Clerk user wallets:', error);
         }
       } else if (!isSignedIn && isUserLoaded) {
+        previousClerkUserIdRef.current = null;
 
         clearAuthState();
 
@@ -155,7 +177,7 @@ export function WalletProvider({ children }) {
     };
 
     loadClerkUserWallets();
-  }, [isSignedIn, clerkUser, isUserLoaded]);
+  }, [isSignedIn, clerkUser, isUserLoaded, clearWalletRuntimeState]);
 
   useEffect(() => {
     const loadActiveWallet = async () => {
@@ -224,11 +246,7 @@ export function WalletProvider({ children }) {
     setUser(null);
     setIsAuthenticated(false);
     setUserWallets([]);
-    setActiveWalletId(null);
-    setWallet(null);
-    setIsLocked(true);
-    setBalances({});
-    setTokens([]);
+    clearWalletRuntimeState();
   };
 
   const authenticatedFetch = async (url, options = {}) => {
@@ -281,7 +299,14 @@ export function WalletProvider({ children }) {
       const data = await response.json();
 
       if (data.success) {
-        setUserWallets(data.wallets);
+        const nextWallets = data.wallets || [];
+        const hasMatchingActiveWallet = nextWallets.some((walletRecord) => walletRecord.id === activeWalletId);
+
+        setUserWallets(nextWallets);
+
+        if (!hasMatchingActiveWallet) {
+          clearWalletRuntimeState();
+        }
 
       }
     } catch (error) {

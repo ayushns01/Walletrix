@@ -20,6 +20,8 @@ import NotificationBell from '@/components/NotificationBell'
 import Walkthrough from '@/components/Walkthrough'
 import MultiSigWalletDetail from '@/components/MultiSigWalletDetail'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import TelegramHomeCard from '@/components/TelegramHomeCard'
+import TelegramLinkPage from '@/components/TelegramLinkPage'
 
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
@@ -188,6 +190,27 @@ export default function Home() {
     } else {
       setShowReceiveModal(true)
     }
+  }
+
+  const getWalletCardSummary = (walletRecord) => {
+    const description = (walletRecord?.description || '').trim()
+    const genericDescriptions = new Set([
+      '',
+      'Generated wallet',
+      'Imported from recovery phrase',
+      'Personal multi-chain wallet',
+    ])
+
+    if (!genericDescriptions.has(description)) {
+      return description
+    }
+
+    const networkCount = Object.values(walletRecord?.addresses || {}).filter(Boolean).length
+    if (networkCount <= 1) {
+      return 'Single-network wallet'
+    }
+
+    return `${networkCount}-network wallet`
   }
 
   // Prevent hydration mismatch by rendering consistent initial state
@@ -433,6 +456,10 @@ export default function Home() {
                         </div>
                       </div>
 
+                      <TelegramHomeCard
+                        onOpen={() => setView('telegram-link')}
+                      />
+
                       {/* Show existing wallets if any */}
                       {(userWallets && userWallets.length > 0) || (multiSigWallets && multiSigWallets.length > 0) ? (
                         <div className="mb-6">
@@ -448,15 +475,29 @@ export default function Home() {
                                   onClick={() => {
                                     setActiveWalletId(w.id);
                                   }}
-                                  className="flex-1 p-4 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl border border-slate-600/50 hover:border-blue-400/50 transition-all text-left"
+                                  className={`flex-1 rounded-xl border p-4 text-left transition-all ${
+                                    activeWalletId === w.id
+                                      ? 'border-blue-400/50 bg-blue-900/20 shadow-lg shadow-blue-900/20'
+                                      : 'border-slate-600/50 bg-slate-700/50 hover:border-blue-400/50 hover:bg-slate-600/50'
+                                  }`}
                                 >
                                   <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
                                       <Wallet className="w-6 h-6 text-white" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-white font-medium truncate">{w.name || 'Unnamed Wallet'}</p>
-                                      <p className="text-xs text-slate-400 mt-0.5">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-white font-medium truncate">{w.name || 'Unnamed Wallet'}</p>
+                                        {activeWalletId === w.id && (
+                                          <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200">
+                                            Active
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="mt-1 text-sm text-slate-300 truncate">
+                                        {getWalletCardSummary(w)}
+                                      </p>
+                                      <p className="text-xs text-slate-500 mt-3">
                                         Created {new Date(w.createdAt).toLocaleDateString()}
                                       </p>
                                     </div>
@@ -577,6 +618,16 @@ export default function Home() {
                 />
               </ErrorBoundary>
             </div>
+          )}
+
+          {view === 'telegram-link' && (
+            <ErrorBoundary>
+              <TelegramLinkPage
+                isSignedIn={Boolean(isSignedIn && clerkUser)}
+                getToken={getToken}
+                onBack={() => setView('welcome')}
+              />
+            </ErrorBoundary>
           )}
 
           {view === 'multisig-detail' && selectedMultiSigWallet && (
