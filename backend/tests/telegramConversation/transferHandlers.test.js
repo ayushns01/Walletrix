@@ -92,7 +92,7 @@ describe('transferHandlers', () => {
     expect(response).toEqual({ ok: true });
     expect(deps.setPendingIntent).toHaveBeenCalledWith('123', null);
     expect(deps.setScene).toHaveBeenCalledWith('123', 'idle', 'ready');
-    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', '❌ Transaction cancelled.', { keyboard: 'primary' });
+    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', '❌ Transaction cancelled.');
   });
 
   it('handles pending confirmation failure path', async () => {
@@ -110,7 +110,7 @@ describe('transferHandlers', () => {
 
     expect(response).toEqual({ ok: true });
     expect(deps.setScene).toHaveBeenCalledWith('123', 'transfer', 'failed');
-    expect(deps.sendBotPlain).toHaveBeenLastCalledWith(10, '123', '❌ Invalid recipient address. Please double-check and try again.', { keyboard: 'primary' });
+    expect(deps.sendBotPlain).toHaveBeenLastCalledWith(10, '123', '❌ Invalid recipient address. Please double-check and try again.');
     expect(deps.recordTelegramTransferEvent).toHaveBeenCalledWith('u1', expect.objectContaining({
       status: 'failed',
       errorMessage: 'invalid address',
@@ -133,8 +133,7 @@ describe('transferHandlers', () => {
     expect(deps.sendBotPlain).toHaveBeenCalledWith(
       10,
       '123',
-      '⏳ You have a pending transaction confirmation.\n\nReply with:\n• yes (to send)\n• no (to cancel)',
-      { keyboard: 'confirm' }
+      '⏳ You have a pending transaction confirmation.\n\nReply with:\n• yes (to send)\n• no (to cancel)'
     );
   });
 
@@ -188,7 +187,7 @@ describe('transferHandlers', () => {
     expect(response).toEqual({ ok: true });
     expect(deps.setTransferDraft).toHaveBeenCalledTimes(1);
     expect(deps.setScene).toHaveBeenCalledWith('123', 'transfer', 'collecting_amount');
-    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', 'missing: amount', { keyboard: 'amount' });
+    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', 'missing: amount');
     expect(deps.setPendingIntent).not.toHaveBeenCalled();
   });
 
@@ -257,8 +256,7 @@ describe('transferHandlers', () => {
     expect(deps.sendBotMessage).toHaveBeenCalledWith(
       10,
       '123',
-      expect.stringContaining('*Alice*'),
-      { keyboard: 'confirm' }
+      expect.stringContaining('*Alice*')
     );
   });
 
@@ -287,10 +285,8 @@ describe('transferHandlers', () => {
     expect(deps.sendBotPlain).toHaveBeenCalledWith(
       10,
       '123',
-      'I could not find "Alice" in your address list. Send a wallet address, or save it first with "save 0x... as Alice".',
-      { keyboard: 'recipient' }
+      'I could not find "Alice" in your address list. Send a wallet address, or save it first with "save 0x... as Alice".'
     );
-    expect(deps.getRecipientQuickReplyNames).toHaveBeenCalledWith('u1');
   });
 
   it('asks again when previous recipient cannot be resolved', async () => {
@@ -324,10 +320,8 @@ describe('transferHandlers', () => {
     expect(deps.sendBotPlain).toHaveBeenCalledWith(
       10,
       '123',
-      'I could not find a previous recipient address. Please send a 0x... address.',
-      { keyboard: 'recipient' }
+      'I could not find a previous recipient address. Please send a 0x... address.'
     );
-    expect(deps.getRecipientQuickReplyNames).toHaveBeenCalledWith('u1');
   });
 
   it('applies collection guardrail prompts when amount step has invalid input', async () => {
@@ -352,6 +346,6 @@ describe('transferHandlers', () => {
 
     expect(response).toEqual({ ok: true });
     expect(deps.setTransferDraft).toHaveBeenCalledTimes(1);
-    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', 'missing: amount', { keyboard: 'amount' });
+    expect(deps.sendBotPlain).toHaveBeenCalledWith(10, '123', 'missing: amount');
   });
 });

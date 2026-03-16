@@ -31,7 +31,6 @@ import {
   isListSavedRecipientsIntent,
   isSavedRecipientSaveIntent,
   listSavedRecipients,
-  listSavedRecipientsWithOptions,
   parseSavedRecipientDeleteRequest,
   parseSavedRecipientSaveRequest,
   removeSavedRecipientByName,
@@ -126,6 +125,14 @@ function buildReplyKeyboard(rows, { placeholder = 'Message Walletrix', oneTime =
   };
 }
 
+function getRemoveKeyboardReplyMarkup() {
+  return {
+    reply_markup: {
+      remove_keyboard: true,
+    },
+  };
+}
+
 function getPrimaryQuickReplyMarkup() {
   return buildReplyKeyboard(
     [
@@ -134,67 +141,6 @@ function getPrimaryQuickReplyMarkup() {
       ['Help'],
     ],
     { placeholder: 'Check balance, send crypto, or manage your address list' }
-  );
-}
-
-function getAddressListQuickReplyMarkup() {
-  return buildReplyKeyboard(
-    [
-      ['Send crypto', 'Check balance'],
-      ['Recent transfers'],
-      ['Help'],
-    ],
-    { placeholder: 'Pick your next wallet action' }
-  );
-}
-
-function getTransferHistoryQuickReplyMarkup() {
-  return buildReplyKeyboard(
-    [
-      ['Recent transfers', 'Last transfer'],
-      ['Send crypto', 'Check balance'],
-      ['Address list'],
-    ],
-    { placeholder: 'Check your recent Telegram activity' }
-  );
-}
-
-function getAmountCollectionQuickReplyMarkup() {
-  return buildReplyKeyboard(
-    [['Cancel']],
-    { placeholder: 'Type an amount like 0.25 or 100 USDC' }
-  );
-}
-
-function getRecipientCollectionQuickReplyMarkup({
-  hasPreviousRecipient = false,
-  savedRecipientNames = [],
-} = {}) {
-  const suggestedNames = [...new Set(savedRecipientNames.filter(Boolean).slice(0, 2))];
-  return buildReplyKeyboard(
-    [
-      suggestedNames,
-      [hasPreviousRecipient ? 'Use previous recipient' : null, 'Cancel'],
-      ['Address list'],
-    ],
-    { placeholder: 'Paste an address or use a saved name' }
-  );
-}
-
-function getTokenCollectionQuickReplyMarkup() {
-  return buildReplyKeyboard(
-    [['Cancel']],
-    { placeholder: 'Type ETH, USDC, USDT, or another supported token' }
-  );
-}
-
-function getConfirmQuickReplyMarkup() {
-  return buildReplyKeyboard(
-    [
-      ['Yes', 'No'],
-      ['Address list', 'Check balance'],
-    ],
-    { placeholder: 'Confirm or cancel this transfer', oneTime: true }
   );
 }
 
@@ -500,12 +446,12 @@ async function parseIntentWithAdaptiveIndicator(chatId, text) {
   }
 }
 
-async function sendBotPlain(chatId, telegramId, text, extra = {}) {
+async function sendBotPlain(chatId, telegramId, text, extra = getRemoveKeyboardReplyMarkup()) {
   appendAssistantMessageHistory(telegramId, text);
   return sendPlainMessage(chatId, text, extra);
 }
 
-async function sendBotMessage(chatId, telegramId, text, extra = {}) {
+async function sendBotMessage(chatId, telegramId, text, extra = getRemoveKeyboardReplyMarkup()) {
   appendAssistantMessageHistory(telegramId, text);
   return sendMessage(chatId, text, extra);
 }
@@ -602,11 +548,6 @@ async function resolvePreviousRecipientAddress(userId, telegramId) {
   return getLastRecipientAddressForUser(userId);
 }
 
-async function getRecipientQuickReplyNames(userId) {
-  const recipients = await listSavedRecipientsWithOptions(userId, { limit: 2 });
-  return recipients.map((recipient) => recipient.name);
-}
-
 function getMissingTransferFields(intentDetails) {
   const missing = [];
   if (!intentDetails.amount) missing.push('amount');
@@ -680,8 +621,6 @@ async function handleStart(chatId, telegramId, messageText) {
       setScene(telegramId, 'idle', 'ready');
       return sendBotMessage(chatId, telegramId,
         `✅ You're already linked.\n\nBot wallet: \`${wallet?.address || 'not set'}\`\n\nWhat do you want to do next?`
-        ,
-        getPrimaryQuickReplyMarkup()
       );
     }
 
@@ -691,7 +630,7 @@ async function handleStart(chatId, telegramId, messageText) {
       const result = await applyLinkCode(String(telegramId), code);
       if (result.success) {
         setScene(telegramId, 'idle', 'ready');
-        return sendBotMessage(chatId, telegramId, LINKED_MESSAGE(result.address), getPrimaryQuickReplyMarkup());
+        return sendBotMessage(chatId, telegramId, LINKED_MESSAGE(result.address));
       } else {
         return sendBotPlain(chatId, telegramId, `❌ ${result.error}\n\nPlease generate a new code in the Walletrix app.`);
       }
@@ -719,8 +658,7 @@ async function handleBalance(chatId, telegramId) {
     };
     setScene(telegramId, 'idle', 'ready', { lastIntent: 'balance' });
     return sendBotMessage(chatId, telegramId,
-      `💼 *Bot Wallet Balance*\n\nAddress: \`${address}\`\nNetwork: ${chainNames[chainId] || chainId}\nBalance: *${parseFloat(ethBalance).toFixed(6)} ETH*\n\n_Fund this address to enable transactions._`,
-      getPrimaryQuickReplyMarkup()
+      `💼 *Bot Wallet Balance*\n\nAddress: \`${address}\`\nNetwork: ${chainNames[chainId] || chainId}\nBalance: *${parseFloat(ethBalance).toFixed(6)} ETH*\n\n_Fund this address to enable transactions._`
     );
   } catch (error) {
     logger.error('[TelegramBot] Balance check failed', { telegramId, error: error.message });
@@ -737,7 +675,7 @@ async function handleBalance(chatId, telegramId) {
 
 async function handleHelp(chatId, telegramId) {
   setScene(telegramId, 'help', 'shown');
-  return sendBotMessage(chatId, telegramId, HELP_MESSAGE, getPrimaryQuickReplyMarkup());
+  return sendBotMessage(chatId, telegramId, HELP_MESSAGE);
 }
 
 async function handleContacts(chatId, telegramId) {
@@ -746,7 +684,7 @@ async function handleContacts(chatId, telegramId) {
 
   const recipients = await listSavedRecipients(user.id);
   setScene(telegramId, 'idle', 'ready', { lastIntent: 'contacts' });
-  return sendBotMessage(chatId, telegramId, buildSavedRecipientsListMessage(recipients), getAddressListQuickReplyMarkup());
+  return sendBotMessage(chatId, telegramId, buildSavedRecipientsListMessage(recipients));
 }
 
 async function handleRecentTransfers(chatId, telegramId) {
@@ -755,7 +693,7 @@ async function handleRecentTransfers(chatId, telegramId) {
 
   const transfers = await getRecentTelegramTransfers(user.id, { limit: 5 });
   setScene(telegramId, 'idle', 'ready', { lastIntent: 'recent_transfers' });
-  return sendBotMessage(chatId, telegramId, buildRecentTransfersMessage(transfers), getTransferHistoryQuickReplyMarkup());
+  return sendBotMessage(chatId, telegramId, buildRecentTransfersMessage(transfers));
 }
 
 async function handleLastTransfer(chatId, telegramId) {
@@ -764,7 +702,7 @@ async function handleLastTransfer(chatId, telegramId) {
 
   const lastTransfer = await getLastTelegramTransfer(user.id);
   setScene(telegramId, 'idle', 'ready', { lastIntent: 'last_transfer' });
-  return sendBotMessage(chatId, telegramId, buildLastTransferMessage(lastTransfer), getTransferHistoryQuickReplyMarkup());
+  return sendBotMessage(chatId, telegramId, buildLastTransferMessage(lastTransfer));
 }
 
 async function handleUnlink(chatId, telegramId) {
@@ -805,12 +743,6 @@ const transferConversationHandlers = createTransferConversationHandlers({
   extractTransferFields,
   getMissingTransferFields,
   buildMissingFieldPrompt,
-  getPrimaryQuickReplyMarkup,
-  getAmountCollectionQuickReplyMarkup,
-  getRecipientCollectionQuickReplyMarkup,
-  getTokenCollectionQuickReplyMarkup,
-  getConfirmQuickReplyMarkup,
-  getRecipientQuickReplyNames,
   touchSavedRecipientById,
   recordTelegramTransferEvent,
 });
@@ -847,7 +779,7 @@ async function handleFreeText(chatId, telegramId, text) {
           const result = await applyLinkCode(String(telegramId), code);
           if (result.success) {
             setScene(telegramId, 'idle', 'ready');
-            return sendBotMessage(chatId, telegramId, LINKED_MESSAGE(result.address), getPrimaryQuickReplyMarkup());
+            return sendBotMessage(chatId, telegramId, LINKED_MESSAGE(result.address));
           } else {
             return sendBotPlain(chatId, telegramId, `❌ ${result.error}\n\nGet a new code from the Walletrix app → Settings → Link Telegram.`);
           }
@@ -903,7 +835,7 @@ async function handleFreeText(chatId, telegramId, text) {
         expiresAt: Date.now() + 2 * 60 * 1000,
       });
       setScene(telegramId, 'transfer', 'collecting_amount');
-      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['amount']), getAmountCollectionQuickReplyMarkup());
+      return sendBotPlain(chatId, telegramId, buildMissingFieldPrompt(['amount']));
     }
 
     const saveRecipientRequest = parseSavedRecipientSaveRequest(text);
@@ -916,8 +848,7 @@ async function handleFreeText(chatId, telegramId, text) {
           telegramId,
           result.created
             ? `✅ Saved *${result.recipient.name}*.\n\nYou can now say things like "send 0.01 ETH to ${result.recipient.name}".`
-            : `✅ Updated *${result.recipient.name}*.\n\nNew address: \`${result.recipient.address}\``,
-          getAddressListQuickReplyMarkup()
+            : `✅ Updated *${result.recipient.name}*.\n\nNew address: \`${result.recipient.address}\``
         );
       } catch (error) {
         return sendBotPlain(chatId, telegramId, `❌ ${error.message}`);
@@ -940,8 +871,7 @@ async function handleFreeText(chatId, telegramId, text) {
         telegramId,
         removed
           ? `🗑️ Removed *${removed.name}* from your address list.`
-          : `I could not find "${deleteRecipientRequest.name}" in your address list.`,
-        getAddressListQuickReplyMarkup()
+          : `I could not find "${deleteRecipientRequest.name}" in your address list.`
       );
     }
 
@@ -987,7 +917,7 @@ async function handleFreeText(chatId, telegramId, text) {
 
     if (normalizedText === 'cancel') {
       await resetConversationFlow(telegramId, 'manual_cancel');
-      return sendBotPlain(chatId, telegramId, 'Nothing active right now. What do you want to do next?', getPrimaryQuickReplyMarkup());
+      return sendBotPlain(chatId, telegramId, 'Nothing active right now. What do you want to do next?');
     }
 
     if (CONVERSATIONAL_V2_ENABLED) {
@@ -997,7 +927,13 @@ async function handleFreeText(chatId, telegramId, text) {
       const smallTalkReply = getSmallTalkResponse(text);
       if (smallTalkReply) {
         setScene(telegramId, 'conversation', 'smalltalk');
-        return sendBotPlain(chatId, telegramId, smallTalkReply, getPrimaryQuickReplyMarkup());
+        const shouldShowKeyboard = GREETING_RE.test(String(text || '').trim());
+        return sendBotPlain(
+          chatId,
+          telegramId,
+          smallTalkReply,
+          shouldShowKeyboard ? getPrimaryQuickReplyMarkup() : getRemoveKeyboardReplyMarkup()
+        );
       }
     }
 
@@ -1096,13 +1032,12 @@ async function handleFreeText(chatId, telegramId, text) {
       const fallbackReply = await generateConversationalReply(text, getConversationHistory(telegramId));
       if (fallbackReply) {
         setScene(telegramId, 'conversation', 'fallback');
-        return sendBotPlain(chatId, telegramId, fallbackReply, getPrimaryQuickReplyMarkup());
+        return sendBotPlain(chatId, telegramId, fallbackReply);
       }
     }
 
     return sendBotPlain(chatId, telegramId,
-      'I did not catch that.\n\nTry "balance", "send 0.01 ETH to Alice", or "/addresses".',
-      getPrimaryQuickReplyMarkup()
+      'I did not catch that.\n\nTry "balance", "send 0.01 ETH to Alice", or "/addresses".'
     );
 
   } catch (error) {
@@ -1162,7 +1097,7 @@ export async function handleWebhook(req, res) {
         case 'transfers': return handleRecentTransfers(chatId, telegramId);
         case 'last': return handleLastTransfer(chatId, telegramId);
         case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, or /recent.`, getPrimaryQuickReplyMarkup());
+        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, or /recent.`);
       }
     } else {
       return handleFreeText(chatId, telegramId, text);

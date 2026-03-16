@@ -343,6 +343,27 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing.some((msg) => msg.includes('Bot Wallet Balance'))).toBe(true);
   });
 
+  it('shows buttons only on a greeting turn', async () => {
+    const telegramId = 1102;
+    mockEnsureLinkedUser(telegramId);
+
+    await sendIncomingText('hi', { telegramId, chatId: 501 });
+    const greetingCall = sendPlainMessage.mock.calls.at(-1);
+    expect(greetingCall[2]).toEqual(expect.objectContaining({
+      reply_markup: expect.objectContaining({
+        keyboard: expect.any(Array),
+      }),
+    }));
+
+    await sendIncomingText('show my address list', { telegramId, chatId: 501 });
+    const followUpCall = sendMessage.mock.calls.at(-1);
+    expect(followUpCall[2]).toEqual(expect.objectContaining({
+      reply_markup: expect.objectContaining({
+        remove_keyboard: true,
+      }),
+    }));
+  });
+
   it('supports multi-turn send with correction mid-draft and confirm', async () => {
     const telegramId = 1202;
     mockEnsureLinkedUser(telegramId);
