@@ -395,6 +395,19 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing.some((msg) => msg.includes('Bot Wallet Balance'))).toBe(true);
   });
 
+  it('accepts /start link codes with extra whitespace or a newline', async () => {
+    const telegramId = 1103;
+
+    await sendIncomingText('/start   abc123', { telegramId, chatId: 501 });
+    expect(applyLinkCode).toHaveBeenCalledWith(String(telegramId), 'ABC123');
+    expect(outgoing.some((msg) => msg.includes('linked'))).toBe(true);
+
+    outgoing.length = 0;
+    await sendIncomingText('/start\nxyz789', { telegramId: 1104, chatId: 501 });
+    expect(applyLinkCode).toHaveBeenCalledWith('1104', 'XYZ789');
+    expect(outgoing.some((msg) => msg.includes('linked'))).toBe(true);
+  });
+
   it('shows buttons only on a greeting turn', async () => {
     const telegramId = 1102;
     mockEnsureLinkedUser(telegramId);

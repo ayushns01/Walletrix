@@ -618,6 +618,25 @@ function getSmallTalkResponse(text) {
 //  Command handlers
 // ─────────────────────────────────────────────────────────────
 
+function extractStartLinkCode(messageText) {
+  const message = String(messageText || '').trim();
+  if (!message) return null;
+
+  const compactMatch = message.match(/^\/start([a-z0-9]{6})$/i);
+  if (compactMatch?.[1]) {
+    return compactMatch[1].toUpperCase();
+  }
+
+  const commandMatch = message.match(/^\/start(?:@\w+)?([\s\S]*)$/i);
+  if (!commandMatch) return null;
+
+  const rest = String(commandMatch[1] || '').trim();
+  if (!rest) return null;
+
+  const codeMatch = rest.match(/\b([a-z0-9]{6})\b/i);
+  return codeMatch?.[1] ? codeMatch[1].toUpperCase() : null;
+}
+
 async function handleStart(chatId, telegramId, messageText) {
   try {
     setScene(telegramId, 'onboarding', 'start');
@@ -631,9 +650,8 @@ async function handleStart(chatId, telegramId, messageText) {
       );
     }
 
-    const parts = messageText.trim().split(' ');
-    if (parts.length >= 2) {
-      const code = parts[1].toUpperCase();
+    const code = extractStartLinkCode(messageText);
+    if (code) {
       const result = await applyLinkCode(String(telegramId), code);
       if (result.success) {
         setScene(telegramId, 'idle', 'ready');

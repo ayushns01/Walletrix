@@ -86,5 +86,10 @@ export function isCommand(text) {
  */
 export function extractCommand(text) {
   if (!isCommand(text)) return null;
-  return text.split(' ')[0].slice(1).split('@')[0].toLowerCase();
+  return String(text)
+    .trim()
+    .split(/\s+/)[0]
+    .slice(1)
+    .split('@')[0]
+    .toLowerCase();
 }
