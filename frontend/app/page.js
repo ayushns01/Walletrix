@@ -456,9 +456,14 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <TelegramHomeCard
-                        onOpen={() => setView('telegram-link')}
-                      />
+                      <div className="mb-6">
+                        <h3 className="mb-3 text-left text-sm font-semibold uppercase tracking-wider text-slate-400">
+                          Wallet Services
+                        </h3>
+                        <TelegramHomeCard
+                          onOpen={() => setView('telegram-link')}
+                        />
+                      </div>
 
                       {/* Show existing wallets if any */}
                       {(userWallets && userWallets.length > 0) || (multiSigWallets && multiSigWallets.length > 0) ? (

@@ -49,6 +49,11 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
       description: 'Your keys never leave your device. Zero trust required.'
     },
     {
+      icon: Smartphone,
+      title: 'Telegram Bot Access',
+      description: 'Check balances, review transfers, and manage saved recipients from Telegram.'
+    },
+    {
       icon: Zap,
       title: 'Privacy First',
       description: 'Stealth addresses with real ECDH let you receive payments privately.'
@@ -326,7 +331,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
 
             {}
             <p className="text-lg md:text-xl text-blue-100/80 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
-              Your keys. Your coins. Your control. A multi-chain wallet with AES-256 encryption, supporting Ethereum, Bitcoin, Solana, and 7+ EVM networks.
+              Your keys. Your coins. Your control. A multi-chain wallet with AES-256 encryption, supporting Ethereum, Bitcoin, Solana, 7+ EVM networks, and companion Telegram bot access.
             </p>
 
             {}
@@ -402,6 +407,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
                 'from-green-500 to-emerald-600',
                 'from-orange-500 to-red-600',
                 'from-indigo-500 to-purple-600',
+                'from-cyan-500 to-sky-600',
                 'from-cyan-500 to-blue-600'
               ];
               return (
