@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft } from 'lucide-react'
+import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft, Bot } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
 import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { telegramAPI } from '@/lib/api'
 import CreateWallet from '@/components/CreateWallet'
 import ImportWallet from '@/components/ImportWallet'
 import UnlockWallet from '@/components/UnlockWallet'
@@ -41,6 +42,8 @@ export default function Home() {
     userWallets,
     activeWalletId,
     setActiveWalletId,
+    switchWallet,
+    setSelectedNetwork,
     importLocalStorageWallet,
     deleteWallet,
     deleteDatabaseWallet,
@@ -56,6 +59,9 @@ export default function Home() {
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
+  const [sendRecipientPreset, setSendRecipientPreset] = useState('')
+  const [sendPresetLabel, setSendPresetLabel] = useState('')
+  const [sendPresetDescription, setSendPresetDescription] = useState('')
   const [selectedMultiSigWallet, setSelectedMultiSigWallet] = useState(null)
   const [multiSigWallets, setMultiSigWallets] = useState([])
   const [loadingMultiSig, setLoadingMultiSig] = useState(false)
@@ -65,6 +71,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
   const [guestMode, setGuestMode] = useState(false)
+  const [telegramBotWalletAddress, setTelegramBotWalletAddress] = useState('')
   const autoUnlockAttempted = useRef(false)
 
   // Handle hydration - read localStorage only on client after mount
@@ -165,6 +172,36 @@ export default function Home() {
     fetchMultiSigWallets();
   }, [clerkUser, isSignedIn, getToken]);
 
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchTelegramStatus = async () => {
+      if (!clerkUser || !isSignedIn) {
+        setTelegramBotWalletAddress('')
+        return
+      }
+
+      try {
+        const token = await getToken()
+        if (!token) return
+
+        const status = await telegramAPI.getStatus(token)
+        if (!cancelled) {
+          setTelegramBotWalletAddress(status?.linked && status?.botWallet?.address ? status.botWallet.address : '')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTelegramBotWalletAddress('')
+        }
+      }
+    }
+
+    fetchTelegramStatus()
+    return () => {
+      cancelled = true
+    }
+  }, [clerkUser, getToken, isSignedIn])
+
   const handleWalletCreated = async () => {
     if (isAuthenticated) {
       if (typeof window !== 'undefined' && showWalkthroughOnUnlock) {
@@ -184,12 +221,50 @@ export default function Home() {
   };
 
   const handleQuickAction = (action, asset) => {
+    setSendRecipientPreset('')
+    setSendPresetLabel('')
+    setSendPresetDescription('')
     setSelectedAsset(asset)
     if (action === 'send') {
       setShowSendModal(true)
     } else {
       setShowReceiveModal(true)
     }
+  }
+
+  const handleFundBotWallet = async (botWalletAddress, walletId = null) => {
+    if (!botWalletAddress) {
+      toast.error('Bot wallet address not available right now.')
+      return
+    }
+
+    if (walletId && walletId !== activeWalletId) {
+      await switchWallet(walletId)
+    } else if (!wallet && activeWalletId) {
+      await switchWallet(activeWalletId)
+    }
+
+    if (selectedNetwork !== 'ethereum-sepolia') {
+      setSelectedNetwork('ethereum-sepolia')
+      toast.success('Switched to Ethereum Sepolia for bot funding.')
+    }
+
+    if (!wallet && !walletId && !activeWalletId) {
+      toast.error('Choose a wallet first to fund the bot wallet.')
+      return
+    }
+
+    setSelectedAsset({
+      name: 'Ethereum',
+      symbol: 'ETH',
+      balance: balances.ethereum || '0',
+      priceData: prices.ethereum,
+      icon: 'Ξ',
+    })
+    setSendRecipientPreset(botWalletAddress)
+    setSendPresetLabel('Telegram Bot Wallet')
+    setSendPresetDescription('Recipient is prefilled with your bot wallet. Send Sepolia ETH from your active wallet to top it up.')
+    setShowSendModal(true)
   }
 
   const getWalletCardSummary = (walletRecord) => {
@@ -204,13 +279,7 @@ export default function Home() {
     if (!genericDescriptions.has(description)) {
       return description
     }
-
-    const networkCount = Object.values(walletRecord?.addresses || {}).filter(Boolean).length
-    if (networkCount <= 1) {
-      return 'Single-network wallet'
-    }
-
-    return `${networkCount}-network wallet`
+    return ''
   }
 
   // Prevent hydration mismatch by rendering consistent initial state
@@ -499,9 +568,11 @@ export default function Home() {
                                           </span>
                                         )}
                                       </div>
-                                      <p className="mt-1 text-sm text-slate-300 truncate">
-                                        {getWalletCardSummary(w)}
-                                      </p>
+                                      {getWalletCardSummary(w) ? (
+                                        <p className="mt-1 text-sm text-slate-300 truncate">
+                                          {getWalletCardSummary(w)}
+                                        </p>
+                                      ) : null}
                                       <p className="text-xs text-slate-500 mt-3">
                                         Created {new Date(w.createdAt).toLocaleDateString()}
                                       </p>
@@ -509,6 +580,18 @@ export default function Home() {
                                     <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                                   </div>
                                 </button>
+                                {telegramBotWalletAddress && (
+                                  <button
+                                    onClick={async () => {
+                                      await handleFundBotWallet(telegramBotWalletAddress, w.id)
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-3 text-sky-300 hover:text-sky-200 hover:bg-sky-500/10 rounded-xl border border-sky-500/30 hover:border-sky-400/50 transition-all flex-shrink-0 bg-sky-500/5"
+                                    title={`Fund Telegram bot wallet using ${w.name || 'this wallet'}`}
+                                  >
+                                    <Bot className="w-4 h-4" />
+                                    <span className="hidden sm:inline text-sm font-medium">Fund Bot</span>
+                                  </button>
+                                )}
                                 <button
                                   onClick={async () => {
                                     if (confirm(`Delete "${w.name || 'Unnamed Wallet'}"? Make sure you've backed up your recovery phrase.`)) {
@@ -1111,7 +1194,7 @@ export default function Home() {
         {/* Quick Actions Bar */}
         <div className="max-w-4xl mx-auto mb-6 relative" style={{ zIndex: 1 }}>
           <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-4 border border-slate-700/50">
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${telegramBotWalletAddress ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
               <button
                 data-tour="send-button"
                 onClick={() => {
@@ -1150,6 +1233,15 @@ export default function Home() {
                 <Download className="w-5 h-5" />
                 <span>Receive</span>
               </button>
+              {telegramBotWalletAddress && (
+                <button
+                  onClick={() => handleFundBotWallet(telegramBotWalletAddress)}
+                  className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-sky-500/20"
+                >
+                  <Bot className="w-5 h-5" />
+                  <span>Fund Bot</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1157,7 +1249,7 @@ export default function Home() {
         {/* Dashboard */}
         <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1, willChange: 'contents' }}>
           <ErrorBoundary>
-            <Dashboard />
+            <Dashboard onFundBot={handleFundBotWallet} />
           </ErrorBoundary>
         </div>
 
@@ -1167,8 +1259,14 @@ export default function Home() {
           onClose={() => {
             setShowSendModal(false)
             setSelectedAsset(null)
+            setSendRecipientPreset('')
+            setSendPresetLabel('')
+            setSendPresetDescription('')
           }}
           asset={selectedAsset}
+          initialRecipient={sendRecipientPreset}
+          presetLabel={sendPresetLabel}
+          presetDescription={sendPresetDescription}
         />
 
         <ReceiveModal

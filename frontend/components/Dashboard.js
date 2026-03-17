@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/nextjs';
 import { telegramAPI } from '@/lib/api';
 
-export default function Dashboard() {
+export default function Dashboard({ onFundBot }) {
   const {
     wallet, balances, tokens, prices, refreshData, loading, selectedNetwork,
     dataLoading, refreshInProgress
@@ -313,6 +313,17 @@ export default function Dashboard() {
                 </button>
               </div>
               <p className="text-slate-200 font-mono text-xs break-all">{botWallet.address}</p>
+            </div>
+            <div className="pt-3 border-t border-slate-600/30">
+              <button
+                onClick={() => onFundBot?.(botWallet.address)}
+                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 px-4 py-3 text-sm font-semibold text-white transition-all hover:from-sky-400 hover:to-blue-400"
+              >
+                Fund Bot Wallet
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Uses Sepolia ETH from your active wallet.
+              </p>
             </div>
           </div>
         </div>

@@ -1,13 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Send as SendIcon, AlertCircle, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWallet } from '@/contexts/DatabaseWalletContext';
 import { transactionAPI, blockchainAPI, walletAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-export default function SendModal({ isOpen, onClose, asset }) {
-  const { wallet, refreshData, selectedNetwork, activeWalletId } = useWallet();
+export default function SendModal({
+  isOpen,
+  onClose,
+  asset,
+  initialRecipient = '',
+  presetLabel = '',
+  presetDescription = '',
+}) {
+  const { wallet, refreshData, selectedNetwork, activeWalletId, balances, prices } = useWallet();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
@@ -16,6 +23,8 @@ export default function SendModal({ isOpen, onClose, asset }) {
   const [step, setStep] = useState(1);
   const [addressHistory, setAddressHistory] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [freshBalance, setFreshBalance] = useState(null);
+  const [freshBalanceLoading, setFreshBalanceLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,12 +52,101 @@ export default function SendModal({ isOpen, onClose, asset }) {
     if (isOpen) {
       fetchGas();
       setStep(1);
-      setRecipient('');
+      setRecipient(initialRecipient || '');
       setAmount('');
       setPassword('');
       setAddressHistory(null);
+      setFreshBalance(null);
     }
-  }, [isOpen]);
+  }, [initialRecipient, isOpen]);
+
+  const liveBalance = useMemo(() => {
+    if (!asset?.symbol) return asset?.balance || '0';
+
+    if (asset.symbol === 'BTC') {
+      return balances.bitcoin || asset?.balance || '0';
+    }
+
+    if (asset.symbol === 'SOL') {
+      return balances.solana || asset?.balance || '0';
+    }
+
+    if (asset.symbol === 'ETH') {
+      const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
+      if (chain === 'ethereum') {
+        return balances.ethereum || asset?.balance || '0';
+      }
+
+      if (['polygon', 'arbitrum', 'optimism', 'bsc', 'avalanche', 'base'].includes(chain)) {
+        return balances[chain] || asset?.balance || '0';
+      }
+    }
+
+    return asset?.balance || '0';
+  }, [asset, balances, selectedNetwork]);
+
+  const livePriceData = useMemo(() => {
+    if (!asset?.symbol) return asset?.priceData || null;
+    if (asset.symbol === 'BTC') return prices.bitcoin || asset?.priceData || null;
+    if (asset.symbol === 'SOL') return prices.solana || asset?.priceData || null;
+    if (asset.symbol === 'ETH') return prices.ethereum || asset?.priceData || null;
+    return asset?.priceData || null;
+  }, [asset, prices]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchFreshBalance = async () => {
+      if (!isOpen || !asset?.symbol) return;
+
+      setFreshBalanceLoading(true);
+
+      try {
+        const [chain, networkName] = (selectedNetwork || 'ethereum-mainnet').split('-');
+
+        if (asset.symbol === 'BTC' && wallet?.bitcoin?.address) {
+          const response = await blockchainAPI.getBitcoinBalance(wallet.bitcoin.address, networkName);
+          if (!cancelled && response?.success) {
+            const balance = response.balance?.btc || response.data?.balance || '0';
+            setFreshBalance(balance);
+          }
+          return;
+        }
+
+        if (asset.symbol === 'SOL' && wallet?.solana?.address) {
+          const response = await blockchainAPI.getSolanaBalance(wallet.solana.address, networkName);
+          if (!cancelled && response?.success) {
+            setFreshBalance(response.balance || response.data?.balance || '0');
+          }
+          return;
+        }
+
+        if (wallet?.ethereum?.address) {
+          const response = await blockchainAPI.getEthereumBalance(wallet.ethereum.address, networkName);
+          if (!cancelled && response?.success) {
+            const balance = response.balance?.eth || response.data?.balance || '0';
+            setFreshBalance(balance);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setFreshBalance(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setFreshBalanceLoading(false);
+        }
+      }
+    };
+
+    fetchFreshBalance();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [asset?.symbol, isOpen, selectedNetwork, wallet?.bitcoin?.address, wallet?.ethereum?.address, wallet?.solana?.address]);
+
+  const resolvedBalance = freshBalance ?? liveBalance;
 
   if (!isOpen) return null;
 
@@ -95,7 +193,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
     }
 
     const amountFloat = parseFloat(amount);
-    const currentBalance = parseFloat(asset?.balance || 0);
+    const currentBalance = parseFloat(resolvedBalance || 0);
 
     if (isNaN(amountFloat) || amountFloat <= 0) {
       toast.error('⚠️ Please enter a valid amount greater than 0');
@@ -329,13 +427,27 @@ export default function SendModal({ isOpen, onClose, asset }) {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-400">Available Balance</span>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-white">{asset?.balance || '0'} <span className="text-blue-400">{asset?.symbol}</span></p>
-                  {asset?.priceData && (
-                    <p className="text-xs text-slate-400">≈ ${(parseFloat(asset?.balance || 0) * asset.priceData.current_price).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-white">{resolvedBalance || '0'} <span className="text-blue-400">{asset?.symbol}</span></p>
+                  {livePriceData && (
+                    <p className="text-xs text-slate-400">≈ ${(parseFloat(resolvedBalance || 0) * livePriceData.current_price).toFixed(2)}</p>
                   )}
                 </div>
               </div>
+              {freshBalanceLoading && (
+                <p className="mt-2 text-xs text-sky-300">Refreshing live balance for this network...</p>
+              )}
             </div>
+
+            {(presetLabel || presetDescription) && (
+              <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
+                {presetLabel ? (
+                  <p className="text-sm font-semibold text-sky-200">{presetLabel}</p>
+                ) : null}
+                {presetDescription ? (
+                  <p className="mt-1 text-sm text-slate-300">{presetDescription}</p>
+                ) : null}
+              </div>
+            )}
 
             {}
             <div className="space-y-2">
@@ -371,7 +483,7 @@ export default function SendModal({ isOpen, onClose, asset }) {
                   Amount
                 </label>
                 <button
-                  onClick={() => setAmount(asset?.balance || '0')}
+                  onClick={() => setAmount(resolvedBalance || '0')}
                   className="text-xs px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 rounded-lg transition-all font-medium"
                 >
                   MAX
@@ -391,9 +503,9 @@ export default function SendModal({ isOpen, onClose, asset }) {
                 </span>
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity -z-10 blur-xl" />
               </div>
-              {amount && asset?.priceData && (
+              {amount && livePriceData && (
                 <p className="text-sm text-slate-400 pl-1">
-                  ≈ <span className="text-green-400 font-medium">${(parseFloat(amount) * asset.priceData.current_price).toFixed(2)}</span> USD
+                  ≈ <span className="text-green-400 font-medium">${(parseFloat(amount) * livePriceData.current_price).toFixed(2)}</span> USD
                 </p>
               )}
             </div>
