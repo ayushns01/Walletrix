@@ -81,6 +81,7 @@ Available commands:
 /recent — Show your recent Telegram transfers
 /last — Show your last Telegram transfer
 /status — Check the status of your latest transfer or a tx hash
+/stealth — Create a private receive address for one of your wallets
 /help — Show this message
 /unlink — Unlink your account
 
@@ -91,6 +92,7 @@ Or just type naturally:
 • "Show my recent transfers"
 • "What was my last transfer?"
 • "Status of my last transfer"
+• "I need a stealth address to receive funds"
 • "/status 0xabc..."
 • "Transfer 5 USDC to vitalik.eth"
 • "What's my balance?"

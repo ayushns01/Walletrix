@@ -4,6 +4,7 @@ const SCENE_ALLOWED_STEPS = {
   balance: new Set(['requested', 'fetching']),
   help: new Set(['shown']),
   conversation: new Set(['understanding', 'smalltalk', 'fallback']),
+  stealth: new Set(['select_wallet']),
   transfer: new Set([
     'collecting_amount',
     'collecting_recipientAddress',
@@ -19,8 +20,9 @@ const SCENE_ALLOWED_TRANSITIONS = {
   onboarding: new Set(['onboarding', 'idle', 'conversation']),
   balance: new Set(['balance', 'idle', 'conversation', 'help']),
   help: new Set(['help', 'idle', 'conversation', 'transfer', 'balance']),
-  conversation: new Set(['conversation', 'idle', 'transfer', 'balance', 'help', 'onboarding']),
-  transfer: new Set(['transfer', 'idle', 'conversation', 'help', 'balance']),
+  conversation: new Set(['conversation', 'idle', 'transfer', 'balance', 'help', 'onboarding', 'stealth']),
+  stealth: new Set(['stealth', 'idle', 'conversation', 'help', 'balance']),
+  transfer: new Set(['transfer', 'idle', 'conversation', 'help', 'balance', 'stealth']),
 };
 
 function normalizeTransferStep(currentStep) {
@@ -35,6 +37,7 @@ function getDefaultStepForScene(scene) {
     balance: 'requested',
     help: 'shown',
     conversation: 'understanding',
+    stealth: 'select_wallet',
     transfer: 'collecting_amount',
   };
   return defaults[scene] || 'ready';

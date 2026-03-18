@@ -54,6 +54,11 @@ import {
   isTransferStatusIntent,
   lookupTelegramTransferStatus,
 } from '../services/telegramTxStatusService.js';
+import {
+  issueStealthReceiveAddress,
+  listSelectableStealthWallets,
+  resolveSelectableStealthWallet,
+} from '../services/stealthWalletService.js';
 import { applyLinkCode } from './telegramController.js';
 import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
@@ -111,6 +116,7 @@ const CAPABILITIES_RE = /\b(what can you do|how can you help|help me|what do you
 const THANKS_RE = /\b(thanks|thank you|thx)\b/i;
 const HOW_ARE_YOU_RE = /\b(how are you|how's it going|how r u)\b/i;
 const WHO_ARE_YOU_RE = /\b(who are you|what are you)\b/i;
+const STEALTH_RE = /\b(stealth|private receive|private receiving|hidden receive)\b/i;
 const CONVERSATION_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const CONVERSATIONAL_V2_ENABLED = telegramConfig.TELEGRAM_CONVERSATIONAL_V2;
 
@@ -221,7 +227,7 @@ function isCasualConversationTurn(text) {
 function isFreshWalletTask(text) {
   const normalized = String(text || '').trim().toLowerCase();
   return (
-    /\b(send|transfer|pay|balance|contacts?|addresses?|help|save|add|delete|remove|show|list|recent|history|last|transactions?|status|track|hash)\b/.test(normalized)
+    /\b(send|transfer|pay|balance|contacts?|addresses?|help|save|add|delete|remove|show|list|recent|history|last|transactions?|status|track|hash|stealth)\b/.test(normalized)
     || isListSavedRecipientsIntent(normalized)
     || isSavedRecipientSaveIntent(normalized)
     || isRecentTransfersIntent(normalized)
@@ -466,6 +472,7 @@ async function sendBotMessage(chatId, telegramId, text, extra = getRemoveKeyboar
 async function resetConversationFlow(telegramId, reason = null) {
   setTransferDraft(telegramId, null);
   setPendingIntent(telegramId, null);
+  updateContext(telegramId, { stealthWalletOptions: null });
   setScene(telegramId, 'idle', 'ready', reason ? { resetReason: reason } : {});
 }
 
@@ -612,6 +619,129 @@ function getSmallTalkResponse(text) {
   }
 
   return null;
+}
+
+function isStealthAddressIntent(text) {
+  const normalized = String(text || '').trim().toLowerCase();
+  return (
+    STEALTH_RE.test(normalized)
+    && /\b(address|receive|funds|money|payment|payments)\b/.test(normalized)
+  );
+}
+
+function buildStealthWalletSelectionMessage(options) {
+  const optionLines = options.map((option) => `*${option.selectionToken}.* ${option.label} — \`${option.shortAddress}\``);
+
+  return [
+    '🕶️ *Stealth Receive*',
+    '',
+    'Choose which wallet this private receive address should be linked to:',
+    '',
+    optionLines.join('\n'),
+    '',
+    'Reply with the number or wallet name. Send *cancel* to stop.',
+  ].join('\n');
+}
+
+function getStealthWalletReplyMarkup(options) {
+  const rows = [];
+  for (let index = 0; index < options.length; index += 2) {
+    const left = options[index];
+    const right = options[index + 1];
+    rows.push([
+      left ? `${left.selectionToken}. ${left.label}` : null,
+      right ? `${right.selectionToken}. ${right.label}` : null,
+    ]);
+  }
+  rows.push(['Cancel']);
+  return buildReplyKeyboard(rows, {
+    placeholder: 'Choose a wallet for your stealth receive address',
+    oneTime: true,
+  });
+}
+
+function buildStealthAddressReadyMessage(result) {
+  return [
+    '🕶️ *Stealth Address Ready*',
+    '',
+    `Wallet: *${result.walletLabel}*`,
+    `Type: ${result.kindLabel}`,
+    'Network: Ethereum-compatible',
+    '',
+    'One-time private receive address:',
+    `\`${result.stealthAddress}\``,
+    '',
+    'Share this address to receive funds privately.',
+    'Ask again anytime to generate another one.',
+  ].join('\n');
+}
+
+async function handleStealthStart(chatId, telegramId, user) {
+  const options = await listSelectableStealthWallets(user.id);
+
+  if (!options.length) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_receive' });
+    return sendBotPlain(chatId, telegramId, 'I could not find any wallets for this account yet. Create or import a wallet first, then try again.');
+  }
+
+  updateContext(telegramId, {
+    stealthWalletOptions: options.map((option) => ({
+      selectionToken: option.selectionToken,
+      walletType: option.walletType,
+      walletRef: option.walletRef,
+      label: option.label,
+      address: option.address,
+      shortAddress: option.shortAddress,
+      kindLabel: option.kindLabel,
+      displayText: option.displayText,
+    })),
+    lastIntent: 'stealth_receive',
+  });
+  setScene(telegramId, 'stealth', 'select_wallet');
+
+  return sendBotMessage(
+    chatId,
+    telegramId,
+    buildStealthWalletSelectionMessage(options),
+    getStealthWalletReplyMarkup(options)
+  );
+}
+
+async function handleStealthWalletSelection(chatId, telegramId, user, text) {
+  const context = getContext(telegramId) || {};
+  const options = Array.isArray(context.stealthWalletOptions) ? context.stealthWalletOptions : [];
+
+  if (/^cancel$/i.test(String(text || '').trim())) {
+    updateContext(telegramId, { stealthWalletOptions: null, lastIntent: 'stealth_receive' });
+    setScene(telegramId, 'idle', 'ready');
+    return sendBotPlain(chatId, telegramId, 'Stealth address request cancelled.');
+  }
+
+  if (!options.length) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_receive' });
+    return sendBotPlain(chatId, telegramId, 'That stealth selection expired. Ask for a stealth address again and I will restart it.');
+  }
+
+  const selection = resolveSelectableStealthWallet(options, text);
+  if (!selection) {
+    return sendBotPlain(
+      chatId,
+      telegramId,
+      'I did not recognize that wallet choice.\n\nReply with the wallet number, the wallet name, or send cancel.',
+      getStealthWalletReplyMarkup(options)
+    );
+  }
+
+  const issuedAddress = await issueStealthReceiveAddress(user.id, selection);
+  updateContext(telegramId, {
+    stealthWalletOptions: null,
+    lastStealthAddress: issuedAddress.stealthAddress,
+    lastStealthWalletLabel: issuedAddress.walletLabel,
+    lastIntent: 'stealth_receive',
+  });
+  setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_receive' });
+
+  return sendBotMessage(chatId, telegramId, buildStealthAddressReadyMessage(issuedAddress));
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -791,14 +921,18 @@ async function handleFreeText(chatId, telegramId, text) {
     await hydrateContext(telegramId);
     sanitizeSceneState(telegramId);
     if (isConversationStale(telegramId)) {
-      const hadActiveTransfer = (
+      const activeScene = getContext(telegramId)?.scene;
+      const hadActiveFlow = (
         transferDrafts.has(String(telegramId))
         || pendingIntents.has(String(telegramId))
-        || getContext(telegramId)?.scene === 'transfer'
+        || activeScene === 'transfer'
+        || activeScene === 'stealth'
       );
       await resetConversationFlow(telegramId, 'idle_timeout');
-      if (hadActiveTransfer && !isCasualConversationTurn(text) && !isFreshWalletTask(text)) {
-        return sendBotPlain(chatId, telegramId, 'That earlier transfer expired. Start a new one when you are ready.');
+      if (hadActiveFlow && !isCasualConversationTurn(text) && !isFreshWalletTask(text)) {
+        return sendBotPlain(chatId, telegramId, activeScene === 'stealth'
+          ? 'That earlier stealth-address selection expired. Ask again and I will restart it.'
+          : 'That earlier transfer expired. Start a new one when you are ready.');
       }
     }
 
@@ -827,6 +961,10 @@ async function handleFreeText(chatId, telegramId, text) {
     }
 
     updateContext(telegramId, { userId: user.id });
+
+    if (getContext(telegramId)?.scene === 'stealth' && getContext(telegramId)?.currentStep === 'select_wallet') {
+      return handleStealthWalletSelection(chatId, telegramId, user, text);
+    }
 
     if (normalizedText === 'help') {
       return handleHelp(chatId, telegramId);
@@ -859,6 +997,10 @@ async function handleFreeText(chatId, telegramId, text) {
       || isTransferStatusIntent(text)
     ) {
       return handleTransferStatus(chatId, telegramId, text);
+    }
+
+    if (normalizedText === 'stealth' || isStealthAddressIntent(text)) {
+      return handleStealthStart(chatId, telegramId, user);
     }
 
     if (normalizedText === 'send crypto' || normalizedText === 'send') {
@@ -1139,8 +1281,13 @@ export async function handleWebhook(req, res) {
         case 'transfers': return handleRecentTransfers(chatId, telegramId);
         case 'last': return handleLastTransfer(chatId, telegramId);
         case 'status': return handleTransferStatus(chatId, telegramId, text);
+        case 'stealth': {
+          const user = await getUserByTelegramId(telegramId);
+          if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+          return handleStealthStart(chatId, telegramId, user);
+        }
         case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, or /status.`);
+        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, or /stealth.`);
       }
     } else {
       return handleFreeText(chatId, telegramId, text);

@@ -33,6 +33,7 @@ model User {
   telegramLinkCode  TelegramLinkCode?
   telegramBotWallet TelegramBotWallet?
   savedRecipients   SavedRecipient[]
+  stealthProfiles   StealthWalletProfile[]
 
   @@map("users")
 }
@@ -96,6 +97,62 @@ model SavedRecipient {
   @@unique([userId, normalizedName])
   @@index([userId])
   @@map("saved_recipients")
+}
+
+/// A long-lived stealth receive profile bound to a user-selected destination wallet.
+/// Profiles hold the scan/spend keypair and emit one-time stealth receive addresses.
+model StealthWalletProfile {
+  id                       String             @id @default(cuid())
+  userId                   String             @map("user_id")
+  walletType               StealthWalletType  @map("wallet_type")
+  walletRef                String             @map("wallet_ref")
+  walletLabel              String             @map("wallet_label")
+  network                  Network            @default(ETHEREUM)
+  scanPublicKey            String             @map("scan_public_key")
+  spendPublicKey           String             @map("spend_public_key")
+  encryptedScanPrivateKey  String             @map("encrypted_scan_private_key") @db.Text
+  encryptedSpendPrivateKey String             @map("encrypted_spend_private_key") @db.Text
+  stealthMetaAddress       String             @map("stealth_meta_address") @db.Text
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+
+  user   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issues StealthAddressIssue[]
+
+  @@unique([userId, walletType, walletRef])
+  @@index([userId])
+  @@map("stealth_wallet_profiles")
+}
+
+/// A one-time stealth receive address issued from a profile.
+model StealthAddressIssue {
+  id                String               @id @default(cuid())
+  profileId         String               @map("profile_id")
+  stealthAddress    String               @map("stealth_address")
+  ephemeralPublicKey String              @map("ephemeral_public_key")
+  status            StealthAddressStatus @default(ACTIVE)
+  createdAt         DateTime             @default(now()) @map("created_at")
+  usedAt            DateTime?            @map("used_at")
+  expiresAt         DateTime?            @map("expires_at")
+
+  profile StealthWalletProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, stealthAddress])
+  @@index([stealthAddress])
+  @@index([status])
+  @@map("stealth_address_issues")
+}
+
+enum StealthWalletType {
+  ACCOUNT_WALLET
+  TELEGRAM_BOT_WALLET
+}
+
+enum StealthAddressStatus {
+  ACTIVE
+  FUNDED
+  CLAIMED
+  EXPIRED
 }
 
 /// Represents a wallet (EOA) derived from BIP-39 or imported via private key.

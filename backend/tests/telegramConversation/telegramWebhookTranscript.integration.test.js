@@ -1,6 +1,7 @@
 const mockState = {
   usersByTelegramId: new Map(),
   sessionsByTelegramId: new Map(),
+  walletRowsByUserId: new Map(),
   lastRecipientByUserId: new Map(),
   savedRecipientsByUserId: new Map(),
   activityLogsByUserId: new Map(),
@@ -22,6 +23,14 @@ function mockGetActivityLogs(userId) {
   return mockState.activityLogsByUserId.get(key);
 }
 
+function mockGetWalletRows(userId) {
+  const key = String(userId);
+  if (!mockState.walletRowsByUserId.has(key)) {
+    mockState.walletRowsByUserId.set(key, []);
+  }
+  return mockState.walletRowsByUserId.get(key);
+}
+
 function mockEnsureLinkedUser(telegramId) {
   const key = String(telegramId);
   const existing = mockState.usersByTelegramId.get(key);
@@ -34,6 +43,54 @@ function mockEnsureLinkedUser(telegramId) {
   };
   mockState.usersByTelegramId.set(key, user);
   return user;
+}
+
+function mockSeedWalletGroup(userId, { name, groupId, ethereum, bitcoin, solana }) {
+  const rows = mockGetWalletRows(userId);
+  const createdAt = new Date();
+  const walletGroupId = groupId || `grp-${rows.length + 1}`;
+
+  if (ethereum) {
+    rows.push({
+      id: `${walletGroupId}-eth`,
+      userId,
+      label: name,
+      network: 'ETHEREUM',
+      address: ethereum,
+      metadata: { groupId: walletGroupId },
+      createdAt,
+      updatedAt: createdAt,
+      isActive: true,
+    });
+  }
+
+  if (bitcoin) {
+    rows.push({
+      id: `${walletGroupId}-btc`,
+      userId,
+      label: name,
+      network: 'BITCOIN',
+      address: bitcoin,
+      metadata: { groupId: walletGroupId },
+      createdAt,
+      updatedAt: createdAt,
+      isActive: true,
+    });
+  }
+
+  if (solana) {
+    rows.push({
+      id: `${walletGroupId}-sol`,
+      userId,
+      label: name,
+      network: 'SOLANA',
+      address: solana,
+      metadata: { groupId: walletGroupId },
+      createdAt,
+      updatedAt: createdAt,
+      isActive: true,
+    });
+  }
 }
 
 jest.mock('../../src/lib/prisma.js', () => ({
@@ -63,6 +120,12 @@ jest.mock('../../src/lib/prisma.js', () => ({
       findUnique: jest.fn(async ({ where }) => ({
         address: `0xbot${String(where.userId).padStart(36, '0').slice(-40)}`,
       })),
+    },
+    wallet: {
+      findMany: jest.fn(async ({ where }) => {
+        const rows = [...mockGetWalletRows(where.userId)];
+        return rows.filter((row) => where.isActive === undefined || row.isActive === where.isActive);
+      }),
     },
     transaction: {
       findFirst: jest.fn(async ({ where }) => {
@@ -253,6 +316,67 @@ jest.mock('../../src/services/telegramExecutionService.js', () => ({
   })),
 }));
 
+jest.mock('../../src/services/stealthWalletService.js', () => ({
+  __esModule: true,
+  listSelectableStealthWallets: jest.fn(async (userId) => {
+    const walletRows = [...mockGetWalletRows(userId)];
+    const groups = new Map();
+
+    for (const wallet of walletRows) {
+      const groupId = wallet.metadata?.groupId || wallet.id;
+      if (!groups.has(groupId)) {
+        groups.set(groupId, {
+          walletType: 'ACCOUNT_WALLET',
+          walletRef: groupId,
+          label: wallet.label,
+          address: wallet.address,
+          shortAddress: `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`,
+          kindLabel: 'Account wallet',
+        });
+      }
+    }
+
+    const accountOptions = [...groups.values()].map((option, index) => ({
+      ...option,
+      selectionToken: String(index + 1),
+      displayText: `${index + 1}. ${option.label}`,
+    }));
+
+    return [
+      ...accountOptions,
+      {
+        walletType: 'TELEGRAM_BOT_WALLET',
+        walletRef: '__telegram_bot__',
+        label: 'Telegram Bot Wallet',
+        address: `0xbot${String(userId).padStart(36, '0').slice(-40)}`,
+        shortAddress: '0xbot...0000',
+        kindLabel: 'Telegram bot wallet',
+        selectionToken: String(accountOptions.length + 1),
+        displayText: `${accountOptions.length + 1}. Telegram Bot Wallet`,
+      },
+    ];
+  }),
+  resolveSelectableStealthWallet: jest.fn((options, input) => {
+    const normalized = String(input || '').trim().toLowerCase();
+    const digit = normalized.match(/^(\d+)/)?.[1];
+    if (digit) {
+      return options[Number(digit) - 1] || null;
+    }
+    return options.find((option) => option.label.toLowerCase() === normalized)
+      || options.find((option) => normalized.includes(option.label.toLowerCase()))
+      || null;
+  }),
+  issueStealthReceiveAddress: jest.fn(async (_userId, option) => ({
+    issueId: `issue-${option.walletRef}`,
+    walletLabel: option.label,
+    walletType: option.walletType,
+    kindLabel: option.kindLabel,
+    stealthAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    stealthMetaAddress: 'st:eth:mock',
+    ephemeralPublicKey: '0x1234',
+  })),
+}));
+
 jest.mock('../../src/services/ethereumService.js', () => ({
   __esModule: true,
   default: {
@@ -364,6 +488,7 @@ describe('telegramWebhookController transcript integration', () => {
   beforeEach(() => {
     mockState.usersByTelegramId.clear();
     mockState.sessionsByTelegramId.clear();
+    mockState.walletRowsByUserId.clear();
     mockState.lastRecipientByUserId.clear();
     mockState.savedRecipientsByUserId.clear();
     mockState.activityLogsByUserId.clear();
@@ -565,6 +690,29 @@ describe('telegramWebhookController transcript integration', () => {
     await sendIncomingText('Contact 1', { telegramId, chatId: 524 });
     expect(outgoing[outgoing.length - 1]).toContain('*Contact 1*');
     expect(outgoing[outgoing.length - 1]).toContain('0x7777777777777777777777777777777777777777');
+  });
+
+  it('lists account wallets plus the bot wallet and returns a stealth receive address for the selected wallet', async () => {
+    const telegramId = 1299;
+    const user = mockEnsureLinkedUser(telegramId);
+
+    mockSeedWalletGroup(user.id, {
+      name: 'Main Wallet',
+      groupId: 'grp-main',
+      ethereum: '0x9999999999999999999999999999999999999999',
+      bitcoin: '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+      solana: '4Nd1mJ7d9x6K8Hw2W9sGxJx4pT7Yq8nM1c9D3f4G5H6J',
+    });
+
+    await sendIncomingText('I need stealth address to receive funds', { telegramId, chatId: 529 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Receive');
+    expect(outgoing[outgoing.length - 1]).toContain('Main Wallet');
+    expect(outgoing[outgoing.length - 1]).toContain('Telegram Bot Wallet');
+
+    await sendIncomingText('1', { telegramId, chatId: 529 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Address Ready');
+    expect(outgoing[outgoing.length - 1]).toContain('Main Wallet');
+    expect(outgoing[outgoing.length - 1]).toMatch(/0x[a-fA-F0-9]{40}/);
   });
 
   it('supports confirm and cancel decisions for pending transfer', async () => {
