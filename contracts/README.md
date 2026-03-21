@@ -1,66 +1,43 @@
-## Foundry
+# Walletrix Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This directory contains the Foundry workspace for Walletrix smart-contract development.
 
-Foundry consists of:
+## What is here
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- `src/WalletrixVault.sol` and related contracts for the smart-vault / smart-account layer
+- Foundry tests, including unit and formal-style checks already present in the repo
+- contract artifacts under `out/` and cache data under `cache/` when generated locally
 
-## Documentation
+## Current role in the project
 
-https://book.getfoundry.sh/
+The contract layer is part of Walletrix's ERC-4337 and smart-vault exploration. It is not the execution path used by the current Telegram bot flow, which operates through a dedicated EOA bot wallet on the backend.
 
-## Usage
+## Common Commands
 
-### Build
+Build contracts:
 
-```shell
-$ forge build
+```bash
+forge build
 ```
 
-### Test
+Run tests:
 
-```shell
-$ forge test
+```bash
+forge test
 ```
 
-### Format
+Format Solidity:
 
-```shell
-$ forge fmt
+```bash
+forge fmt
 ```
 
-### Gas Snapshots
+Start a local Anvil node:
 
-```shell
-$ forge snapshot
+```bash
+anvil
 ```
 
-### Anvil
+## Reference
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Foundry documentation: [https://book.getfoundry.sh/](https://book.getfoundry.sh/)

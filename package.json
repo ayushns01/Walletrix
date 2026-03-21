@@ -39,16 +39,16 @@
     "nodejs",
     "typescript"
   ],
-  "author": "Walletrix Team",
+  "author": "Ayush NS",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/walletrix.git"
+    "url": "https://github.com/ayushns01/Walletrix.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/walletrix/issues"
+    "url": "https://github.com/ayushns01/Walletrix/issues"
   },
-  "homepage": "https://github.com/yourusername/walletrix#readme",
+  "homepage": "https://github.com/ayushns01/Walletrix#readme",
   "devDependencies": {
     "@types/node": "^20.0.0",
     "concurrently": "^8.2.0",

@@ -171,3 +171,4 @@ backend/src/generated/
 frontend/.env.production
 backend/.env.production
 *.env.production
+/documentation

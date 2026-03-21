@@ -1,286 +1,169 @@
-# 🔐 Walletrix
+# Walletrix
 
-**Multi-Chain Cryptocurrency Wallet**
+Walletrix is a custom-built Web3 wallet platform that combines multi-wallet account management, encrypted wallet storage, blockchain balance and transaction services, and a Telegram-based conversational assistant.
 
-*Educational project demonstrating wallet architecture and cryptographic implementations*
+The current implementation is strongest in two areas:
 
----
+- the core wallet experience for account-linked wallet creation, import, switching, dashboard access, and balance tracking
+- the Telegram assistant for account linking, bot-wallet funding, recipient aliases, transfer drafting, confirmation flow, transaction history, transaction status lookup, notifications, and stealth receive-address issuance
 
-## 🎯 What is Walletrix?
+## Current Scope
 
-Walletrix is a **full-stack cryptocurrency wallet application** built to demonstrate blockchain engineering concepts, cryptographic implementations, and modern web development practices. It showcases HD wallet generation, multi-chain support, and security-focused architecture.
+### Wallet Platform
 
-**Live Demo**: [walletrix.vercel.app](https://walletrix.vercel.app) | **Backend**: Deployed on Render | **Frontend**: Deployed on Vercel    
+- Multi-wallet account management with Clerk-backed sign-in
+- Wallet generation and mnemonic import for Ethereum, Bitcoin, and Solana addresses
+- Password-based encrypted wallet storage using AES-256-GCM with PBKDF2-SHA256
+- Unified dashboard with balances, token views, price lookups, notifications, and settings
+- Smart-vault and smart-account scaffolding for ERC-4337 style flows
 
----
+### Telegram Assistant
 
-## ⭐ Key Features
+- Telegram account linking with one-time link codes
+- Dedicated Telegram bot wallet per linked user
+- Natural-language balance checks and transfer drafting
+- Multi-turn confirmation flow with persisted conversation state
+- Saved recipients / address list integration
+- Recent transfer and transaction-status lookup
+- Wallet funding and low-balance notifications for the bot wallet
+- Stealth receive-address generation linked to a selected wallet context
 
-### 🔗 Multi-Chain Support
-| Network | Type | Status |
-|---------|------|--------|
-| Bitcoin | Mainnet + Testnet | ✅ |
-| Ethereum | Mainnet + Testnets | ✅ |
-| Polygon | Layer 2 | ✅ |
-| Solana | Non-EVM | ✅ |
+## Network Support
 
-### 💼 Wallet Features
-- **HD Wallet Generation** — BIP-39/44 compliant address derivation
-- **Multi-Signature Addresses** — Bitcoin P2SH/P2WSH address generation
-- **Shamir's Secret Sharing** — k-of-n threshold secret splitting
-- **BIP-85 Child Derivation** — Deterministic child mnemonic generation
-- **ERC-20 Token Support** — Balance queries for popular tokens
+| Network | Address / Balance | Send Flow |
+| --- | --- | --- |
+| Ethereum / supported EVM chains | Yes | Yes |
+| Solana | Yes | Yes |
+| Bitcoin | Yes | Partial, no complete frontend send flow yet |
 
-### 📊 Dashboard & Analytics
-- Real-time balance tracking
-- Live price data (CoinGecko integration)
-- Transaction history with filtering
-- Portfolio analytics
-- 24h price change indicators
-
----
-
-## 🛡️ Security Implementation
-
-> *Demonstrating modern cryptographic practices and security patterns*
-
-### Cryptography
-| Feature | Implementation | Standard |
-|---------|---------------|----------|
-| **Password Hashing** | Argon2id (64MB, 3 iterations) | PHC Winner 2015 |
-| **Wallet Encryption** | AES-256-GCM | Authenticated Encryption |
-| **Key Derivation** | PBKDF2-SHA256 (600K iterations) | OWASP 2024 |
-| **Secret Sharing** | Shamir's (k-of-n threshold) | Cryptographic |
-| **Privacy Commitments** | Poseidon Hash | Hash-based |
-
-### Authentication & Sessions
-- JWT tokens with 15-min access / 7-day refresh rotation
-- Maximum 5 concurrent sessions per user
-- TOTP 2FA with backup codes
-- Session blacklisting for immediate invalidation
-
-### API Security
-- **12 specialized rate limiters** (auth: 5/15min, sensitive: 2/day)
-- **15+ security headers** (CSP, HSTS, X-Frame-Options)
-- Input validation with express-validator
-- CORS protection with whitelist
-
-### Transaction Validation
-- Address format validation
-- Known scam address checking
-- Balance verification before send
-- Basic anomaly warnings
-
-> **Note**: This is an educational project. Transaction signing architecture needs refactoring for true non-custodial operation. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for roadmap.
-
----
-
-## 🛠️ Tech Stack
+## Architecture
 
 ### Frontend
-```
-Next.js 14 (App Router) • React 18 • Tailwind CSS • Clerk Auth
-Ethers.js v6 • bitcoinjs-lib • Lucide React • React Hot Toast
-```
+
+- Next.js 14 (App Router)
+- React + Tailwind CSS
+- Clerk for account authentication
+- Context-driven wallet state, auto-locking, network selection, and dashboard flows
 
 ### Backend
-```
-Node.js 18+ • Express.js • Prisma ORM • PostgreSQL
-JWT • Argon2 • Winston Logger • Helmet.js
-```
 
-### Blockchain
-```
-ethers.js v6 • bitcoinjs-lib v6 • @solana/web3.js
-bip39 • bip32 • shamirs-secret-sharing • @noble/secp256k1
-```
+- Node.js + Express
+- Prisma ORM with PostgreSQL
+- Wallet generation/import services for Ethereum, Bitcoin, and Solana
+- Blockchain, token, price, auth, notification, and Telegram route groups
 
-### DevOps
-```
-Docker • Vercel • Render • GitHub Actions
-```
+### Database
 
----
+The Prisma schema currently persists user accounts, grouped wallet rows, Telegram linking records, dedicated Telegram bot wallets, saved recipients, conversation sessions, stealth wallet profiles, stealth address issues, smart accounts, guardians, user operations, transactions, and activity logs.
 
-## 🏗️ Architecture
+## Security Notes
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     FRONTEND (Next.js 14)                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ Dashboard   │  │ Auth (Clerk)│  │ Wallet Management   │  │
-│  │ • Balances  │  │ • Login     │  │ • HD Generation     │  │
-│  │ • Prices    │  │ • OAuth     │  │ • Import/Export     │  │
-│  │ • History   │  │ • Sessions  │  │ • Multi-Sig         │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    BACKEND (Node.js/Express)                │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ Security Layer                                        │   │
-│  │ • Rate Limiting (12 limiters) • JWT Validation       │   │
-│  │ • Security Headers (15+)      • Input Validation     │   │
-│  └──────────────────────────────────────────────────────┘   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ Wallet Svc  │  │ Auth Svc    │  │ Blockchain Svc      │  │
-│  │ • Argon2id  │  │ • Sessions  │  │ • ETH/BTC/Polygon   │  │
-│  │ • AES-256   │  │ • 2FA       │  │ • Token Queries     │  │
-│  │ • Shamir    │  │ • JWT       │  │ • Gas Estimation    │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      DATA LAYER                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ PostgreSQL  │  │ Prisma ORM  │  │ External APIs       │  │
-│  │ • 15 Models │  │ • Type-safe │  │ • CoinGecko         │  │
-│  │ • 30+ Index │  │ • Migrations│  │ • Etherscan         │  │
-│  │ • Relations │  │ • Studio    │  │ • BlockCypher       │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
+- Wallet material is encrypted before persistence with AES-256-GCM and PBKDF2-SHA256
+- Passwords are hashed with Argon2id
+- Telegram bot private keys are stored separately from user wallet data and encrypted with a server-side signing key
+- Security headers, rate limiting, request monitoring, and validation middleware are enabled in the backend
 
----
-
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- npm/yarn
 
-### Installation
+- Node.js 18+
+- npm
+- PostgreSQL database reachable through `backend/.env`
+
+### Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/ayushns01/Walletrix.git
-cd Walletrix
-
-# Backend setup
-cd backend
 npm install
-cp .env.example .env  # Configure your environment
+cd frontend && npm install
+cd ../backend && npm install
+```
+
+### Configure
+
+- Set frontend environment variables in `frontend/.env.local`
+- Set backend environment variables in `backend/.env`
+- Generate Prisma client and sync schema:
+
+```bash
+cd backend
 npx prisma generate
 npx prisma db push
-npm run dev
+```
 
-# Frontend setup (new terminal)
+### Run
+
+From the repo root:
+
+```bash
+npm run dev
+```
+
+Or run each side separately:
+
+```bash
+cd backend && npm run dev
+cd frontend && npm run dev
+```
+
+Default local URLs:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:3001`
+
+## Useful Scripts
+
+From the repo root:
+
+```bash
+npm run dev
+npm run build
+npm run test
+npm run lint
+```
+
+Backend only:
+
+```bash
+cd backend
+npm test
+npm run test:coverage
+npm run db:generate
+npm run db:push
+```
+
+Frontend only:
+
+```bash
 cd frontend
-npm install
 npm run dev
+npm run build
+npm run lint
 ```
 
-**Backend**: http://localhost:3001  
-**Frontend**: http://localhost:3000
+## Documentation
 
----
+- [Security Practices](/Users/ayushns01/Desktop/Repositories/Walletrix/docs/SECURITY_PRACTICES.md)
+- [Database Architecture](/Users/ayushns01/Desktop/Repositories/Walletrix/docs/DATABASE_ARCHITECTURE.md)
+- [Telegram Bot Internals](/Users/ayushns01/Desktop/Repositories/Walletrix/documentation/TELEGRAM_BOT_INTERNALS.md)
+- [Telegram Restart Guide](/Users/ayushns01/Desktop/Repositories/Walletrix/documentation/RESTART_GUIDE.md)
+- [Minor Project Synopsis](/Users/ayushns01/Desktop/Repositories/Walletrix/documentation/MINOR_PROJECT_SYNOPSIS.md)
+- [References](/Users/ayushns01/Desktop/Repositories/Walletrix/documentation/REFERENCES.md)
 
-## 📁 Project Structure
+## Repo Structure
 
-```
+```text
 Walletrix/
-├── frontend/                 # Next.js 14 Application
-│   ├── app/                  # App Router pages
-│   ├── components/           # React components (21)
-│   └── contexts/             # State management
-│
-├── backend/                  # Node.js API Server
-│   ├── src/
-│   │   ├── controllers/      # API handlers (12)
-│   │   ├── services/         # Business logic (23)
-│   │   ├── middleware/       # Security (8)
-│   │   └── routes/           # API routes (13)
-│   └── prisma/               # Database schema (15 models)
-│
-├── docs/                     # Documentation
-│   ├── SECURITY_PRACTICES.md
-│   └── DATABASE_ARCHITECTURE.md
-└── docker-compose.yml        # Container orchestration
+├── frontend/        Next.js application
+├── backend/         Express API + Prisma schema
+├── contracts/       Foundry smart-contract workspace
+├── docs/            Technical architecture and security docs
+└── documentation/   Project, Telegram, and report-oriented docs
 ```
 
----
+## Current Caveats
 
-## 📊 Database Schema
-
-**15 Prisma Models** • **30+ Indexes** • **6 Enums**
-
-| Model | Description |
-|-------|-------------|
-| `User` | Authentication + Clerk integration |
-| `Wallet` | HD/Imported wallet storage |
-| `Transaction` | High-precision Decimal(36,18) |
-| `MultiSigWallet` | M-of-N address generation (Bitcoin P2WSH) |
-| `BIP85ChildWallet` | Derived child wallets |
-| `Notification` | Real-time notifications |
-| `ActivityLog` | Security audit trail |
-| `ScamAddress` | Known malicious addresses |
-
-See [DATABASE_ARCHITECTURE.md](docs/DATABASE_ARCHITECTURE.md) for full documentation.
-
----
-
-## 🔒 Security Documentation
-
-See [SECURITY_PRACTICES.md](docs/SECURITY_PRACTICES.md) for comprehensive security documentation covering:
-
-- Argon2id password hashing (PHC winner)
-- AES-256-GCM encryption
-- Shamir's Secret Sharing
-- Stealth addresses (ECDH key exchange demonstration)
-- Multi-signature address generation
-- Rate limiting strategies
-- Security headers
-
----
-
-## 📈 API Overview
-
-RESTful API organized by domain:
-
-| Domain | Description |
-|--------|-------------|
-| `/auth` | Authentication, sessions, 2FA |
-| `/wallet` | Generate, import, encrypt |
-| `/blockchain` | Balance queries, gas estimation |
-| `/tokens` | ERC-20 balance queries |
-| `/prices` | Market data (CoinGecko) |
-| `/multisig` | Address generation |
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## ⚠️ Project Scope & Limitations
-
-This is a **learning/portfolio project** demonstrating:
-- Multi-chain HD wallet derivation (BIP-39/44)
-- Cryptographic implementations (Argon2id, AES-256-GCM, Shamir's)
-- Full-stack architecture with proper security patterns
-- Database design and API development
-
-**Current limitations:**
-- Transaction signing architecture needs refactoring
-- Multi-sig is address generation only (no transaction coordination)
-- Stealth addresses are cryptographic demonstration (no on-chain registry)
-- Tests need import path fixes
-
-See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for planned improvements.
-
----
+- Bitcoin support is not fully symmetric with EVM and Solana send flows yet.
+- The Telegram bot currently executes from a dedicated bot EOA, not from the user's primary wallet.
+- Stealth receive-address issuance is implemented, but claim/sweep lifecycle is still future work.
+- Smart-vault and multisig modules are present in the codebase, but the main polished user flow today is the wallet + Telegram assistant path.
