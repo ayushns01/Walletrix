@@ -417,4 +417,39 @@ export const telegramAPI = {
   },
 };
 
+export const stealthAPI = {
+  listIssues: async (token, params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status) {
+      query.set('status', params.status);
+    }
+
+    const response = await api.get(`/api/v1/stealth/issues${query.toString() ? `?${query.toString()}` : ''}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  refreshIssue: async (token, issueId) => {
+    const response = await api.post(`/api/v1/stealth/issues/${issueId}/refresh`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  getClaimPreview: async (token, issueId) => {
+    const response = await api.get(`/api/v1/stealth/issues/${issueId}/claim-preview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  claimIssue: async (token, issueId) => {
+    const response = await api.post(`/api/v1/stealth/issues/${issueId}/claim`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+};
+
 export default api;
