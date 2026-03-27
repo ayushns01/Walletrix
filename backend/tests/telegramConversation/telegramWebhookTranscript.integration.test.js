@@ -882,6 +882,220 @@ describe('telegramWebhookController transcript integration', () => {
     expect(issue.status).toBe('CLAIMED');
   });
 
+  it('continues directly from a funded stealth notification prompt into claim preview', async () => {
+    const telegramId = 1301;
+    const user = mockEnsureLinkedUser(telegramId);
+    const issue = mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-prompt',
+      label: 'Savings Wallet',
+      address: '0x1234512345123451234512345123451234512345',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-prompt-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '250000000000000000',
+      lastObservedBalanceEth: '0.25',
+      claimableWei: '249000000000000000',
+      claimableEth: '0.249',
+    });
+
+    mockState.sessionsByTelegramId.set(String(telegramId), {
+      chatContext: {
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: { issueId: issue.id },
+        lastIntent: 'stealth_claim',
+        lastInteractionAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+      transferDraft: null,
+      pendingIntent: null,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    await sendIncomingText('claim now', { telegramId, chatId: 531 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claim Preview');
+    expect(outgoing[outgoing.length - 1]).toContain('Savings Wallet');
+
+    await sendIncomingText('yes', { telegramId, chatId: 531 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claim Submitted');
+    expect(issue.status).toBe('CLAIMED');
+  });
+
+  it('lets the user defer a funded stealth prompt with Later', async () => {
+    const telegramId = 1305;
+    const user = mockEnsureLinkedUser(telegramId);
+    const issue = mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-later',
+      label: 'Reserve Wallet',
+      address: '0x4545454545454545454545454545454545454545',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-later-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '260000000000000000',
+      lastObservedBalanceEth: '0.26',
+      claimableWei: '259000000000000000',
+      claimableEth: '0.259',
+    });
+
+    mockState.sessionsByTelegramId.set(String(telegramId), {
+      chatContext: {
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: { issueId: issue.id },
+        lastIntent: 'stealth_claim',
+        lastInteractionAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+      transferDraft: null,
+      pendingIntent: null,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    await sendIncomingText('Later', { telegramId, chatId: 534 });
+    expect(outgoing[outgoing.length - 1]).toContain('No problem. Your stealth funds will stay there until you claim them.');
+    expect(issue.status).toBe('FUNDED');
+  });
+
+  it('rehydrates a stealth claim prompt even when an idle context is already in memory', async () => {
+    const telegramId = 1302;
+    const user = mockEnsureLinkedUser(telegramId);
+    const issue = mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-idle',
+      label: 'Operations Wallet',
+      address: '0x5555555555555555555555555555555555555555',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-idle-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '300000000000000000',
+      lastObservedBalanceEth: '0.3',
+      claimableWei: '299000000000000000',
+      claimableEth: '0.299',
+    });
+
+    await sendIncomingText('check balance', { telegramId, chatId: 532 });
+    expect(outgoing[outgoing.length - 1]).toContain('Bot Wallet Balance');
+
+    mockState.sessionsByTelegramId.set(String(telegramId), {
+      chatContext: {
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: { issueId: issue.id },
+        lastIntent: 'stealth_claim',
+        lastInteractionAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+      transferDraft: null,
+      pendingIntent: null,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    await sendIncomingText('claim now', { telegramId, chatId: 532 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claim Preview');
+    expect(outgoing[outgoing.length - 1]).toContain('Operations Wallet');
+  });
+
+  it('re-prompts when the stealth claim prompt receives an invalid reply', async () => {
+    const telegramId = 1307;
+    const user = mockEnsureLinkedUser(telegramId);
+    const issue = mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-invalid',
+      label: 'Income Wallet',
+      address: '0x9898989898989898989898989898989898989898',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-invalid-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '200000000000000000',
+      lastObservedBalanceEth: '0.2',
+      claimableWei: '199000000000000000',
+      claimableEth: '0.199',
+    });
+
+    mockState.sessionsByTelegramId.set(String(telegramId), {
+      chatContext: {
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: { issueId: issue.id },
+        lastIntent: 'stealth_claim',
+        lastInteractionAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+      transferDraft: null,
+      pendingIntent: null,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    await sendIncomingText('maybe', { telegramId, chatId: 535 });
+    expect(outgoing[outgoing.length - 1]).toContain('Reply with "Claim now" to preview the sweep, or "Later" to leave it for now.');
+  });
+
+  it('treats a plain claim now reply as a stealth claim entry point when funded issues exist', async () => {
+    const telegramId = 1306;
+    const user = mockEnsureLinkedUser(telegramId);
+
+    mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-fallback',
+      label: 'Treasury Wallet',
+      address: '0x8888888888888888888888888888888888888888',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-fallback-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '350000000000000000',
+      lastObservedBalanceEth: '0.35',
+      claimableWei: '349000000000000000',
+      claimableEth: '0.349',
+    });
+
+    await sendIncomingText('claim now', { telegramId, chatId: 533 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claims');
+    expect(outgoing[outgoing.length - 1]).toContain('Treasury Wallet');
+  });
+
+  it('surfaces when a funded stealth prompt can no longer cover the sweep gas', async () => {
+    const telegramId = 1308;
+    const user = mockEnsureLinkedUser(telegramId);
+    mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-gas',
+      label: 'Gas-Starved Wallet',
+      address: '0xabababababababababababababababababababab',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      id: 'stealth-gas-1',
+      status: 'FUNDED',
+      lastObservedBalanceWei: '1000000000000000',
+      lastObservedBalanceEth: '0.001',
+      claimableWei: '0',
+      claimableEth: '0.0',
+    });
+
+    mockState.sessionsByTelegramId.set(String(telegramId), {
+      chatContext: {
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: { issueId: 'stealth-gas-1' },
+        lastIntent: 'stealth_claim',
+        lastInteractionAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      },
+      transferDraft: null,
+      pendingIntent: null,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    await sendIncomingText('claim now', { telegramId, chatId: 536 });
+    expect(outgoing[outgoing.length - 1]).toContain('not enough ETH to cover the sweep gas yet');
+  });
+
   it('supports confirm and cancel decisions for pending transfer', async () => {
     const telegramId = 1303;
     mockEnsureLinkedUser(telegramId);

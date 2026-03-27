@@ -57,6 +57,12 @@ jest.mock('../src/services/telegramService.js', () => ({
   sendPlainMessage: jest.fn(async () => ({ ok: true })),
 }));
 
+jest.mock('../src/services/conversationSessionService.js', () => ({
+  __esModule: true,
+  loadConversationSession: jest.fn(async () => null),
+  saveConversationSession: jest.fn(async () => true),
+}));
+
 jest.mock('../src/services/loggerService.js', () => ({
   __esModule: true,
   default: {
@@ -107,6 +113,7 @@ jest.mock('../src/services/stealthWalletService.js', () => ({
 import { ethers } from 'ethers';
 import prisma from '../src/lib/prisma.js';
 import { sendPlainMessage } from '../src/services/telegramService.js';
+import { loadConversationSession, saveConversationSession } from '../src/services/conversationSessionService.js';
 import {
   claimStealthIssueForUser,
   getStealthClaimPreviewForUser,
@@ -138,10 +145,76 @@ describe('stealthLifecycleService', () => {
     const updated = mockIssueState.get('issue-funded');
     expect(updated.status).toBe('FUNDED');
     expect(updated.lastObservedBalanceWei).toBe('500000000000000000');
-    expect(sendPlainMessage).toHaveBeenCalledWith('9001', expect.stringContaining('Funds detected on a stealth address'));
+    expect(saveConversationSession).toHaveBeenCalledWith('9001', expect.objectContaining({
+      chatContext: expect.objectContaining({
+        scene: 'stealth',
+        currentStep: 'claim_prompt',
+        pendingStealthClaim: expect.objectContaining({
+          issueId: 'issue-funded',
+        }),
+      }),
+    }));
+    expect(sendPlainMessage).toHaveBeenCalledWith(
+      '9001',
+      expect.stringContaining('Would you like to claim it now?'),
+      expect.objectContaining({
+        reply_markup: expect.objectContaining({
+          keyboard: [
+            [{ text: 'Claim now' }, { text: 'Later' }],
+          ],
+        }),
+      }),
+    );
     expect(prisma.activityLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         action: 'STEALTH_ADDRESS_FUNDED_NOTIFIED',
+      }),
+    }));
+  });
+
+  it('preserves an existing durable transfer draft when seeding a stealth claim prompt', async () => {
+    seedIssue({ id: 'issue-funded-persisted', telegramId: '9002', status: 'ACTIVE' });
+    loadConversationSession.mockResolvedValueOnce({
+      chatContext: {
+        scene: 'transfer',
+        currentStep: 'confirm',
+      },
+      transferDraft: {
+        intent: {
+          intent: 'transfer',
+          details: {
+            tokenSymbol: 'ETH',
+            amount: 0.12,
+            recipientAddress: '0x3333333333333333333333333333333333333333',
+          },
+        },
+        expiresAt: Date.now() + 60_000,
+      },
+      pendingIntent: {
+        intent: 'transfer',
+        expiresAt: Date.now() + 60_000,
+      },
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    mockProvider.getBalance.mockResolvedValue(500000000000000000n);
+    mockProvider.getFeeData.mockResolvedValue({
+      gasPrice: 1_000_000_000n,
+      maxFeePerGas: 1_000_000_000n,
+      maxPriorityFeePerGas: 1_000_000_000n,
+    });
+    mockProvider.estimateGas.mockResolvedValue(21_000n);
+
+    await pollStealthIssueMonitor();
+
+    expect(saveConversationSession).toHaveBeenCalledWith('9002', expect.objectContaining({
+      transferDraft: expect.objectContaining({
+        intent: expect.objectContaining({
+          intent: 'transfer',
+        }),
+      }),
+      pendingIntent: expect.objectContaining({
+        intent: 'transfer',
       }),
     }));
   });

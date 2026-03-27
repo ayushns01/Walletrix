@@ -287,18 +287,17 @@ function persistConversationState(telegramId) {
 async function hydrateContext(telegramId) {
   const key = String(telegramId);
   const existingContext = chatContexts.get(key) || null;
-  const hasScenefulContext = Boolean(
-    existingContext && (
-      existingContext.scene
-      || existingContext.currentStep
-      || existingContext.lastInteractionAt
-      || existingContext.lastRecipientAddress
-      || existingContext.lastAmount
-      || existingContext.lastTokenSymbol
+  const existingScene = String(existingContext?.scene || 'idle');
+  const existingStep = String(existingContext?.currentStep || 'ready');
+  const hasActiveSceneContext = Boolean(
+    existingContext
+    && (
+      existingScene !== 'idle'
+      || existingStep !== 'ready'
     )
   );
 
-  if (hasScenefulContext || transferDrafts.has(key) || pendingIntents.has(key)) return false;
+  if (hasActiveSceneContext || transferDrafts.has(key) || pendingIntents.has(key)) return false;
 
   const session = await loadConversationSession(key);
   if (!session) return false;
@@ -803,6 +802,43 @@ function buildStealthClaimPreviewMessage(issue, preview) {
   ].join('\n');
 }
 
+async function handleStealthClaimPrompt(chatId, telegramId, user, text) {
+  const context = getContext(telegramId) || {};
+  const pendingClaim = context.pendingStealthClaim || null;
+  const normalizedText = normalizeSelectionInput(text);
+
+  if (!pendingClaim?.issueId) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(chatId, telegramId, 'That stealth claim prompt expired. Use /claim and I will restart it.');
+  }
+
+  if (/^(later|no|n|cancel)$/.test(normalizedText)) {
+    updateContext(telegramId, { pendingStealthClaim: null, lastIntent: 'stealth_claim' });
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(chatId, telegramId, 'No problem. Your stealth funds will stay there until you claim them.');
+  }
+
+  if (!/^(claim now|claim|yes|y|preview)$/.test(normalizedText)) {
+    return sendBotPlain(chatId, telegramId, 'Reply with "Claim now" to preview the sweep, or "Later" to leave it for now.');
+  }
+
+  const result = await getStealthClaimPreviewForUser(user.id, pendingClaim.issueId);
+  if (!result.preview.canClaim) {
+    updateContext(telegramId, { pendingStealthClaim: null, lastIntent: 'stealth_claim' });
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(
+      chatId,
+      telegramId,
+      result.preview.balanceWei === '0'
+        ? 'That stealth address no longer has funds available to claim.'
+        : 'That stealth address has funds, but not enough ETH to cover the sweep gas yet.'
+    );
+  }
+
+  setScene(telegramId, 'stealth', 'claim_confirm');
+  return sendBotMessage(chatId, telegramId, buildStealthClaimPreviewMessage(result.issue, result.preview));
+}
+
 async function handleStealthStart(chatId, telegramId, user) {
   const options = await listSelectableStealthWallets(user.id);
 
@@ -1262,6 +1298,9 @@ async function handleFreeText(chatId, telegramId, text) {
       if (getContext(telegramId)?.currentStep === 'select_network') {
         return handleStealthNetworkSelection(chatId, telegramId, user, text);
       }
+      if (getContext(telegramId)?.currentStep === 'claim_prompt') {
+        return handleStealthClaimPrompt(chatId, telegramId, user, text);
+      }
       if (getContext(telegramId)?.currentStep === 'claim_select_issue') {
         return handleStealthClaimSelection(chatId, telegramId, user, text);
       }
@@ -1307,7 +1346,7 @@ async function handleFreeText(chatId, telegramId, text) {
       return handleStealthStart(chatId, telegramId, user);
     }
 
-    if (normalizedText === 'claim' || isStealthClaimIntent(text)) {
+    if (normalizedText === 'claim' || normalizedText === 'claim now' || isStealthClaimIntent(text)) {
       return handleStealthClaimStart(chatId, telegramId, user);
     }
 

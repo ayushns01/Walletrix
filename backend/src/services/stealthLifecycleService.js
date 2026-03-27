@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import logger from './loggerService.js';
 import ethereumService from './ethereumService.js';
 import { sendPlainMessage } from './telegramService.js';
+import { loadConversationSession, saveConversationSession } from './conversationSessionService.js';
 import stealthAddressService from './stealthAddressService.js';
 import {
   decryptSecret,
@@ -137,8 +138,49 @@ function buildStealthFundedMessage(issue, balanceWei) {
     `Balance: ${ethers.formatEther(balanceWei)} ETH`,
     `Stealth address: ${issue.stealthAddress}`,
     '',
-    'Reply with /claim to sweep it into your wallet, or open Walletrix to review it there.',
+    'Would you like to claim it now?',
+    'Reply with "Claim now" to preview the sweep, or "Later" to keep it pending.',
   ].join('\n');
+}
+
+function buildStealthClaimPromptReplyMarkup() {
+  return {
+    reply_markup: {
+      keyboard: [
+        [{ text: 'Claim now' }, { text: 'Later' }],
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+      input_field_placeholder: 'Claim now or Later',
+    },
+  };
+}
+
+async function seedStealthClaimPrompt(issue) {
+  const telegramId = issue.profile?.user?.telegramId;
+  if (!telegramId) return;
+  const existingSession = await loadConversationSession(String(telegramId)).catch(() => null);
+  const promptExpiryMs = Date.now() + 10 * 60 * 1000;
+  const existingExpiryMs = existingSession?.expiresAt
+    ? new Date(existingSession.expiresAt).getTime()
+    : null;
+
+  await saveConversationSession(String(telegramId), {
+    chatContext: {
+      userId: issue.profile?.userId || null,
+      scene: 'stealth',
+      currentStep: 'claim_prompt',
+      pendingStealthClaim: {
+        issueId: issue.id,
+      },
+      lastIntent: 'stealth_claim',
+      lastInteractionAt: Date.now(),
+      expiresAt: promptExpiryMs,
+    },
+    transferDraft: existingSession?.transferDraft || null,
+    pendingIntent: existingSession?.pendingIntent || null,
+    expiresAt: new Date(Math.max(promptExpiryMs, existingExpiryMs || 0)),
+  });
 }
 
 async function refreshStealthIssueRecord(issue, { notifyOnTransition = false, prismaClient = prisma, sendPlainMessageImpl = sendPlainMessage } = {}) {
@@ -169,7 +211,12 @@ async function refreshStealthIssueRecord(issue, { notifyOnTransition = false, pr
   }
 
   if (transitionedToFunded && notifyOnTransition && issue.profile?.user?.telegramId) {
-    await sendPlainMessageImpl(issue.profile.user.telegramId, buildStealthFundedMessage(issue, balanceWei));
+    await seedStealthClaimPrompt(issue);
+    await sendPlainMessageImpl(
+      issue.profile.user.telegramId,
+      buildStealthFundedMessage(issue, balanceWei),
+      buildStealthClaimPromptReplyMarkup()
+    );
     await recordStealthActivity(issue.profile.userId, 'STEALTH_ADDRESS_FUNDED_NOTIFIED', {
       issueId: issue.id,
       stealthAddress: issue.stealthAddress,
