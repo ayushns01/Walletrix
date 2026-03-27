@@ -119,7 +119,7 @@ model StealthWalletProfile {
   user   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   issues StealthAddressIssue[]
 
-  @@unique([userId, walletType, walletRef])
+  @@unique([userId, walletType, walletRef, network])
   @@index([userId])
   @@map("stealth_wallet_profiles")
 }
@@ -130,16 +130,23 @@ model StealthAddressIssue {
   profileId         String               @map("profile_id")
   stealthAddress    String               @map("stealth_address")
   ephemeralPublicKey String              @map("ephemeral_public_key")
+  network           Network              @default(ETHEREUM)
+  destinationAddress String              @map("destination_address")
   status            StealthAddressStatus @default(ACTIVE)
   createdAt         DateTime             @default(now()) @map("created_at")
   usedAt            DateTime?            @map("used_at")
   expiresAt         DateTime?            @map("expires_at")
+  lastCheckedAt     DateTime?            @map("last_checked_at")
+  lastObservedBalanceWei String?         @map("last_observed_balance_wei")
+  claimedAt         DateTime?            @map("claimed_at")
+  claimTxHash       String?              @map("claim_tx_hash")
 
   profile StealthWalletProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([profileId, stealthAddress])
   @@index([stealthAddress])
   @@index([status])
+  @@index([status, network])
   @@map("stealth_address_issues")
 }
 

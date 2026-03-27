@@ -6,6 +6,10 @@ import stealthAddressService from './stealthAddressService.js';
 
 const TELEGRAM_BOT_WALLET_REF = '__telegram_bot__';
 const EVM_NETWORKS = new Set(['ETHEREUM', 'SEPOLIA', 'GOERLI', 'HOLESKY', 'POLYGON', 'ARBITRUM', 'OPTIMISM', 'BASE', 'BSC', 'AVALANCHE']);
+const STEALTH_NETWORK_OPTIONS = Object.freeze([
+  { network: 'SEPOLIA', label: 'Sepolia', kindLabel: 'Ethereum testnet' },
+  { network: 'ETHEREUM', label: 'Ethereum Mainnet', kindLabel: 'Ethereum mainnet' },
+]);
 
 const memoryProfiles = new Map();
 const memoryIssues = new Map();
@@ -22,8 +26,16 @@ function hasStealthProfileDelegate() {
   return !!(prisma.stealthWalletProfile && typeof prisma.stealthWalletProfile.findUnique === 'function');
 }
 
-function hasStealthIssueDelegate() {
+function hasStealthIssueCreateDelegate() {
   return !!(prisma.stealthAddressIssue && typeof prisma.stealthAddressIssue.create === 'function');
+}
+
+function hasStealthIssueReadDelegate() {
+  return !!(prisma.stealthAddressIssue && typeof prisma.stealthAddressIssue.findMany === 'function');
+}
+
+function hasStealthIssueUpdateDelegate() {
+  return !!(prisma.stealthAddressIssue && typeof prisma.stealthAddressIssue.update === 'function');
 }
 
 function isTableMissingError(error) {
@@ -42,8 +54,8 @@ function truncateAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function buildProfileKey(userId, walletType, walletRef) {
-  return `${String(userId)}:${String(walletType)}:${String(walletRef)}`;
+function buildProfileKey(userId, walletType, walletRef, network) {
+  return `${String(userId)}:${String(walletType)}:${String(walletRef)}:${String(network)}`;
 }
 
 function deriveEncryptionKey() {
@@ -54,7 +66,7 @@ function deriveEncryptionKey() {
   return crypto.createHash('sha256').update(raw).digest();
 }
 
-function encryptSecret(value) {
+export function encryptSecret(value) {
   const key = deriveEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -62,6 +74,82 @@ function encryptSecret(value) {
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
   return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+export function decryptSecret(encryptedValue) {
+  const parts = String(encryptedValue || '').split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted stealth secret format');
+  }
+
+  const [ivHex, authTagHex, ciphertextHex] = parts;
+  const key = deriveEncryptionKey();
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+  let decrypted = decipher.update(ciphertextHex, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+export function listSelectableStealthNetworks() {
+  return STEALTH_NETWORK_OPTIONS.map((option, index) => ({
+    ...option,
+    selectionToken: String(index + 1),
+    displayText: `${index + 1}. ${option.label}`,
+  }));
+}
+
+export function normalizeStealthNetwork(value, fallback = 'SEPOLIA') {
+  const normalized = normalizeText(value);
+  if (!normalized) return fallback;
+
+  const aliases = {
+    '1': 'SEPOLIA',
+    '2': 'ETHEREUM',
+    sepolia: 'SEPOLIA',
+    ethereum: 'ETHEREUM',
+    eth: 'ETHEREUM',
+    'ethereum mainnet': 'ETHEREUM',
+    mainnet: 'ETHEREUM',
+  };
+
+  return aliases[normalized] || fallback;
+}
+
+export function resolveSelectableStealthNetwork(options, input) {
+  const normalizedInput = normalizeText(input);
+  if (!normalizedInput) return null;
+
+  const digitMatch = normalizedInput.match(/^(\d{1,2})\b/);
+  if (digitMatch) {
+    const numericIndex = Number.parseInt(digitMatch[1], 10) - 1;
+    if (numericIndex >= 0 && numericIndex < options.length) {
+      return options[numericIndex];
+    }
+  }
+
+  return options.find((option) => {
+    const networkName = normalizeText(option.network);
+    const label = normalizeText(option.label);
+    const displayText = normalizeText(option.displayText);
+    return normalizedInput === networkName
+      || normalizedInput === label
+      || normalizedInput === displayText
+      || normalizedInput.includes(networkName)
+      || normalizedInput.includes(label);
+  }) || null;
+}
+
+export function formatStealthNetworkLabel(network) {
+  return listSelectableStealthNetworks().find((option) => option.network === String(network || '').toUpperCase())?.label || 'Ethereum';
+}
+
+export function toEthereumServiceNetwork(network) {
+  return String(network || '').toUpperCase() === 'SEPOLIA' ? 'sepolia' : 'mainnet';
+}
+
+function resolveWalletKindLabel(walletType) {
+  return walletType === 'TELEGRAM_BOT_WALLET' ? 'Telegram bot wallet' : 'Account wallet';
 }
 
 function mapWalletRowsToSelectableOptions(walletRows, botWallet) {
@@ -96,7 +184,7 @@ function mapWalletRowsToSelectableOptions(walletRows, botWallet) {
       label: entry.label,
       address: entry.evmAddress || entry.primaryAddress || '',
       shortAddress: truncateAddress(entry.evmAddress || entry.primaryAddress || ''),
-      kindLabel: 'Account wallet',
+      kindLabel: resolveWalletKindLabel('ACCOUNT_WALLET'),
     }));
 
   if (botWallet?.address) {
@@ -106,7 +194,7 @@ function mapWalletRowsToSelectableOptions(walletRows, botWallet) {
       label: 'Telegram Bot Wallet',
       address: botWallet.address,
       shortAddress: truncateAddress(botWallet.address),
-      kindLabel: 'Telegram bot wallet',
+      kindLabel: resolveWalletKindLabel('TELEGRAM_BOT_WALLET'),
     });
   }
 
@@ -191,16 +279,29 @@ export function resolveSelectableStealthWallet(options, input) {
   return null;
 }
 
-async function loadPersistedProfile(userId, option) {
+export async function resolveStealthDestinationAddress(userId, option) {
+  if (option?.address) {
+    return option.address;
+  }
+
+  const options = await listSelectableStealthWallets(userId);
+  return options.find((candidate) => (
+    candidate.walletType === option.walletType
+    && candidate.walletRef === option.walletRef
+  ))?.address || '';
+}
+
+async function loadPersistedProfile(userId, option, network) {
   if (!hasStealthProfileDelegate()) return null;
 
   try {
     return await prisma.stealthWalletProfile.findUnique({
       where: {
-        userId_walletType_walletRef: {
+        userId_walletType_walletRef_network: {
           userId,
           walletType: option.walletType,
           walletRef: option.walletRef,
+          network,
         },
       },
     });
@@ -213,13 +314,14 @@ async function loadPersistedProfile(userId, option) {
       userId,
       walletType: option.walletType,
       walletRef: option.walletRef,
+      network,
       error: error.message,
     });
     throw error;
   }
 }
 
-async function createPersistedProfile(userId, option, generatedKeys) {
+async function createPersistedProfile(userId, option, generatedKeys, network) {
   if (!hasStealthProfileDelegate()) return null;
 
   try {
@@ -229,7 +331,7 @@ async function createPersistedProfile(userId, option, generatedKeys) {
         walletType: option.walletType,
         walletRef: option.walletRef,
         walletLabel: option.label,
-        network: 'ETHEREUM',
+        network,
         scanPublicKey: generatedKeys.scanPublicKey,
         spendPublicKey: generatedKeys.spendPublicKey,
         encryptedScanPrivateKey: encryptSecret(generatedKeys.scanPrivateKey),
@@ -246,16 +348,18 @@ async function createPersistedProfile(userId, option, generatedKeys) {
       userId,
       walletType: option.walletType,
       walletRef: option.walletRef,
+      network,
       error: error.message,
     });
     throw error;
   }
 }
 
-export async function getOrCreateStealthProfile(userId, option) {
-  const memoryKey = buildProfileKey(userId, option.walletType, option.walletRef);
+export async function getOrCreateStealthProfile(userId, option, network = 'SEPOLIA') {
+  const resolvedNetwork = normalizeStealthNetwork(network, 'SEPOLIA');
+  const memoryKey = buildProfileKey(userId, option.walletType, option.walletRef, resolvedNetwork);
 
-  const persisted = await loadPersistedProfile(userId, option);
+  const persisted = await loadPersistedProfile(userId, option, resolvedNetwork);
   if (persisted) {
     return persisted;
   }
@@ -266,7 +370,7 @@ export async function getOrCreateStealthProfile(userId, option) {
   }
 
   const generatedKeys = stealthAddressService.generateStealthKeys();
-  const createdProfile = await createPersistedProfile(userId, option, generatedKeys);
+  const createdProfile = await createPersistedProfile(userId, option, generatedKeys, resolvedNetwork);
   if (createdProfile) {
     return createdProfile;
   }
@@ -277,7 +381,7 @@ export async function getOrCreateStealthProfile(userId, option) {
     walletType: option.walletType,
     walletRef: option.walletRef,
     walletLabel: option.label,
-    network: 'ETHEREUM',
+    network: resolvedNetwork,
     scanPublicKey: generatedKeys.scanPublicKey,
     spendPublicKey: generatedKeys.spendPublicKey,
     encryptedScanPrivateKey: encryptSecret(generatedKeys.scanPrivateKey),
@@ -291,16 +395,46 @@ export async function getOrCreateStealthProfile(userId, option) {
   return memoryProfile;
 }
 
-async function persistIssuedAddress(profileId, generatedAddress) {
-  if (!hasStealthIssueDelegate()) return null;
+function buildMemoryIssueRecord(userId, profile, option, generatedAddress, destinationAddress) {
+  return {
+    id: `stealth-issue-${crypto.randomUUID()}`,
+    userId,
+    profileId: profile.id,
+    stealthAddress: generatedAddress.stealthAddress,
+    ephemeralPublicKey: generatedAddress.ephemeralPublicKey,
+    network: profile.network,
+    destinationAddress,
+    status: 'ACTIVE',
+    createdAt: new Date(),
+    usedAt: null,
+    expiresAt: null,
+    lastCheckedAt: null,
+    lastObservedBalanceWei: '0',
+    claimedAt: null,
+    claimTxHash: null,
+    profile,
+    walletLabel: option.label,
+    walletType: option.walletType,
+    kindLabel: option.kindLabel || resolveWalletKindLabel(option.walletType),
+  };
+}
+
+async function persistIssuedAddress(profile, generatedAddress, destinationAddress) {
+  if (!hasStealthIssueCreateDelegate()) return null;
 
   try {
     return await prisma.stealthAddressIssue.create({
       data: {
-        profileId,
+        profileId: profile.id,
         stealthAddress: generatedAddress.stealthAddress,
         ephemeralPublicKey: generatedAddress.ephemeralPublicKey,
+        network: profile.network,
+        destinationAddress,
         status: 'ACTIVE',
+        lastObservedBalanceWei: '0',
+      },
+      include: {
+        profile: true,
       },
     });
   } catch (error) {
@@ -309,45 +443,175 @@ async function persistIssuedAddress(profileId, generatedAddress) {
     }
 
     logger.error('[StealthWallet] Failed to persist issued stealth address', {
-      profileId,
+      profileId: profile.id,
+      network: profile.network,
       error: error.message,
     });
     throw error;
   }
 }
 
-export async function issueStealthReceiveAddress(userId, option) {
-  const profile = await getOrCreateStealthProfile(userId, option);
-  const generatedAddress = stealthAddressService.generateStealthAddress(profile.stealthMetaAddress);
-  const issuedRecord = await persistIssuedAddress(profile.id, generatedAddress);
-
-  const memoryIssuedRecord = issuedRecord || {
-    id: `stealth-issue-${crypto.randomUUID()}`,
-    profileId: profile.id,
-    stealthAddress: generatedAddress.stealthAddress,
-    ephemeralPublicKey: generatedAddress.ephemeralPublicKey,
-    status: 'ACTIVE',
-    createdAt: new Date(),
-  };
-
-  if (!issuedRecord) {
-    memoryIssues.set(memoryIssuedRecord.id, memoryIssuedRecord);
-  }
-
+function decoratePersistedIssueRecord(issue) {
+  if (!issue) return null;
+  const profile = issue.profile || null;
+  const walletType = profile?.walletType || issue.walletType || 'ACCOUNT_WALLET';
   return {
-    issueId: memoryIssuedRecord.id,
-    walletLabel: option.label,
-    walletType: option.walletType,
-    kindLabel: option.kindLabel,
-    stealthAddress: generatedAddress.stealthAddress,
-    stealthMetaAddress: profile.stealthMetaAddress,
-    ephemeralPublicKey: generatedAddress.ephemeralPublicKey,
+    ...issue,
+    profile,
+    walletLabel: profile?.walletLabel || issue.walletLabel || 'My Wallet',
+    walletType,
+    kindLabel: resolveWalletKindLabel(walletType),
   };
 }
 
+export async function issueStealthReceiveAddress(userId, option, network = 'SEPOLIA') {
+  const profile = await getOrCreateStealthProfile(userId, option, network);
+  const destinationAddress = await resolveStealthDestinationAddress(userId, option);
+  if (!destinationAddress) {
+    throw new Error('Could not resolve destination address for stealth wallet');
+  }
+
+  const generatedAddress = stealthAddressService.generateStealthAddress(profile.stealthMetaAddress);
+  const issuedRecord = await persistIssuedAddress(profile, generatedAddress, destinationAddress);
+  const issue = issuedRecord
+    ? decoratePersistedIssueRecord(issuedRecord)
+    : buildMemoryIssueRecord(userId, profile, option, generatedAddress, destinationAddress);
+
+  if (!issuedRecord) {
+    memoryIssues.set(issue.id, issue);
+  }
+
+  return {
+    issueId: issue.id,
+    walletLabel: issue.walletLabel,
+    walletType: issue.walletType,
+    kindLabel: issue.kindLabel,
+    network: issue.network,
+    networkLabel: formatStealthNetworkLabel(issue.network),
+    destinationAddress: issue.destinationAddress,
+    stealthAddress: issue.stealthAddress,
+    stealthMetaAddress: profile.stealthMetaAddress,
+    ephemeralPublicKey: issue.ephemeralPublicKey,
+    status: issue.status,
+  };
+}
+
+export async function findStealthIssueForUser(userId, issueId) {
+  if (hasStealthIssueReadDelegate()) {
+    try {
+      const issue = await prisma.stealthAddressIssue.findFirst({
+        where: {
+          id: issueId,
+          profile: {
+            userId,
+          },
+        },
+        include: {
+          profile: true,
+        },
+      });
+      if (issue) {
+        return decoratePersistedIssueRecord(issue);
+      }
+    } catch (error) {
+      if (!isTableMissingError(error)) {
+        logger.error('[StealthWallet] Failed to load stealth issue', {
+          issueId,
+          userId,
+          error: error.message,
+        });
+        throw error;
+      }
+    }
+  }
+
+  const issue = memoryIssues.get(String(issueId));
+  if (!issue || String(issue.userId) !== String(userId)) {
+    return null;
+  }
+  return issue;
+}
+
+export async function listStealthIssuesForUser(userId, { statuses = [] } = {}) {
+  const normalizedStatuses = Array.isArray(statuses) ? statuses.filter(Boolean) : [];
+
+  if (hasStealthIssueReadDelegate()) {
+    try {
+      const issues = await prisma.stealthAddressIssue.findMany({
+        where: {
+          profile: { userId },
+          ...(normalizedStatuses.length ? { status: { in: normalizedStatuses } } : {}),
+        },
+        include: {
+          profile: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      return issues.map(decoratePersistedIssueRecord);
+    } catch (error) {
+      if (!isTableMissingError(error)) {
+        logger.error('[StealthWallet] Failed to list stealth issues', {
+          userId,
+          error: error.message,
+        });
+        throw error;
+      }
+    }
+  }
+
+  return [...memoryIssues.values()]
+    .filter((issue) => String(issue.userId) === String(userId))
+    .filter((issue) => normalizedStatuses.length === 0 || normalizedStatuses.includes(issue.status))
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+}
+
+export async function updateStealthIssue(issueId, data) {
+  if (hasStealthIssueUpdateDelegate()) {
+    try {
+      const updated = await prisma.stealthAddressIssue.update({
+        where: { id: issueId },
+        data,
+        include: {
+          profile: true,
+        },
+      });
+      return decoratePersistedIssueRecord(updated);
+    } catch (error) {
+      if (!isTableMissingError(error)) {
+        logger.error('[StealthWallet] Failed to update stealth issue', {
+          issueId,
+          error: error.message,
+        });
+        throw error;
+      }
+    }
+  }
+
+  const existing = memoryIssues.get(String(issueId));
+  if (!existing) return null;
+  const updated = {
+    ...existing,
+    ...data,
+  };
+  memoryIssues.set(String(issueId), updated);
+  return updated;
+}
+
 export default {
+  TELEGRAM_BOT_WALLET_REF,
   listSelectableStealthWallets,
   resolveSelectableStealthWallet,
+  listSelectableStealthNetworks,
+  resolveSelectableStealthNetwork,
+  normalizeStealthNetwork,
+  formatStealthNetworkLabel,
+  toEthereumServiceNetwork,
+  encryptSecret,
+  decryptSecret,
   getOrCreateStealthProfile,
   issueStealthReceiveAddress,
+  resolveStealthDestinationAddress,
+  findStealthIssueForUser,
+  listStealthIssuesForUser,
+  updateStealthIssue,
 };

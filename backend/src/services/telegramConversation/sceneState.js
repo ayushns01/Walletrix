@@ -4,7 +4,7 @@ const SCENE_ALLOWED_STEPS = {
   balance: new Set(['requested', 'fetching']),
   help: new Set(['shown']),
   conversation: new Set(['understanding', 'smalltalk', 'fallback']),
-  stealth: new Set(['select_wallet']),
+  stealth: new Set(['select_wallet', 'select_network', 'claim_select_issue', 'claim_confirm']),
   transfer: new Set([
     'collecting_amount',
     'collecting_recipientAddress',

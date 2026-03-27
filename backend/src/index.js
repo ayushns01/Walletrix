@@ -12,6 +12,7 @@ import rateLimiters from './middleware/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import logger, { morganStream } from './services/loggerService.js';
 import { startTelegramNotificationMonitor } from './services/telegramNotificationService.js';
+import { startStealthIssueMonitor } from './services/stealthLifecycleService.js';
 import {
   requestLogger,
   metricsCollector,
@@ -28,6 +29,7 @@ import authRoutes from './routes/authRoutes.js';
 import databaseWalletRoutes from './routes/databaseWalletRoutes.js';
 import frontendWalletRoutes from './routes/frontendWalletRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import stealthRoutes from './routes/stealthRoutes.js';
 import telegramRoutes from './routes/telegramRoutes.js';
 import telegramWebhookRoutes from './routes/telegramWebhookRoutes.js';
 import { specs, swaggerConfig } from './config/swagger.js';
@@ -177,6 +179,12 @@ app.get('/api/v1', (req, res) => {
         send: 'POST /api/v1/smart-vault/send',
         guardians: 'POST /api/v1/smart-vault/guardians',
       },
+      stealth: {
+        list: 'GET /api/v1/stealth/issues',
+        refresh: 'POST /api/v1/stealth/issues/:issueId/refresh',
+        preview: 'GET /api/v1/stealth/issues/:issueId/claim-preview',
+        claim: 'POST /api/v1/stealth/issues/:issueId/claim',
+      },
     },
   });
 });
@@ -190,6 +198,7 @@ app.use('/api/v1/auth', rateLimiters.global, authRoutes);
 app.use('/api/v1/db-wallets', rateLimiters.global, databaseWalletRoutes);
 app.use('/api/v1/wallets', rateLimiters.global, frontendWalletRoutes);
 app.use('/api/v1/notifications', rateLimiters.global, notificationRoutes);
+app.use('/api/v1/stealth', rateLimiters.global, stealthRoutes);
 app.use('/api/v1/telegram', rateLimiters.global, telegramWebhookRoutes); // Webhook first — no auth, validated inside controller
 app.use('/api/v1/telegram', rateLimiters.global, telegramRoutes);
 
@@ -211,6 +220,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
 
     startMetricsLogging(60);
     startTelegramNotificationMonitor();
+    startStealthIssueMonitor();
   });
 }
 

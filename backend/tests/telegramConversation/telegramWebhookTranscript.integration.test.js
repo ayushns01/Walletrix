@@ -5,6 +5,7 @@ const mockState = {
   lastRecipientByUserId: new Map(),
   savedRecipientsByUserId: new Map(),
   activityLogsByUserId: new Map(),
+  stealthIssuesByUserId: new Map(),
 };
 
 function mockGetSavedRecipients(userId) {
@@ -29,6 +30,41 @@ function mockGetWalletRows(userId) {
     mockState.walletRowsByUserId.set(key, []);
   }
   return mockState.walletRowsByUserId.get(key);
+}
+
+function mockGetStealthIssues(userId) {
+  const key = String(userId);
+  if (!mockState.stealthIssuesByUserId.has(key)) {
+    mockState.stealthIssuesByUserId.set(key, []);
+  }
+  return mockState.stealthIssuesByUserId.get(key);
+}
+
+function mockCreateStealthIssue(userId, option, network = 'SEPOLIA', overrides = {}) {
+  const issues = mockGetStealthIssues(userId);
+  const issue = {
+    id: overrides.id || `stealth-issue-${issues.length + 1}`,
+    stealthAddress: overrides.stealthAddress || `0x${String(issues.length + 1).padStart(40, 'a').slice(0, 40)}`,
+    destinationAddress: option.address,
+    walletLabel: option.label,
+    walletType: option.walletType,
+    kindLabel: option.kindLabel,
+    network,
+    networkLabel: network === 'ETHEREUM' ? 'Ethereum Mainnet' : 'Sepolia',
+    status: overrides.status || 'ACTIVE',
+    createdAt: overrides.createdAt || new Date(),
+    usedAt: overrides.usedAt || null,
+    expiresAt: null,
+    lastCheckedAt: overrides.lastCheckedAt || new Date(),
+    lastObservedBalanceWei: overrides.lastObservedBalanceWei || '0',
+    lastObservedBalanceEth: overrides.lastObservedBalanceEth || '0.0',
+    claimableWei: overrides.claimableWei || null,
+    claimableEth: overrides.claimableEth || null,
+    claimedAt: overrides.claimedAt || null,
+    claimTxHash: overrides.claimTxHash || null,
+  };
+  issues.unshift(issue);
+  return issue;
 }
 
 function mockEnsureLinkedUser(telegramId) {
@@ -318,6 +354,7 @@ jest.mock('../../src/services/telegramExecutionService.js', () => ({
 
 jest.mock('../../src/services/stealthWalletService.js', () => ({
   __esModule: true,
+  formatStealthNetworkLabel: jest.fn((network) => (String(network || '').toUpperCase() === 'ETHEREUM' ? 'Ethereum Mainnet' : 'Sepolia')),
   listSelectableStealthWallets: jest.fn(async (userId) => {
     const walletRows = [...mockGetWalletRows(userId)];
     const groups = new Map();
@@ -356,6 +393,22 @@ jest.mock('../../src/services/stealthWalletService.js', () => ({
       },
     ];
   }),
+  listSelectableStealthNetworks: jest.fn(() => ([
+    {
+      network: 'SEPOLIA',
+      label: 'Sepolia',
+      kindLabel: 'Ethereum testnet',
+      selectionToken: '1',
+      displayText: '1. Sepolia',
+    },
+    {
+      network: 'ETHEREUM',
+      label: 'Ethereum Mainnet',
+      kindLabel: 'Ethereum mainnet',
+      selectionToken: '2',
+      displayText: '2. Ethereum Mainnet',
+    },
+  ])),
   resolveSelectableStealthWallet: jest.fn((options, input) => {
     const normalized = String(input || '').trim().toLowerCase();
     const digit = normalized.match(/^(\d+)/)?.[1];
@@ -366,15 +419,92 @@ jest.mock('../../src/services/stealthWalletService.js', () => ({
       || options.find((option) => normalized.includes(option.label.toLowerCase()))
       || null;
   }),
-  issueStealthReceiveAddress: jest.fn(async (_userId, option) => ({
-    issueId: `issue-${option.walletRef}`,
-    walletLabel: option.label,
-    walletType: option.walletType,
-    kindLabel: option.kindLabel,
-    stealthAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    stealthMetaAddress: 'st:eth:mock',
-    ephemeralPublicKey: '0x1234',
-  })),
+  resolveSelectableStealthNetwork: jest.fn((options, input) => {
+    const normalized = String(input || '').trim().toLowerCase();
+    const digit = normalized.match(/^(\d+)/)?.[1];
+    if (digit) {
+      return options[Number(digit) - 1] || null;
+    }
+    return options.find((option) => option.label.toLowerCase() === normalized)
+      || options.find((option) => option.network.toLowerCase() === normalized)
+      || null;
+  }),
+  issueStealthReceiveAddress: jest.fn(async (userId, option, network = 'SEPOLIA') => {
+    const issue = mockCreateStealthIssue(userId, option, network);
+    return {
+      issueId: issue.id,
+      walletLabel: issue.walletLabel,
+      walletType: issue.walletType,
+      kindLabel: issue.kindLabel,
+      network: issue.network,
+      networkLabel: issue.networkLabel,
+      destinationAddress: issue.destinationAddress,
+      stealthAddress: issue.stealthAddress,
+      stealthMetaAddress: 'st:eth:mock',
+      ephemeralPublicKey: '0x1234',
+      status: issue.status,
+    };
+  }),
+}));
+
+jest.mock('../../src/services/stealthLifecycleService.js', () => ({
+  __esModule: true,
+  listStealthIssuesForAuthenticatedUser: jest.fn(async (userId, { statuses = [] } = {}) => {
+    const issues = [...mockGetStealthIssues(userId)];
+    if (!Array.isArray(statuses) || statuses.length === 0) {
+      return issues;
+    }
+    return issues.filter((issue) => statuses.includes(issue.status));
+  }),
+  getStealthClaimPreviewForUser: jest.fn(async (userId, issueId) => {
+    const issue = mockGetStealthIssues(userId).find((entry) => entry.id === issueId);
+    if (!issue) {
+      throw new Error('Stealth issue not found');
+    }
+
+    const preview = {
+      issueId: issue.id,
+      stealthAddress: issue.stealthAddress,
+      destinationAddress: issue.destinationAddress,
+      walletLabel: issue.walletLabel,
+      network: issue.network,
+      networkLabel: issue.networkLabel,
+      status: issue.status,
+      balanceWei: issue.lastObservedBalanceWei || '0',
+      balanceEth: issue.lastObservedBalanceEth || '0.0',
+      gasLimit: '21000',
+      maxFeePerGasWei: '1000000000',
+      maxPriorityFeePerGasWei: '1000000000',
+      estimatedFeeWei: '21000000000000',
+      estimatedFeeEth: '0.000021',
+      claimableWei: issue.claimableWei || issue.lastObservedBalanceWei || '0',
+      claimableEth: issue.claimableEth || issue.lastObservedBalanceEth || '0.0',
+      canClaim: issue.status === 'FUNDED' && (issue.claimableWei || issue.lastObservedBalanceWei || '0') !== '0',
+    };
+
+    return { issue, preview };
+  }),
+  claimStealthIssueForUser: jest.fn(async (userId, issueId) => {
+    const issue = mockGetStealthIssues(userId).find((entry) => entry.id === issueId);
+    if (!issue) {
+      throw new Error('Stealth issue not found');
+    }
+
+    issue.status = 'CLAIMED';
+    issue.claimedAt = new Date();
+    issue.claimTxHash = '0xstealthclaim';
+    issue.lastObservedBalanceWei = '0';
+    issue.lastObservedBalanceEth = '0.0';
+
+    return {
+      issue,
+      preview: {
+        claimableWei: issue.claimableWei || '399000000000000000',
+        claimableEth: issue.claimableEth || '0.399',
+      },
+      txHash: issue.claimTxHash,
+    };
+  }),
 }));
 
 jest.mock('../../src/services/ethereumService.js', () => ({
@@ -492,6 +622,7 @@ describe('telegramWebhookController transcript integration', () => {
     mockState.lastRecipientByUserId.clear();
     mockState.savedRecipientsByUserId.clear();
     mockState.activityLogsByUserId.clear();
+    mockState.stealthIssuesByUserId.clear();
     outgoing.length = 0;
 
     jest.clearAllMocks();
@@ -692,7 +823,7 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain('0x7777777777777777777777777777777777777777');
   });
 
-  it('lists account wallets plus the bot wallet and returns a stealth receive address for the selected wallet', async () => {
+  it('lists account wallets plus the bot wallet, asks for a network, and returns a stealth receive address', async () => {
     const telegramId = 1299;
     const user = mockEnsureLinkedUser(telegramId);
 
@@ -710,9 +841,45 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain('Telegram Bot Wallet');
 
     await sendIncomingText('1', { telegramId, chatId: 529 });
+    expect(outgoing[outgoing.length - 1]).toContain('Choose which network');
+    expect(outgoing[outgoing.length - 1]).toContain('Sepolia');
+
+    await sendIncomingText('1', { telegramId, chatId: 529 });
     expect(outgoing[outgoing.length - 1]).toContain('Stealth Address Ready');
     expect(outgoing[outgoing.length - 1]).toContain('Main Wallet');
+    expect(outgoing[outgoing.length - 1]).toContain('Sepolia');
     expect(outgoing[outgoing.length - 1]).toMatch(/0x[a-fA-F0-9]{40}/);
+  });
+
+  it('shows funded stealth issues and completes a stealth claim flow', async () => {
+    const telegramId = 1300;
+    const user = mockEnsureLinkedUser(telegramId);
+    const issue = mockCreateStealthIssue(user.id, {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-main',
+      label: 'Main Wallet',
+      address: '0x9999999999999999999999999999999999999999',
+      kindLabel: 'Account wallet',
+    }, 'SEPOLIA', {
+      status: 'FUNDED',
+      lastObservedBalanceWei: '400000000000000000',
+      lastObservedBalanceEth: '0.4',
+      claimableWei: '399000000000000000',
+      claimableEth: '0.399',
+    });
+
+    await sendIncomingText('/claim', { telegramId, chatId: 530 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claims');
+    expect(outgoing[outgoing.length - 1]).toContain('Main Wallet');
+
+    await sendIncomingText('1', { telegramId, chatId: 530 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claim Preview');
+    expect(outgoing[outgoing.length - 1]).toContain('0.399 ETH');
+
+    await sendIncomingText('yes', { telegramId, chatId: 530 });
+    expect(outgoing[outgoing.length - 1]).toContain('Stealth Claim Submitted');
+    expect(outgoing[outgoing.length - 1]).toContain('0xstealthclaim');
+    expect(issue.status).toBe('CLAIMED');
   });
 
   it('supports confirm and cancel decisions for pending transfer', async () => {

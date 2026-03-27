@@ -55,10 +55,18 @@ import {
   lookupTelegramTransferStatus,
 } from '../services/telegramTxStatusService.js';
 import {
+  formatStealthNetworkLabel,
   issueStealthReceiveAddress,
+  listSelectableStealthNetworks,
+  resolveSelectableStealthNetwork,
   listSelectableStealthWallets,
   resolveSelectableStealthWallet,
 } from '../services/stealthWalletService.js';
+import {
+  claimStealthIssueForUser,
+  getStealthClaimPreviewForUser,
+  listStealthIssuesForAuthenticatedUser,
+} from '../services/stealthLifecycleService.js';
 import { applyLinkCode } from './telegramController.js';
 import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
@@ -117,6 +125,7 @@ const THANKS_RE = /\b(thanks|thank you|thx)\b/i;
 const HOW_ARE_YOU_RE = /\b(how are you|how's it going|how r u)\b/i;
 const WHO_ARE_YOU_RE = /\b(who are you|what are you)\b/i;
 const STEALTH_RE = /\b(stealth|private receive|private receiving|hidden receive)\b/i;
+const STEALTH_CLAIM_RE = /\b(claim|sweep)\b.*\b(stealth|private|receive|funds|address)\b|\b(stealth|private)\b.*\b(claim|sweep)\b/i;
 const CONVERSATION_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const CONVERSATIONAL_V2_ENABLED = telegramConfig.TELEGRAM_CONVERSATIONAL_V2;
 
@@ -472,7 +481,13 @@ async function sendBotMessage(chatId, telegramId, text, extra = getRemoveKeyboar
 async function resetConversationFlow(telegramId, reason = null) {
   setTransferDraft(telegramId, null);
   setPendingIntent(telegramId, null);
-  updateContext(telegramId, { stealthWalletOptions: null });
+  updateContext(telegramId, {
+    stealthWalletOptions: null,
+    selectedStealthWallet: null,
+    stealthNetworkOptions: null,
+    stealthClaimIssues: null,
+    pendingStealthClaim: null,
+  });
   setScene(telegramId, 'idle', 'ready', reason ? { resetReason: reason } : {});
 }
 
@@ -629,6 +644,19 @@ function isStealthAddressIntent(text) {
   );
 }
 
+function isStealthClaimIntent(text) {
+  return STEALTH_CLAIM_RE.test(String(text || '').trim().toLowerCase());
+}
+
+function normalizeSelectionInput(value) {
+  return String(value || '').toLowerCase().trim();
+}
+
+function formatShortStealthAddress(address) {
+  if (!address || address.length < 12) return address || 'n/a';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 function buildStealthWalletSelectionMessage(options) {
   const optionLines = options.map((option) => `*${option.selectionToken}.* ${option.label} — \`${option.shortAddress}\``);
 
@@ -660,19 +688,118 @@ function getStealthWalletReplyMarkup(options) {
   });
 }
 
+function buildStealthNetworkSelectionMessage(walletLabel, options) {
+  const optionLines = options.map((option) => `*${option.selectionToken}.* ${option.label}`);
+
+  return [
+    '🕶️ *Stealth Receive*',
+    '',
+    `Wallet: *${walletLabel}*`,
+    '',
+    'Choose which network this private receive address should be used on:',
+    '',
+    optionLines.join('\n'),
+    '',
+    'Reply with the number or network name. Send *cancel* to stop.',
+  ].join('\n');
+}
+
+function getStealthNetworkReplyMarkup(options) {
+  const rows = options.map((option) => [`${option.selectionToken}. ${option.label}`]);
+  rows.push(['Cancel']);
+  return buildReplyKeyboard(rows, {
+    placeholder: 'Choose Ethereum or Sepolia',
+    oneTime: true,
+  });
+}
+
 function buildStealthAddressReadyMessage(result) {
   return [
     '🕶️ *Stealth Address Ready*',
     '',
     `Wallet: *${result.walletLabel}*`,
     `Type: ${result.kindLabel}`,
-    'Network: Ethereum-compatible',
+    `Network: ${result.networkLabel}`,
     '',
     'One-time private receive address:',
     `\`${result.stealthAddress}\``,
     '',
     'Share this address to receive funds privately.',
     'Ask again anytime to generate another one.',
+  ].join('\n');
+}
+
+function resolveStealthClaimSelection(options, input) {
+  const normalizedInput = normalizeSelectionInput(input);
+  if (!normalizedInput) return null;
+
+  const digitMatch = normalizedInput.match(/^(\d{1,2})\b/);
+  if (digitMatch) {
+    const numericIndex = Number.parseInt(digitMatch[1], 10) - 1;
+    if (numericIndex >= 0 && numericIndex < options.length) {
+      return options[numericIndex];
+    }
+  }
+
+  return options.find((option) => {
+    const walletLabel = normalizeSelectionInput(option.walletLabel);
+    const stealthAddress = normalizeSelectionInput(option.stealthAddress);
+    const displayText = normalizeSelectionInput(option.displayText);
+    return normalizedInput === walletLabel
+      || normalizedInput === stealthAddress
+      || normalizedInput === displayText
+      || normalizedInput.includes(walletLabel)
+      || normalizedInput.includes(stealthAddress);
+  }) || null;
+}
+
+function buildStealthClaimSelectionMessage(issues) {
+  const optionLines = issues.map((issue) => (
+    `*${issue.selectionToken}.* ${issue.walletLabel} — ${issue.lastObservedBalanceEth} ETH on ${issue.networkLabel}\n   \`${formatShortStealthAddress(issue.stealthAddress)}\``
+  ));
+
+  return [
+    '🧾 *Stealth Claims*',
+    '',
+    'Choose which funded stealth address you want to sweep:',
+    '',
+    optionLines.join('\n'),
+    '',
+    'Reply with the number or wallet name. Send *cancel* to stop.',
+  ].join('\n');
+}
+
+function getStealthClaimReplyMarkup(issues) {
+  const rows = [];
+  for (let index = 0; index < issues.length; index += 2) {
+    const left = issues[index];
+    const right = issues[index + 1];
+    rows.push([
+      left ? `${left.selectionToken}. ${left.walletLabel}` : null,
+      right ? `${right.selectionToken}. ${right.walletLabel}` : null,
+    ]);
+  }
+  rows.push(['Cancel']);
+  return buildReplyKeyboard(rows, {
+    placeholder: 'Choose a stealth address to claim',
+    oneTime: true,
+  });
+}
+
+function buildStealthClaimPreviewMessage(issue, preview) {
+  return [
+    '💸 *Stealth Claim Preview*',
+    '',
+    `Wallet: *${issue.walletLabel}*`,
+    `Network: ${issue.networkLabel}`,
+    `Stealth address: \`${issue.stealthAddress}\``,
+    `Destination: \`${issue.destinationAddress}\``,
+    '',
+    `Detected balance: *${preview.balanceEth} ETH*`,
+    `Estimated gas: *${preview.estimatedFeeEth} ETH*`,
+    `Claimable now: *${preview.claimableEth} ETH*`,
+    '',
+    'Reply *yes* to sweep this into the selected wallet, or *cancel* to stop.',
   ].join('\n');
 }
 
@@ -732,9 +859,57 @@ async function handleStealthWalletSelection(chatId, telegramId, user, text) {
     );
   }
 
-  const issuedAddress = await issueStealthReceiveAddress(user.id, selection);
+  updateContext(telegramId, {
+    selectedStealthWallet: selection,
+    stealthNetworkOptions: listSelectableStealthNetworks(),
+    lastIntent: 'stealth_receive',
+  });
+  setScene(telegramId, 'stealth', 'select_network');
+
+  return sendBotMessage(
+    chatId,
+    telegramId,
+    buildStealthNetworkSelectionMessage(selection.label, listSelectableStealthNetworks()),
+    getStealthNetworkReplyMarkup(listSelectableStealthNetworks())
+  );
+}
+
+async function handleStealthNetworkSelection(chatId, telegramId, user, text) {
+  const context = getContext(telegramId) || {};
+  const selectedWallet = context.selectedStealthWallet || null;
+  const options = Array.isArray(context.stealthNetworkOptions) ? context.stealthNetworkOptions : listSelectableStealthNetworks();
+
+  if (/^cancel$/i.test(String(text || '').trim())) {
+    updateContext(telegramId, {
+      stealthWalletOptions: null,
+      selectedStealthWallet: null,
+      stealthNetworkOptions: null,
+      lastIntent: 'stealth_receive',
+    });
+    setScene(telegramId, 'idle', 'ready');
+    return sendBotPlain(chatId, telegramId, 'Stealth address request cancelled.');
+  }
+
+  if (!selectedWallet) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_receive' });
+    return sendBotPlain(chatId, telegramId, 'That stealth selection expired. Ask for a stealth address again and I will restart it.');
+  }
+
+  const selectedNetwork = resolveSelectableStealthNetwork(options, text);
+  if (!selectedNetwork) {
+    return sendBotPlain(
+      chatId,
+      telegramId,
+      'I did not recognize that network choice.\n\nReply with the number, the network name, or send cancel.',
+      getStealthNetworkReplyMarkup(options)
+    );
+  }
+
+  const issuedAddress = await issueStealthReceiveAddress(user.id, selectedWallet, selectedNetwork.network);
   updateContext(telegramId, {
     stealthWalletOptions: null,
+    selectedStealthWallet: null,
+    stealthNetworkOptions: null,
     lastStealthAddress: issuedAddress.stealthAddress,
     lastStealthWalletLabel: issuedAddress.walletLabel,
     lastIntent: 'stealth_receive',
@@ -742,6 +917,124 @@ async function handleStealthWalletSelection(chatId, telegramId, user, text) {
   setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_receive' });
 
   return sendBotMessage(chatId, telegramId, buildStealthAddressReadyMessage(issuedAddress));
+}
+
+async function handleStealthClaimStart(chatId, telegramId, user) {
+  const issues = await listStealthIssuesForAuthenticatedUser(user.id, { statuses: ['FUNDED'] });
+
+  if (!issues.length) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(chatId, telegramId, 'No funded stealth addresses are ready to claim right now.\n\nOnce funds arrive, I will notify you and you can use /claim.');
+  }
+
+  const claimOptions = issues.map((issue, index) => ({
+    ...issue,
+    selectionToken: String(index + 1),
+    displayText: `${index + 1}. ${issue.walletLabel}`,
+  }));
+
+  updateContext(telegramId, {
+    stealthClaimIssues: claimOptions,
+    pendingStealthClaim: null,
+    lastIntent: 'stealth_claim',
+  });
+  setScene(telegramId, 'stealth', 'claim_select_issue');
+
+  return sendBotMessage(
+    chatId,
+    telegramId,
+    buildStealthClaimSelectionMessage(claimOptions),
+    getStealthClaimReplyMarkup(claimOptions)
+  );
+}
+
+async function handleStealthClaimSelection(chatId, telegramId, user, text) {
+  const context = getContext(telegramId) || {};
+  const issues = Array.isArray(context.stealthClaimIssues) ? context.stealthClaimIssues : [];
+
+  if (/^cancel$/i.test(String(text || '').trim())) {
+    updateContext(telegramId, { stealthClaimIssues: null, pendingStealthClaim: null, lastIntent: 'stealth_claim' });
+    setScene(telegramId, 'idle', 'ready');
+    return sendBotPlain(chatId, telegramId, 'Stealth claim cancelled.');
+  }
+
+  if (!issues.length) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(chatId, telegramId, 'That stealth claim selection expired. Use /claim again and I will restart it.');
+  }
+
+  const selectedIssue = resolveStealthClaimSelection(issues, text);
+  if (!selectedIssue) {
+    return sendBotPlain(
+      chatId,
+      telegramId,
+      'I did not recognize that stealth address choice.\n\nReply with the number, the wallet name, or send cancel.',
+      getStealthClaimReplyMarkup(issues)
+    );
+  }
+
+  const result = await getStealthClaimPreviewForUser(user.id, selectedIssue.id);
+  if (!result.preview.canClaim) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    updateContext(telegramId, { stealthClaimIssues: null, pendingStealthClaim: null });
+    return sendBotPlain(
+      chatId,
+      telegramId,
+      result.preview.balanceWei === '0'
+        ? 'No funds are available on that stealth address right now.'
+        : 'That stealth address has funds, but not enough ETH to cover the sweep gas yet.'
+    );
+  }
+
+  updateContext(telegramId, {
+    pendingStealthClaim: {
+      issueId: selectedIssue.id,
+    },
+    stealthClaimIssues: null,
+    lastIntent: 'stealth_claim',
+  });
+  setScene(telegramId, 'stealth', 'claim_confirm');
+
+  return sendBotMessage(chatId, telegramId, buildStealthClaimPreviewMessage(result.issue, result.preview));
+}
+
+async function handleStealthClaimConfirm(chatId, telegramId, user, text) {
+  const context = getContext(telegramId) || {};
+  const pendingClaim = context.pendingStealthClaim || null;
+  const normalizedText = String(text || '').trim().toLowerCase();
+
+  if (!pendingClaim?.issueId) {
+    setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+    return sendBotPlain(chatId, telegramId, 'That stealth claim expired. Use /claim again and I will restart it.');
+  }
+
+  if (/^(cancel|no|n)$/i.test(normalizedText)) {
+    updateContext(telegramId, { pendingStealthClaim: null, lastIntent: 'stealth_claim' });
+    setScene(telegramId, 'idle', 'ready');
+    return sendBotPlain(chatId, telegramId, 'Stealth claim cancelled.');
+  }
+
+  if (!/^(yes|y|confirm)$/i.test(normalizedText)) {
+    return sendBotPlain(chatId, telegramId, 'Reply yes to confirm the stealth claim, or cancel to stop.');
+  }
+
+  const result = await claimStealthIssueForUser(user.id, pendingClaim.issueId);
+  updateContext(telegramId, { pendingStealthClaim: null, lastIntent: 'stealth_claim' });
+  setScene(telegramId, 'idle', 'ready', { lastIntent: 'stealth_claim' });
+
+  return sendBotMessage(
+    chatId,
+    telegramId,
+    [
+      '✅ *Stealth Claim Submitted*',
+      '',
+      `Wallet: *${result.issue.walletLabel}*`,
+      `Network: ${result.issue.networkLabel}`,
+      `Destination: \`${result.issue.destinationAddress}\``,
+      `Claimed: *${result.preview.claimableEth} ETH*`,
+      `Hash: \`${result.txHash}\``,
+    ].join('\n')
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -962,8 +1255,19 @@ async function handleFreeText(chatId, telegramId, text) {
 
     updateContext(telegramId, { userId: user.id });
 
-    if (getContext(telegramId)?.scene === 'stealth' && getContext(telegramId)?.currentStep === 'select_wallet') {
-      return handleStealthWalletSelection(chatId, telegramId, user, text);
+    if (getContext(telegramId)?.scene === 'stealth') {
+      if (getContext(telegramId)?.currentStep === 'select_wallet') {
+        return handleStealthWalletSelection(chatId, telegramId, user, text);
+      }
+      if (getContext(telegramId)?.currentStep === 'select_network') {
+        return handleStealthNetworkSelection(chatId, telegramId, user, text);
+      }
+      if (getContext(telegramId)?.currentStep === 'claim_select_issue') {
+        return handleStealthClaimSelection(chatId, telegramId, user, text);
+      }
+      if (getContext(telegramId)?.currentStep === 'claim_confirm') {
+        return handleStealthClaimConfirm(chatId, telegramId, user, text);
+      }
     }
 
     if (normalizedText === 'help') {
@@ -1001,6 +1305,10 @@ async function handleFreeText(chatId, telegramId, text) {
 
     if (normalizedText === 'stealth' || isStealthAddressIntent(text)) {
       return handleStealthStart(chatId, telegramId, user);
+    }
+
+    if (normalizedText === 'claim' || isStealthClaimIntent(text)) {
+      return handleStealthClaimStart(chatId, telegramId, user);
     }
 
     if (normalizedText === 'send crypto' || normalizedText === 'send') {
@@ -1286,8 +1594,13 @@ export async function handleWebhook(req, res) {
           if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
           return handleStealthStart(chatId, telegramId, user);
         }
+        case 'claim': {
+          const user = await getUserByTelegramId(telegramId);
+          if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+          return handleStealthClaimStart(chatId, telegramId, user);
+        }
         case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, or /stealth.`);
+        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, /stealth, or /claim.`);
       }
     } else {
       return handleFreeText(chatId, telegramId, text);
