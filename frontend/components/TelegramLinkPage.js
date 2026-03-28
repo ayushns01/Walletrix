@@ -48,6 +48,32 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
   const [claimingIssueId, setClaimingIssueId] = useState('')
   const [claimPreview, setClaimPreview] = useState(null)
 
+  const applyStealthIssueUpdate = useCallback((nextIssue, nextPreview = null) => {
+    if (!nextIssue?.id) return
+
+    setStealthIssues((current) => {
+      const exists = current.some((issue) => issue.id === nextIssue.id)
+      const updated = exists
+        ? current.map((issue) => (issue.id === nextIssue.id ? { ...issue, ...nextIssue } : issue))
+        : [nextIssue, ...current]
+
+      return [...updated].sort((left, right) => (
+        new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime()
+      ))
+    })
+
+    setClaimPreview((current) => {
+      if (!current || current.issue?.id !== nextIssue.id) {
+        return current
+      }
+
+      return {
+        issue: { ...current.issue, ...nextIssue },
+        preview: nextPreview || current.preview,
+      }
+    })
+  }, [])
+
   const loadStatus = useCallback(async ({ silent = false } = {}) => {
     if (!isSignedIn) return
 
@@ -69,12 +95,15 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
         setStealthIssues([])
         setClaimPreview(null)
       }
+
+      return response
     } catch (err) {
       const message = err?.response?.data?.error || err.message || 'Failed to load Telegram status'
       setError(message)
       if (!silent) {
         toast.error(message)
       }
+      return null
     } finally {
       setLoading(false)
     }
@@ -191,7 +220,10 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
       const token = await getToken()
       if (!token) return
 
-      await stealthAPI.refreshIssue(token, issueId)
+      const response = await stealthAPI.refreshIssue(token, issueId)
+      if (response?.issue) {
+        applyStealthIssueUpdate(response.issue)
+      }
       await loadStealthIssues({ silent: true })
       toast.success('Stealth issue refreshed')
     } catch (err) {
@@ -209,6 +241,9 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
       if (!token) return
 
       const response = await stealthAPI.getClaimPreview(token, issueId)
+      if (response?.issue) {
+        applyStealthIssueUpdate(response.issue, response.preview)
+      }
       setClaimPreview({
         issue: response.issue,
         preview: response.preview,
@@ -230,6 +265,9 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
       if (!token) return
 
       const response = await stealthAPI.claimIssue(token, claimPreview.issue.id)
+      if (response?.issue) {
+        applyStealthIssueUpdate(response.issue, response.preview)
+      }
       setClaimPreview(null)
       await loadStealthIssues({ silent: true })
       toast.success(`Stealth claim submitted: ${formatAddress(response.txHash || '', 8, 6)}`)
@@ -238,6 +276,13 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
       toast.error(message)
     } finally {
       setClaimingIssueId('')
+    }
+  }
+
+  const handlePageRefresh = async () => {
+    const nextStatus = await loadStatus()
+    if (nextStatus?.linked || status?.linked) {
+      await loadStealthIssues()
     }
   }
 
@@ -266,11 +311,11 @@ export default function TelegramLinkPage({ isSignedIn, getToken, onBack }) {
           </div>
 
           <button
-            onClick={() => loadStatus()}
-            disabled={loading}
+            onClick={handlePageRefresh}
+            disabled={loading || stealthLoading}
             className="inline-flex items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition-all hover:bg-sky-500/20 disabled:opacity-60"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${loading || stealthLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
