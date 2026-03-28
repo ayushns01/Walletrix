@@ -464,6 +464,33 @@ function decoratePersistedIssueRecord(issue) {
   };
 }
 
+async function hydrateLegacyIssueDestination(issue) {
+  if (!issue || issue.destinationAddress) {
+    return issue;
+  }
+
+  const profile = issue.profile || null;
+  if (!profile?.userId || !profile?.walletType || !profile?.walletRef) {
+    return issue;
+  }
+
+  const destinationAddress = await resolveStealthDestinationAddress(profile.userId, {
+    walletType: profile.walletType,
+    walletRef: profile.walletRef,
+    label: profile.walletLabel || issue.walletLabel || 'My Wallet',
+    address: issue.destinationAddress || '',
+  });
+
+  if (!destinationAddress) {
+    return issue;
+  }
+
+  return {
+    ...issue,
+    destinationAddress,
+  };
+}
+
 export async function issueStealthReceiveAddress(userId, option, network = 'SEPOLIA') {
   const profile = await getOrCreateStealthProfile(userId, option, network);
   const destinationAddress = await resolveStealthDestinationAddress(userId, option);
@@ -511,7 +538,7 @@ export async function findStealthIssueForUser(userId, issueId) {
         },
       });
       if (issue) {
-        return decoratePersistedIssueRecord(issue);
+        return hydrateLegacyIssueDestination(decoratePersistedIssueRecord(issue));
       }
     } catch (error) {
       if (!isTableMissingError(error)) {
@@ -547,7 +574,7 @@ export async function listStealthIssuesForUser(userId, { statuses = [] } = {}) {
         },
         orderBy: { createdAt: 'desc' },
       });
-      return issues.map(decoratePersistedIssueRecord);
+      return Promise.all(issues.map(async (issue) => hydrateLegacyIssueDestination(decoratePersistedIssueRecord(issue))));
     } catch (error) {
       if (!isTableMissingError(error)) {
         logger.error('[StealthWallet] Failed to list stealth issues', {

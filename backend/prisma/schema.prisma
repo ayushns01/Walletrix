@@ -131,7 +131,7 @@ model StealthAddressIssue {
   stealthAddress    String               @map("stealth_address")
   ephemeralPublicKey String              @map("ephemeral_public_key")
   network           Network              @default(ETHEREUM)
-  destinationAddress String              @map("destination_address")
+  destinationAddress String?             @map("destination_address")
   status            StealthAddressStatus @default(ACTIVE)
   createdAt         DateTime             @default(now()) @map("created_at")
   usedAt            DateTime?            @map("used_at")
