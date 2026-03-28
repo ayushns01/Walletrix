@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "npx prisma generate && nodemon src/index.js",
     "start": "npx prisma generate && node src/index.js",
     "build": "npm install && npx prisma generate",
     "lint": "echo \"Backend lint is not configured yet\"",
