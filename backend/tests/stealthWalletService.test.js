@@ -64,24 +64,45 @@ jest.mock('../src/services/loggerService.js', () => ({
 jest.mock('../src/services/stealthAddressService.js', () => ({
   __esModule: true,
   default: {
-    generateStealthKeys: jest.fn(),
-    generateStealthAddress: jest.fn(),
+    generateStealthKeys: jest.fn(() => ({
+      scanPublicKey: 'scan-public',
+      spendPublicKey: 'spend-public',
+      scanPrivateKey: 'scan-private',
+      spendPrivateKey: 'spend-private',
+      stealthMetaAddress: 'st:eth:mock',
+    })),
+    generateStealthAddress: jest.fn(() => ({
+      stealthAddress: '0xcccccccccccccccccccccccccccccccccccccccc',
+      ephemeralPublicKey: '0x9999',
+    })),
     deriveStealthPrivateKey: jest.fn(),
   },
 }));
 
 import {
   findStealthIssueForUser,
+  issueStealthReceiveAddress,
   listStealthIssuesForUser,
 } from '../src/services/stealthWalletService.js';
 
 describe('stealthWalletService legacy issue hydration', () => {
+  const originalAllowMemoryFallback = process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK;
+
   beforeEach(() => {
     mockWalletRows.clear();
     mockBotWallets.clear();
     mockIssuesById.clear();
     mockIssuesByUserId.clear();
     jest.clearAllMocks();
+    delete process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK;
+  });
+
+  afterAll(() => {
+    if (typeof originalAllowMemoryFallback === 'string') {
+      process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK = originalAllowMemoryFallback;
+    } else {
+      delete process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK;
+    }
   });
 
   it('resolves destinationAddress for a legacy account-wallet issue from the linked wallet group', async () => {
@@ -146,5 +167,16 @@ describe('stealthWalletService legacy issue hydration', () => {
     expect(issues).toHaveLength(1);
     expect(issues[0].destinationAddress).toBe('0x2222222222222222222222222222222222222222');
     expect(issues[0].walletLabel).toBe('Telegram Bot Wallet');
+  });
+
+  it('throws instead of creating a memory-only stealth issue when fallback is disabled', async () => {
+    process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK = 'false';
+
+    await expect(issueStealthReceiveAddress('user-3', {
+      walletType: 'ACCOUNT_WALLET',
+      walletRef: 'grp-main',
+      label: 'Main Wallet',
+      address: '0x3333333333333333333333333333333333333333',
+    }, 'SEPOLIA')).rejects.toThrow('Stealth address persistence is unavailable');
   });
 });

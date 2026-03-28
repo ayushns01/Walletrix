@@ -26,6 +26,10 @@ function hasStealthProfileDelegate() {
   return !!(prisma.stealthWalletProfile && typeof prisma.stealthWalletProfile.findUnique === 'function');
 }
 
+function hasStealthProfileCreateDelegate() {
+  return !!(prisma.stealthWalletProfile && typeof prisma.stealthWalletProfile.create === 'function');
+}
+
 function hasStealthIssueCreateDelegate() {
   return !!(prisma.stealthAddressIssue && typeof prisma.stealthAddressIssue.create === 'function');
 }
@@ -56,6 +60,13 @@ function truncateAddress(address) {
 
 function buildProfileKey(userId, walletType, walletRef, network) {
   return `${String(userId)}:${String(walletType)}:${String(walletRef)}:${String(network)}`;
+}
+
+function allowInMemoryStealthFallback() {
+  if (typeof process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK === 'string') {
+    return process.env.ALLOW_IN_MEMORY_STEALTH_FALLBACK === 'true';
+  }
+  return process.env.NODE_ENV === 'test';
 }
 
 function deriveEncryptionKey() {
@@ -322,7 +333,7 @@ async function loadPersistedProfile(userId, option, network) {
 }
 
 async function createPersistedProfile(userId, option, generatedKeys, network) {
-  if (!hasStealthProfileDelegate()) return null;
+  if (!hasStealthProfileCreateDelegate()) return null;
 
   try {
     return await prisma.stealthWalletProfile.create({
@@ -358,13 +369,14 @@ async function createPersistedProfile(userId, option, generatedKeys, network) {
 export async function getOrCreateStealthProfile(userId, option, network = 'SEPOLIA') {
   const resolvedNetwork = normalizeStealthNetwork(network, 'SEPOLIA');
   const memoryKey = buildProfileKey(userId, option.walletType, option.walletRef, resolvedNetwork);
+  const allowMemoryFallback = allowInMemoryStealthFallback();
 
   const persisted = await loadPersistedProfile(userId, option, resolvedNetwork);
   if (persisted) {
     return persisted;
   }
 
-  const existingMemoryProfile = memoryProfiles.get(memoryKey);
+  const existingMemoryProfile = allowMemoryFallback ? memoryProfiles.get(memoryKey) : null;
   if (existingMemoryProfile) {
     return existingMemoryProfile;
   }
@@ -373,6 +385,10 @@ export async function getOrCreateStealthProfile(userId, option, network = 'SEPOL
   const createdProfile = await createPersistedProfile(userId, option, generatedKeys, resolvedNetwork);
   if (createdProfile) {
     return createdProfile;
+  }
+
+  if (!allowMemoryFallback) {
+    throw new Error('Stealth address persistence is unavailable');
   }
 
   const memoryProfile = {
@@ -492,6 +508,7 @@ async function hydrateLegacyIssueDestination(issue) {
 }
 
 export async function issueStealthReceiveAddress(userId, option, network = 'SEPOLIA') {
+  const allowMemoryFallback = allowInMemoryStealthFallback();
   const profile = await getOrCreateStealthProfile(userId, option, network);
   const destinationAddress = await resolveStealthDestinationAddress(userId, option);
   if (!destinationAddress) {
@@ -500,6 +517,9 @@ export async function issueStealthReceiveAddress(userId, option, network = 'SEPO
 
   const generatedAddress = stealthAddressService.generateStealthAddress(profile.stealthMetaAddress);
   const issuedRecord = await persistIssuedAddress(profile, generatedAddress, destinationAddress);
+  if (!issuedRecord && !allowMemoryFallback) {
+    throw new Error('Stealth address persistence is unavailable');
+  }
   const issue = issuedRecord
     ? decoratePersistedIssueRecord(issuedRecord)
     : buildMemoryIssueRecord(userId, profile, option, generatedAddress, destinationAddress);
@@ -534,7 +554,16 @@ export async function findStealthIssueForUser(userId, issueId) {
           },
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  telegramId: true,
+                },
+              },
+            },
+          },
         },
       });
       if (issue) {
@@ -550,6 +579,10 @@ export async function findStealthIssueForUser(userId, issueId) {
         throw error;
       }
     }
+  }
+
+  if (!allowInMemoryStealthFallback()) {
+    return null;
   }
 
   const issue = memoryIssues.get(String(issueId));
@@ -570,7 +603,16 @@ export async function listStealthIssuesForUser(userId, { statuses = [] } = {}) {
           ...(normalizedStatuses.length ? { status: { in: normalizedStatuses } } : {}),
         },
         include: {
-          profile: true,
+          profile: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  telegramId: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -584,6 +626,10 @@ export async function listStealthIssuesForUser(userId, { statuses = [] } = {}) {
         throw error;
       }
     }
+  }
+
+  if (!allowInMemoryStealthFallback()) {
+    return [];
   }
 
   return [...memoryIssues.values()]
@@ -612,6 +658,10 @@ export async function updateStealthIssue(issueId, data) {
         throw error;
       }
     }
+  }
+
+  if (!allowInMemoryStealthFallback()) {
+    return null;
   }
 
   const existing = memoryIssues.get(String(issueId));

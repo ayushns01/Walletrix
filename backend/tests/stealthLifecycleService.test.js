@@ -117,6 +117,7 @@ import { loadConversationSession, saveConversationSession } from '../src/service
 import {
   claimStealthIssueForUser,
   getStealthClaimPreviewForUser,
+  listStealthIssuesForAuthenticatedUser,
   pollStealthIssueMonitor,
 } from '../src/services/stealthLifecycleService.js';
 
@@ -241,6 +242,28 @@ describe('stealthLifecycleService', () => {
     expect(result.preview.estimatedFeeWei).toBe('21000000000000');
     expect(result.preview.claimableWei).toBe('399979000000000000');
     expect(result.preview.canClaim).toBe(true);
+  });
+
+  it('refreshes active stealth issues when listing them for the authenticated user', async () => {
+    seedIssue({
+      id: 'issue-list-refresh',
+      telegramId: '9010',
+      status: 'ACTIVE',
+      lastObservedBalanceWei: '0',
+    });
+
+    mockProvider.getBalance.mockResolvedValue(250000000000000000n);
+
+    const issues = await listStealthIssuesForAuthenticatedUser('user-1');
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0].status).toBe('FUNDED');
+    expect(issues[0].lastObservedBalanceWei).toBe('250000000000000000');
+    expect(sendPlainMessage).toHaveBeenCalledWith(
+      '9010',
+      expect.stringContaining('Would you like to claim it now?'),
+      expect.any(Object),
+    );
   });
 
   it('claims a funded stealth issue and marks it claimed', async () => {

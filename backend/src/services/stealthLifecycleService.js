@@ -230,7 +230,28 @@ async function refreshStealthIssueRecord(issue, { notifyOnTransition = false, pr
 
 export async function listStealthIssuesForAuthenticatedUser(userId, options = {}) {
   const issues = await listStealthIssuesForUser(userId, options);
-  return issues.map(serializeStealthIssue);
+  if (!issues.length) {
+    return [];
+  }
+
+  const refreshedIssues = await Promise.all(issues.map(async (issue) => {
+    if (issue.status === 'CLAIMED') {
+      return serializeStealthIssue(issue);
+    }
+
+    try {
+      return await refreshStealthIssueRecord(issue, { notifyOnTransition: true });
+    } catch (error) {
+      logger.warn('[StealthLifecycle] Failed to refresh issue during list', {
+        userId,
+        issueId: issue.id,
+        error: error.message,
+      });
+      return serializeStealthIssue(issue);
+    }
+  }));
+
+  return refreshedIssues;
 }
 
 export async function refreshStealthIssueForUser(userId, issueId) {
@@ -241,7 +262,7 @@ export async function refreshStealthIssueForUser(userId, issueId) {
     throw error;
   }
 
-  return refreshStealthIssueRecord(issue);
+  return refreshStealthIssueRecord(issue, { notifyOnTransition: true });
 }
 
 export async function getStealthClaimPreviewForUser(userId, issueId) {
