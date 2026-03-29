@@ -15,7 +15,9 @@ The current implementation is strongest in two areas:
 - Wallet generation and mnemonic import for Ethereum, Bitcoin, and Solana addresses
 - Password-based encrypted wallet storage using AES-256-GCM with PBKDF2-SHA256
 - Unified dashboard with balances, token views, price lookups, notifications, and settings
+- Premium desktop-first opened-wallet workspace with a denser portfolio shell, upgraded network controls, and refreshed send / receive modals
 - Smart-vault and smart-account scaffolding for ERC-4337 style flows
+- Sepolia-only supported-token demo flow where Walletrix can source mock ERC-20 sends from Sepolia ETH
 
 ### Telegram Assistant
 
@@ -27,6 +29,28 @@ The current implementation is strongest in two areas:
 - Recent transfer and transaction-status lookup
 - Wallet funding and low-balance notifications for the bot wallet
 - Stealth receive-address generation linked to a selected wallet context
+- Funded stealth-address detection, Telegram claim prompts, claim preview, and manual sweep flow back to the selected wallet
+
+## Sepolia Auto-Swap Demo
+
+Walletrix now includes a Sepolia-only demo lane for frictionless ERC-20 sends from ETH-backed value.
+
+- The dashboard shows a supported-token catalog on `ethereum-sepolia` instead of mock token balances
+- The send modal lets the user choose `ETH` or a supported Sepolia demo token
+- If a supported token is chosen, Walletrix quotes the required Sepolia ETH, estimated gas, and total ETH outflow
+- The router-backed send path is wired in the frontend and is ready to use once the demo contracts are deployed and the generated manifest contains real addresses
+
+The canonical token metadata lives in:
+
+- [contracts/config/sepoliaAutoSwapCatalog.json](/Users/ayushns01/Desktop/Repositories/Walletrix/contracts/config/sepoliaAutoSwapCatalog.json)
+
+The generated frontend manifest lives in:
+
+- [frontend/lib/generated/sepoliaAutoSwapManifest.json](/Users/ayushns01/Desktop/Repositories/Walletrix/frontend/lib/generated/sepoliaAutoSwapManifest.json)
+
+The Foundry deployment script lives in:
+
+- [contracts/script/DeploySepoliaAutoSwap.s.sol](/Users/ayushns01/Desktop/Repositories/Walletrix/contracts/script/DeploySepoliaAutoSwap.s.sol)
 
 ## Network Support
 
@@ -165,5 +189,5 @@ Walletrix/
 
 - Bitcoin support is not fully symmetric with EVM and Solana send flows yet.
 - The Telegram bot currently executes from a dedicated bot EOA, not from the user's primary wallet.
-- Stealth receive-address issuance is implemented, but claim/sweep lifecycle is still future work.
+- The Sepolia auto-swap demo requires a real Sepolia deployment before router-backed token sends can succeed end to end.
 - Smart-vault and multisig modules are present in the codebase, but the main polished user flow today is the wallet + Telegram assistant path.
