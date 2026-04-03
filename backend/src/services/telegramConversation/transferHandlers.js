@@ -2,6 +2,7 @@ import {
   buildTransferConfirmedMessage,
   buildTransferSubmittedMessage,
 } from '../telegramNotificationService.js';
+import { BARE_TRANSFER_TOKEN_RE } from '../../config/transferTokens.js';
 
 function buildTransferConfirmMessage(details) {
   const recipientSummary = details.recipientLabel
@@ -12,7 +13,7 @@ function buildTransferConfirmMessage(details) {
 }
 
 const BARE_AMOUNT_RE = /^\d+(?:\.\d+)?$/;
-const BARE_TOKEN_RE = /^(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)$/i;
+const BARE_TOKEN_RE = BARE_TRANSFER_TOKEN_RE;
 
 function formatEditedFieldList(fields) {
   if (fields.length === 1) return fields[0];

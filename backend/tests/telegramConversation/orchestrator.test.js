@@ -5,6 +5,27 @@ import {
 } from '../../src/services/telegramConversation/orchestrator.js';
 
 describe('telegram conversation orchestrator', () => {
+  it.each(['WUSD', 'WDAI', 'WLINK', 'WWBTC', 'WGLD'])(
+    'extracts Sepolia demo token %s heuristically',
+    (tokenSymbol) => {
+      const extracted = extractHeuristicTransferFields(
+        `send 1 ${tokenSymbol.toLowerCase()} to 0x1111111111111111111111111111111111111111`
+      );
+      const action = decideConversationAction({
+        text: `send 1 ${tokenSymbol.toLowerCase()} to 0x1111111111111111111111111111111111111111`,
+        intent: 'unknown',
+        confidence: 0,
+        details: { tokenSymbol: null, amount: null, recipientAddress: null, chain: null },
+        extracted,
+      });
+
+      expect(extracted.tokenSymbol).toBe(tokenSymbol);
+      expect(action.type).toBe('prepare_transfer');
+      expect(action.details.tokenSymbol).toBe(tokenSymbol);
+      expect(action.missing).toEqual([]);
+    }
+  );
+
   it('routes high-confidence balance intent to request_balance', () => {
     const action = decideConversationAction({
       text: 'check my balance',

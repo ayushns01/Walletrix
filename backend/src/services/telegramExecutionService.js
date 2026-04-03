@@ -14,6 +14,14 @@ import crypto from 'crypto';
 import prisma from '../lib/prisma.js';
 import telegramConfig from '../config/telegram.js';
 import { TOKEN_REGISTRY, CHAIN_RPC, CHAIN_NAME_TO_ID, DEFAULT_CHAIN_ID } from '../config/tokens.js';
+import {
+  SEPOLIA_AUTO_SWAP_CHAIN_ID,
+  SEPOLIA_AUTO_SWAP_ROUTER_ABI,
+} from '../config/sepoliaAutoSwap.js';
+import {
+  buildSepoliaAutoSwapExecutionPlan,
+  isSepoliaAutoSwapTokenSymbol,
+} from './sepoliaAutoSwapService.js';
 import logger from './loggerService.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -144,10 +152,24 @@ function getTokenAddress(tokenSymbol, chainId) {
   const upper = tokenSymbol.toUpperCase();
   if (upper === 'ETH' || upper === 'MATIC') return null; // native transfer
   const tokenMap = TOKEN_REGISTRY[upper];
-  if (!tokenMap) throw new Error(`Token ${upper} not supported. Supported: ETH, USDC, USDT, WETH, DAI`);
+  if (!tokenMap) throw new Error(`Token ${upper} not supported on Telegram transfers`);
   const addr = tokenMap[chainId];
   if (!addr) throw new Error(`Token ${upper} not available on chain ${chainId}`);
   return addr;
+}
+
+export function resolveTransferExecutionStrategy({ tokenSymbol, chainId }) {
+  const normalizedToken = String(tokenSymbol || 'ETH').trim().toUpperCase();
+
+  if (chainId === SEPOLIA_AUTO_SWAP_CHAIN_ID && isSepoliaAutoSwapTokenSymbol(normalizedToken)) {
+    return 'sepolia_auto_swap';
+  }
+
+  if (normalizedToken === 'ETH' || normalizedToken === 'MATIC') {
+    return 'native';
+  }
+
+  return 'erc20';
 }
 
 /**
@@ -180,6 +202,7 @@ function getProvider(chainId) {
  */
 export async function executeTransfer(intent, user, options = {}) {
   const { tokenSymbol, amount, recipientAddress, chain } = intent.details;
+  const normalizedTokenSymbol = String(tokenSymbol || 'ETH').trim().toUpperCase();
 
   if (!amount || amount <= 0) throw new Error('Invalid amount');
   if (!recipientAddress) throw new Error('Recipient address is required');
@@ -193,21 +216,46 @@ export async function executeTransfer(intent, user, options = {}) {
     from: botWallet.address,
     to: toAddress,
     amount,
-    tokenSymbol,
+    tokenSymbol: normalizedTokenSymbol,
     chainId,
   });
 
   let tx;
-  const tokenAddress = getTokenAddress(tokenSymbol, chainId);
+  const executionStrategy = resolveTransferExecutionStrategy({
+    tokenSymbol: normalizedTokenSymbol,
+    chainId,
+  });
 
-  if (!tokenAddress) {
+  if (executionStrategy === 'native') {
     // Native ETH transfer
     tx = await botWallet.sendTransaction({
       to: toAddress,
       value: ethers.parseEther(amount.toString()),
     });
+  } else if (executionStrategy === 'sepolia_auto_swap') {
+    const executionPlan = buildSepoliaAutoSwapExecutionPlan({
+      tokenSymbol: normalizedTokenSymbol,
+      amount,
+      recipientAddress: toAddress,
+    });
+
+    const router = new ethers.Contract(
+      executionPlan.routerAddress,
+      SEPOLIA_AUTO_SWAP_ROUTER_ABI,
+      botWallet
+    );
+
+    tx = await router.swapAndSend(
+      executionPlan.tokenAddress,
+      executionPlan.recipientAddress,
+      executionPlan.amountBaseUnits,
+      {
+        value: executionPlan.requiredWei,
+      }
+    );
   } else {
     // ERC-20 transfer
+    const tokenAddress = getTokenAddress(normalizedTokenSymbol, chainId);
     const erc20 = new ethers.Contract(
       tokenAddress,
       ['function transfer(address to, uint256 amount) returns (bool)',
@@ -222,14 +270,14 @@ export async function executeTransfer(intent, user, options = {}) {
   logger.info('[TelegramBot] Transaction broadcast', { txHash: tx.hash });
 
   if (typeof options.onBroadcast === 'function') {
-    await options.onBroadcast({
-      txHash: tx.hash,
-      from: botWallet.address,
-      to: toAddress,
-      amount: amount.toString(),
-      token: tokenSymbol.toUpperCase(),
-      chainId,
-    });
+      await options.onBroadcast({
+        txHash: tx.hash,
+        from: botWallet.address,
+        to: toAddress,
+        amount: amount.toString(),
+        token: normalizedTokenSymbol,
+        chainId,
+      });
   }
 
   // Wait for 1 confirmation
@@ -242,7 +290,7 @@ export async function executeTransfer(intent, user, options = {}) {
     from: botWallet.address,
     to: toAddress,
     amount: amount.toString(),
-    token: tokenSymbol.toUpperCase(),
+    token: normalizedTokenSymbol,
     chainId,
   };
 }

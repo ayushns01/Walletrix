@@ -70,6 +70,7 @@ import {
 import { applyLinkCode } from './telegramController.js';
 import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
+import { TRANSFER_TOKEN_PROMPT_LIST } from '../config/transferTokens.js';
 import logger from '../services/loggerService.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -592,7 +593,7 @@ function buildMissingFieldPrompt(missing) {
     return 'Who should receive it? You can send an address, an ENS name, a name from your address list like "Alice", or say "use previous recipient".';
   }
   if (missing[0] === 'tokenSymbol') {
-    return 'Which token should I send? (ETH, USDC, USDT, DAI, WETH)';
+    return `Which token should I send? (${TRANSFER_TOKEN_PROMPT_LIST})`;
   }
   return 'Please share the missing transaction details.';
 }
