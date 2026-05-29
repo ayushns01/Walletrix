@@ -5,9 +5,9 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "npx prisma generate && nodemon src/index.js",
-    "start": "npx prisma generate && node src/index.js",
-    "build": "npm install && npx prisma generate",
+    "dev": "prisma generate && nodemon src/index.js",
+    "start": "prisma generate && node src/index.js",
+    "build": "npm install && prisma generate",
     "lint": "echo \"Backend lint is not configured yet\"",
     "test": "NODE_ENV=test jest --watchman=false --runInBand --coverage=false",
     "test:watch": "NODE_ENV=test jest --watchman=false --watch",

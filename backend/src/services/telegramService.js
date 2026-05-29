@@ -5,11 +5,93 @@
  */
 
 import axios from 'axios';
+import https from 'node:https';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import telegramConfig from '../config/telegram.js';
 import logger from './loggerService.js';
 
 const tgApi = (method) =>
   `https://api.telegram.org/bot${telegramConfig.BOT_TOKEN}/${method}`;
+
+const execFileAsync = promisify(execFile);
+const TELEGRAM_TIMEOUT_MS = Number(process.env.TELEGRAM_API_TIMEOUT_MS || 90000);
+const webhookReplyStorage = new AsyncLocalStorage();
+
+const telegramHttp = axios.create({
+  timeout: TELEGRAM_TIMEOUT_MS,
+  proxy: false,
+  httpsAgent: new https.Agent({
+    family: 4,
+    keepAlive: false,
+  }),
+});
+
+function buildTelegramError(error) {
+  return {
+    message: error.message,
+    code: error.code,
+    cause: error.cause?.message,
+    response: error.response?.data,
+  };
+}
+
+export async function captureWebhookReply(callback) {
+  const store = { replies: [] };
+  await webhookReplyStorage.run(store, callback);
+  return store.replies[0] || null;
+}
+
+function captureFirstWebhookReply(method, payload) {
+  const store = webhookReplyStorage.getStore();
+  if (!store || store.replies.length > 0) return false;
+  const webhookPayload = { method, ...payload };
+  if (webhookPayload.reply_markup && typeof webhookPayload.reply_markup !== 'string') {
+    webhookPayload.reply_markup = JSON.stringify(webhookPayload.reply_markup);
+  }
+  store.replies.push(webhookPayload);
+  return true;
+}
+
+async function postTelegram(method, payload) {
+  const url = tgApi(method);
+
+  try {
+    const response = await telegramHttp.post(url, payload);
+    return response.data;
+  } catch (error) {
+    const shouldTryCurl = !error.response;
+    if (!shouldTryCurl) throw error;
+
+    logger.warn('[Telegram] axios request failed, retrying with curl', {
+      method,
+      error: buildTelegramError(error),
+    });
+
+    const { stdout } = await execFileAsync(
+      'curl',
+      [
+        '-fsS',
+        '--max-time',
+        String(Math.ceil(TELEGRAM_TIMEOUT_MS / 1000)),
+        '-X',
+        'POST',
+        url,
+        '-H',
+        'Content-Type: application/json',
+        '--data',
+        JSON.stringify(payload),
+      ],
+      {
+        timeout: TELEGRAM_TIMEOUT_MS + 5000,
+        maxBuffer: 1024 * 1024,
+      }
+    );
+
+    return JSON.parse(stdout);
+  }
+}
 
 /**
  * Send a plain text or Markdown message to a Telegram chat.
@@ -22,14 +104,17 @@ export async function sendMessage(chatId, text, extra = {}) {
     logger.warn('[Telegram] BOT_TOKEN not set, skipping sendMessage');
     return null;
   }
+  const payload = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'Markdown',
+    ...extra,
+  };
+  if (captureFirstWebhookReply('sendMessage', payload)) {
+    return { ok: true, via: 'webhook_response' };
+  }
   try {
-    const response = await axios.post(tgApi('sendMessage'), {
-      chat_id: chatId,
-      text,
-      parse_mode: 'Markdown',
-      ...extra,
-    });
-    return response.data;
+    return await postTelegram('sendMessage', payload);
   } catch (error) {
     const errData = error.response?.data;
     // If Telegram rejected due to bad Markdown entities, retry as plain text
@@ -37,7 +122,7 @@ export async function sendMessage(chatId, text, extra = {}) {
       logger.warn('[Telegram] Markdown parse failed, retrying as plain text', { chatId });
       return sendPlainMessage(chatId, text, extra);
     }
-    logger.error('[Telegram] sendMessage failed', { chatId, error: errData || error.message });
+    logger.error('[Telegram] sendMessage failed', { chatId, error: errData || buildTelegramError(error) });
     return null;
   }
 }
@@ -48,17 +133,20 @@ export async function sendMessage(chatId, text, extra = {}) {
  */
 export async function sendPlainMessage(chatId, text, extra = {}) {
   if (!telegramConfig.BOT_TOKEN) return null;
+  const payload = {
+    chat_id: chatId,
+    text,
+    ...extra,
+  };
+  if (captureFirstWebhookReply('sendMessage', payload)) {
+    return { ok: true, via: 'webhook_response' };
+  }
   try {
-    const response = await axios.post(tgApi('sendMessage'), {
-      chat_id: chatId,
-      text,
-      ...extra,
-    });
-    return response.data;
+    return await postTelegram('sendMessage', payload);
   } catch (error) {
     logger.error('[Telegram] sendPlainMessage failed', {
       chatId,
-      error: error.response?.data || error.message,
+      error: error.response?.data || buildTelegramError(error),
     });
     return null;
   }

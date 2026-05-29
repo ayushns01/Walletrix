@@ -8,7 +8,14 @@
  */
 
 import prisma from '../lib/prisma.js';
-import { sendMessage, sendPlainMessage, verifyWebhookSecret, isCommand, extractCommand } from '../services/telegramService.js';
+import {
+  captureWebhookReply,
+  sendMessage,
+  sendPlainMessage,
+  verifyWebhookSecret,
+  isCommand,
+  extractCommand,
+} from '../services/telegramService.js';
 import {
   parseIntent,
   extractTransferSlots,
@@ -1586,69 +1593,69 @@ async function handleFreeText(chatId, telegramId, text) {
  * Entry point for all incoming Telegram updates.
  */
 export async function handleWebhook(req, res) {
-  // Always respond 200 immediately — Telegram retries if we don't
-  res.status(200).json({ ok: true });
-
   let chatId = null;
 
   try {
-    const secretHeader = req.headers['x-telegram-bot-api-secret-token'] || '';
-    if (!verifyWebhookSecret(secretHeader)) {
-      logger.warn('[TelegramBot] Invalid webhook secret');
-      return;
-    }
-
-    const update = req.body;
-    const message = update?.message;
-
-    if (!message || !message.text) return; // Ignore non-text updates
-
-    chatId = message.chat.id;
-    const telegramId = message.from.id;
-    const text = message.text;
-
-    logger.info('[TelegramBot] Incoming message', { chatId, telegramId, text: text.slice(0, 50) });
-
-    // Rate limiting
-    if (!checkRateLimit(telegramId)) {
-      return sendPlainMessage(chatId, '⏱️ Slow down! You\'re sending too many messages. Please wait a minute.');
-    }
-
-    // Route to handler
-    if (isCommand(text)) {
-      const cmd = extractCommand(text);
-      switch (cmd) {
-        case 'start':   return handleStart(chatId, telegramId, text);
-        case 'balance': return handleBalance(chatId, telegramId);
-        case 'help':    return handleHelp(chatId, telegramId);
-        case 'contacts':
-        case 'addresses': return handleContacts(chatId, telegramId);
-        case 'recent':
-        case 'history':
-        case 'transfers': return handleRecentTransfers(chatId, telegramId);
-        case 'last': return handleLastTransfer(chatId, telegramId);
-        case 'status': return handleTransferStatus(chatId, telegramId, text);
-        case 'stealth': {
-          const user = await getUserByTelegramId(telegramId);
-          if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
-          return handleStealthStart(chatId, telegramId, user);
-        }
-        case 'claim': {
-          const user = await getUserByTelegramId(telegramId);
-          if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
-          return handleStealthClaimStart(chatId, telegramId, user);
-        }
-        case 'unlink':  return handleUnlink(chatId, telegramId);
-        default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, /stealth, or /claim.`);
+    const webhookReply = await captureWebhookReply(async () => {
+      const secretHeader = req.headers['x-telegram-bot-api-secret-token'] || '';
+      if (!verifyWebhookSecret(secretHeader)) {
+        logger.warn('[TelegramBot] Invalid webhook secret');
+        return;
       }
-    } else {
-      return handleFreeText(chatId, telegramId, text);
-    }
+
+      const update = req.body;
+      const message = update?.message;
+
+      if (!message || !message.text) return; // Ignore non-text updates
+
+      chatId = message.chat.id;
+      const telegramId = message.from.id;
+      const text = message.text;
+
+      logger.info('[TelegramBot] Incoming message', { chatId, telegramId, text: text.slice(0, 50) });
+
+      // Rate limiting
+      if (!checkRateLimit(telegramId)) {
+        return sendPlainMessage(chatId, '⏱️ Slow down! You\'re sending too many messages. Please wait a minute.');
+      }
+
+      // Route to handler
+      if (isCommand(text)) {
+        const cmd = extractCommand(text);
+        switch (cmd) {
+          case 'start':   return handleStart(chatId, telegramId, text);
+          case 'balance': return handleBalance(chatId, telegramId);
+          case 'help':    return handleHelp(chatId, telegramId);
+          case 'contacts':
+          case 'addresses': return handleContacts(chatId, telegramId);
+          case 'recent':
+          case 'history':
+          case 'transfers': return handleRecentTransfers(chatId, telegramId);
+          case 'last': return handleLastTransfer(chatId, telegramId);
+          case 'status': return handleTransferStatus(chatId, telegramId, text);
+          case 'stealth': {
+            const user = await getUserByTelegramId(telegramId);
+            if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+            return handleStealthStart(chatId, telegramId, user);
+          }
+          case 'claim': {
+            const user = await getUserByTelegramId(telegramId);
+            if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+            return handleStealthClaimStart(chatId, telegramId, user);
+          }
+          case 'unlink':  return handleUnlink(chatId, telegramId);
+          default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, /stealth, or /claim.`);
+        }
+      } else {
+        return handleFreeText(chatId, telegramId, text);
+      }
+    });
+
+    return res.status(200).json(webhookReply || { ok: true });
   } catch (error) {
     logger.error('[TelegramBot] Unhandled webhook error', { error: error.message, stack: error.stack });
-    // Best-effort: notify the user something went wrong
-    if (chatId) {
-      await sendPlainMessage(chatId, '❌ An unexpected error occurred. Please try again in a moment.');
-    }
+    return res.status(200).json(chatId
+      ? { method: 'sendMessage', chat_id: chatId, text: '❌ An unexpected error occurred. Please try again in a moment.' }
+      : { ok: true });
   }
 }
