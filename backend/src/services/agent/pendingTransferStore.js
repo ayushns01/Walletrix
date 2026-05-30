@@ -1,6 +1,11 @@
 export const PENDING_TRANSFER_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
-const KEY = 'agentPendingTransfer';
+// The conversation session only persists four columns: chatContext, transferDraft,
+// pendingIntent, expiresAt. We stage the agent's awaiting-confirmation transfer in
+// the pendingIntent column (a Json column), tagged with a `kind` marker so we never
+// pick up unrelated pendingIntent data written by the legacy conversation path.
+const SESSION_FIELD = 'pendingIntent';
+const KIND = 'agentTransfer';
 
 export function createPendingTransferStore(deps) {
   const {
@@ -34,6 +39,7 @@ export function createPendingTransferStore(deps) {
     }
 
     const pending = {
+      kind: KIND,
       amount,
       token,
       recipientAddress,
@@ -43,7 +49,7 @@ export function createPendingTransferStore(deps) {
     };
 
     const session = (await loadConversationSession(ctx.telegramId)) || {};
-    await saveConversationSession(ctx.telegramId, { ...session, [KEY]: pending });
+    await saveConversationSession(ctx.telegramId, { ...session, [SESSION_FIELD]: pending });
 
     const who = pending.recipientLabel ? `${pending.recipientLabel} (${recipientAddress})` : recipientAddress;
     return {
@@ -55,13 +61,15 @@ export function createPendingTransferStore(deps) {
 
   async function peekPending(ctx) {
     const session = (await loadConversationSession(ctx.telegramId)) || {};
-    return session[KEY] || null;
+    const value = session[SESSION_FIELD];
+    return value && value.kind === KIND ? value : null;
   }
 
   async function clearPending(ctx) {
     const session = (await loadConversationSession(ctx.telegramId)) || {};
-    if (session[KEY] == null) return;
-    await saveConversationSession(ctx.telegramId, { ...session, [KEY]: null });
+    const value = session[SESSION_FIELD];
+    if (!value || value.kind !== KIND) return;
+    await saveConversationSession(ctx.telegramId, { ...session, [SESSION_FIELD]: null });
   }
 
   // Two separate session reads (peek + clear). Telegram delivers messages
