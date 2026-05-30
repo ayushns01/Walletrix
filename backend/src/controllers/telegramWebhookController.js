@@ -72,6 +72,7 @@ import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
 import { TRANSFER_TOKEN_PROMPT_LIST } from '../config/transferTokens.js';
 import logger from '../services/loggerService.js';
+import { handleAgentMessage } from '../services/agent/index.js';
 
 // ─────────────────────────────────────────────────────────────
 //  In-memory conversation state
@@ -1643,6 +1644,12 @@ export async function handleWebhook(req, res) {
         default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, /stealth, or /claim.`);
       }
     } else {
+      if (telegramConfig.TELEGRAM_AGENT_ENABLED) {
+        const user = await getUserByTelegramId(telegramId);
+        if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+        const { text: reply } = await handleAgentMessage(text, { user, telegramId });
+        return sendBotMessage(chatId, telegramId, reply);
+      }
       return handleFreeText(chatId, telegramId, text);
     }
   } catch (error) {

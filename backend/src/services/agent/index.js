@@ -1,0 +1,60 @@
+import { ethers } from 'ethers';
+import { DEFAULT_CHAIN_ID } from '../../config/tokens.js';
+import {
+  loadConversationSession,
+  saveConversationSession,
+} from '../conversationSessionService.js';
+import {
+  listSavedRecipients,
+  resolveSavedRecipientFromText,
+} from '../savedRecipientService.js';
+import {
+  lookupTelegramTransferStatus,
+  buildTransferStatusMessage,
+} from '../telegramTxStatusService.js';
+import {
+  executeTransfer,
+  getBotWalletBalance,
+} from '../telegramExecutionService.js';
+import { createToolHandlers } from './toolHandlers.js';
+import { createPendingTransferStore } from './pendingTransferStore.js';
+import { createConfirmationFlow } from './confirmationFlow.js';
+import { runAgentTurn } from './agentLoopService.js';
+
+export function createAgentMessageHandler({ confirmationFlow, runAgentTurn: runTurn, handlers }) {
+  return async function handle(text, ctx) {
+    const confirmResult = await confirmationFlow.handle(text, ctx);
+    if (confirmResult.handled) {
+      return { text: confirmResult.text };
+    }
+    return runTurn({ text, ctx, handlers });
+  };
+}
+
+const pendingStore = createPendingTransferStore({
+  loadConversationSession,
+  saveConversationSession,
+  resolveSavedRecipientFromText,
+  isAddress: (a) => ethers.isAddress(a),
+});
+
+const handlers = createToolHandlers({
+  getBotWalletBalance,
+  listSavedRecipients,
+  lookupTelegramTransferStatus,
+  buildTransferStatusMessage,
+  preparePendingTransfer: (args, ctx) => pendingStore.prepare(args, ctx),
+  defaultChainId: DEFAULT_CHAIN_ID,
+});
+
+const confirmationFlow = createConfirmationFlow({
+  takePending: (ctx) => pendingStore.takePending(ctx),
+  clearPending: (ctx) => pendingStore.clearPending(ctx),
+  executeTransfer,
+});
+
+const agentMessageHandler = createAgentMessageHandler({ confirmationFlow, runAgentTurn, handlers });
+
+export function handleAgentMessage(text, ctx) {
+  return agentMessageHandler(text, ctx);
+}
