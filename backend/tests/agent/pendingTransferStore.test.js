@@ -95,4 +95,21 @@ describe('pendingTransferStore', () => {
     expect(taken).toBeNull();
     expect(fakes.getState().agentPendingTransfer).toBeNull();
   });
+
+  it('peekPending returns the pending transfer without clearing it', async () => {
+    const pending = { amount: 1, token: 'ETH', recipientAddress: '0x' + 'd'.repeat(40), chain: null, expiresAt: 9_999 };
+    const fakes = makeSessionFakes({ agentPendingTransfer: pending });
+    const store = createPendingTransferStore({
+      loadConversationSession: fakes.loadConversationSession,
+      saveConversationSession: fakes.saveConversationSession,
+      resolveSavedRecipientFromText: jest.fn(),
+      isAddress: () => true,
+      now: () => 1_000,
+    });
+    const peeked = await store.peekPending(ctx);
+    expect(peeked).toMatchObject({ amount: 1, recipientAddress: '0x' + 'd'.repeat(40) });
+    // Session must NOT have been cleared
+    expect(fakes.getState().agentPendingTransfer).not.toBeNull();
+    expect(fakes.saveConversationSession).not.toHaveBeenCalled();
+  });
 });

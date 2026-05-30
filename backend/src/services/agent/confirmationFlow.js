@@ -1,4 +1,4 @@
-const AFFIRM_RE = /^(?:yes|y|yeah|yep|yup|sure|ok|okay|confirm|confirmed|go|do it|send it|send|proceed|approve)\s*[.!]?$/i;
+const AFFIRM_RE = /^(?:yes|y|yeah|yep|yup|sure|ok|okay|confirm|confirmed|go|do it|send it|proceed|approve)\s*[.!]?$/i;
 const NEGATIVE_RE = /^(?:no|n|nope|cancel|stop|abort|wait|nevermind|never mind)\s*[.!]?$/i;
 
 export function isAffirmative(text) {

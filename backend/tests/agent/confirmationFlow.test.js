@@ -40,11 +40,13 @@ describe('createConfirmationFlow', () => {
 
   it('cancels on NO without executing', async () => {
     const clearPending = jest.fn();
-    const flow = createConfirmationFlow({ takePending: jest.fn(), executeTransfer: jest.fn(), clearPending });
+    const executeTransfer = jest.fn();
+    const flow = createConfirmationFlow({ takePending: jest.fn(), executeTransfer, clearPending });
     const reply = await flow.handle('cancel', ctx);
     expect(reply.handled).toBe(true);
     expect(reply.text).toMatch(/cancel/i);
     expect(clearPending).toHaveBeenCalledWith(ctx);
+    expect(executeTransfer).not.toHaveBeenCalled();
   });
 
   it('reports gracefully when YES arrives but nothing is pending (expired)', async () => {

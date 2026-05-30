@@ -64,6 +64,8 @@ export function createPendingTransferStore(deps) {
     await saveConversationSession(ctx.telegramId, { ...session, [KEY]: null });
   }
 
+  // Two separate session reads (peek + clear). Telegram delivers messages
+  // serially per user so concurrent writes are not expected in practice.
   async function takePending(ctx) {
     const pending = await peekPending(ctx);
     await clearPending(ctx);

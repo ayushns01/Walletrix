@@ -45,4 +45,14 @@ describe('read-only tool handlers', () => {
     await handlers.get_tx_status({}, ctx);
     expect(deps.lookupTelegramTransferStatus).toHaveBeenCalledWith('user-1', { txHash: null });
   });
+
+  it('prepare_transfer delegates to preparePendingTransfer with correct args', async () => {
+    const deps = makeDeps({
+      preparePendingTransfer: jest.fn(async () => ({ status: 'awaiting_confirmation', summary: 'Send 1 ETH' })),
+    });
+    const handlers = createToolHandlers(deps);
+    const out = await handlers.prepare_transfer({ amount: 1, recipient: 'Alice' }, ctx);
+    expect(deps.preparePendingTransfer).toHaveBeenCalledWith({ amount: 1, recipient: 'Alice' }, ctx);
+    expect(out).toEqual({ status: 'awaiting_confirmation', summary: 'Send 1 ETH' });
+  });
 });
