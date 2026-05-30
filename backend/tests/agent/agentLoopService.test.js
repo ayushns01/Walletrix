@@ -94,7 +94,42 @@ describe('runAgentTurn', () => {
     };
     const handlers = { get_balance: jest.fn(async () => ({ ethBalance: '1' })) };
     const out = await runAgentTurn({ text: 'x', ctx, startChat: () => chat, handlers, maxIterations: 3 });
-    expect(handlers.get_balance.mock.calls.length).toBeLessThanOrEqual(3);
+    expect(handlers.get_balance.mock.calls.length).toBe(3);
     expect(out.text).toMatch(/could not complete|try again/i);
+  });
+
+  it('returns an error response for an unknown tool name without throwing', async () => {
+    const chat = makeScriptedChat([
+      { functionCalls: [{ name: 'nonexistent_tool', args: {} }] },
+      { text: 'I could not do that.' },
+    ]);
+    const out = await runAgentTurn({
+      text: 'do something weird',
+      ctx,
+      startChat: () => chat,
+      handlers: {},
+    });
+    // The error is fed back to the model as a functionResponse, not thrown.
+    expect(chat.sent[1][0].functionResponse.name).toBe('nonexistent_tool');
+    expect(chat.sent[1][0].functionResponse.response.error).toMatch(/Unknown tool/i);
+    expect(out.text).toBe('I could not do that.');
+  });
+
+  it('catches a handler that throws and feeds the error back to the model', async () => {
+    const chat = makeScriptedChat([
+      { functionCalls: [{ name: 'get_balance', args: {} }] },
+      { text: 'Something went wrong.' },
+    ]);
+    const handlers = {
+      get_balance: jest.fn(async () => { throw new Error('RPC timeout'); }),
+    };
+    const out = await runAgentTurn({
+      text: 'balance?',
+      ctx,
+      startChat: () => chat,
+      handlers,
+    });
+    expect(chat.sent[1][0].functionResponse.response.error).toBe('RPC timeout');
+    expect(out.text).toBe('Something went wrong.');
   });
 });
