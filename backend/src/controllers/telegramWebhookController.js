@@ -1646,9 +1646,14 @@ export async function handleWebhook(req, res) {
     } else {
       if (telegramConfig.TELEGRAM_AGENT_ENABLED) {
         const user = await getUserByTelegramId(telegramId);
-        if (!user) return sendBotPlain(chatId, telegramId, UNLINKED_MESSAGE);
+        // Use the RAW send functions here, not sendBot*. The sendBot* wrappers
+        // call appendAssistantMessageHistory -> persistConversationState, which
+        // rewrites the whole conversation_sessions row from the legacy in-memory
+        // maps and would clobber the pendingIntent the agent just staged in the
+        // DB (breaking the YES confirmation). The agent owns its own state.
+        if (!user) return sendPlainMessage(chatId, UNLINKED_MESSAGE);
         const { text: reply } = await handleAgentMessage(text, { user, telegramId });
-        return sendBotMessage(chatId, telegramId, reply);
+        return sendMessage(chatId, reply, getRemoveKeyboardReplyMarkup());
       }
       return handleFreeText(chatId, telegramId, text);
     }
