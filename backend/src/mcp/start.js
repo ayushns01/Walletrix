@@ -5,6 +5,7 @@
  *
  * Usage: node src/mcp/start.js
  */
+import './loadEnv.js'; // MUST be first: populates process.env before any module reads it
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ethers } from 'ethers';
 import prisma from '../lib/prisma.js';
