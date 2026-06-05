@@ -14,6 +14,12 @@ export function createToolHandlers(deps) {
     // address book mutations
     saveSavedRecipient,
     removeSavedRecipientByName,
+    // stealth tools
+    listSelectableStealthWallets,
+    issueStealthReceiveAddress,
+    listStealthIssuesForAuthenticatedUser,
+    getStealthClaimPreviewForUser,
+    prepareStealthClaim,
   } = deps;
 
   return {
@@ -74,6 +80,75 @@ export function createToolHandlers(deps) {
         deleted: true,
         name: deleted.name,
       };
+    },
+
+    async issue_stealth_address(args, ctx) {
+      const walletTypeArg = String(args?.wallet_type || 'bot').toLowerCase().trim();
+      const network = String(args?.network || 'sepolia').toUpperCase().trim() === 'ETHEREUM' ? 'ETHEREUM' : 'SEPOLIA';
+
+      const options = await listSelectableStealthWallets(ctx.user.id);
+      let option = walletTypeArg === 'account'
+        ? options.find((o) => o.walletType === 'ACCOUNT_WALLET')
+        : options.find((o) => o.walletType === 'TELEGRAM_BOT_WALLET');
+
+      if (!option) option = options[0]; // fallback to first available
+      if (!option) {
+        return { status: 'error', error: 'No wallet found to link the stealth address to.' };
+      }
+
+      const issued = await issueStealthReceiveAddress(ctx.user.id, option, network);
+      return {
+        message: `🕶️ Stealth address ready on *${issued.networkLabel}*\n\nSend to:\n\`${issued.stealthAddress}\`\n\nFunds will sweep to: *${issued.walletLabel}*`,
+        issueId: issued.issueId,
+        stealthAddress: issued.stealthAddress,
+        network: issued.network,
+        networkLabel: issued.networkLabel,
+        walletLabel: issued.walletLabel,
+        destinationAddress: issued.destinationAddress,
+      };
+    },
+
+    async list_stealth_addresses(args, ctx) {
+      const statusArg = String(args?.status || 'all').toLowerCase().trim();
+      const STATUS_MAP = { active: ['ACTIVE'], funded: ['FUNDED'], claimed: ['CLAIMED'] };
+      const statuses = STATUS_MAP[statusArg] || [];
+
+      const issues = await listStealthIssuesForAuthenticatedUser(ctx.user.id, { statuses });
+      if (!issues.length) {
+        return { message: 'No stealth addresses found.', issues: [] };
+      }
+
+      const lines = issues.map((iss) =>
+        `• *${iss.walletLabel}* (${iss.networkLabel}) — ${iss.status} — \`${iss.stealthAddress.slice(0, 10)}…\` — ${iss.lastObservedBalanceEth} ETH`
+      );
+      return {
+        message: `🕶️ *Stealth Addresses*\n\n${lines.join('\n')}`,
+        issues: issues.map((iss) => ({
+          issueId: iss.id,
+          stealthAddress: iss.stealthAddress,
+          status: iss.status,
+          balanceEth: iss.lastObservedBalanceEth,
+          network: iss.network,
+          walletLabel: iss.walletLabel,
+        })),
+      };
+    },
+
+    async preview_stealth_claim(args, ctx) {
+      const { preview } = await getStealthClaimPreviewForUser(ctx.user.id, args.issue_id);
+      return {
+        message: `🕶️ *Stealth Claim Preview*\n\nBalance: ${preview.balanceEth} ETH\nGas: ~${preview.estimatedFeeEth} ETH\nClaimable: ~${preview.claimableEth} ETH\nTo: *${preview.walletLabel}*\n\nUse prepare_stealth_claim to proceed.`,
+        canClaim: preview.canClaim,
+        balanceEth: preview.balanceEth,
+        claimableEth: preview.claimableEth,
+        estimatedFeeEth: preview.estimatedFeeEth,
+        destinationAddress: preview.destinationAddress,
+        walletLabel: preview.walletLabel,
+      };
+    },
+
+    async prepare_stealth_claim(args, ctx) {
+      return prepareStealthClaim(args, ctx);
     },
   };
 }

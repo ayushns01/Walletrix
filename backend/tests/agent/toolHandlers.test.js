@@ -3,6 +3,8 @@ import { createToolHandlers } from '../../src/services/agent/toolHandlers.js';
 const ALICE_ADDR = '0xAlice000000000000000000000000000000000000';
 const BOB_ADDR   = '0xBob0000000000000000000000000000000000000';
 
+const STEALTH_ADDR = '0xStealth000000000000000000000000000000000';
+
 function makeDeps(overrides = {}) {
   return {
     getBotWalletBalance: jest.fn(async () => ({ address: '0xBot', ethBalance: '1.25', chainId: 11155111 })),
@@ -28,6 +30,30 @@ function makeDeps(overrides = {}) {
       created: true,
     })),
     removeSavedRecipientByName: jest.fn(async () => ({ name: 'Alice', address: ALICE_ADDR })),
+    // stealth deps
+    listSelectableStealthWallets: jest.fn(async () => [
+      { walletType: 'TELEGRAM_BOT_WALLET', walletRef: 'bot', label: 'Bot Wallet', address: '0xBot', shortAddress: '0xBot...', kindLabel: 'Telegram bot wallet' },
+      { walletType: 'ACCOUNT_WALLET', walletRef: 'acc', label: 'My Wallet', address: '0xAcc', shortAddress: '0xAcc...', kindLabel: 'Account wallet' },
+    ]),
+    issueStealthReceiveAddress: jest.fn(async () => ({
+      issueId: 'iss-1',
+      stealthAddress: STEALTH_ADDR,
+      network: 'SEPOLIA',
+      networkLabel: 'Sepolia',
+      walletLabel: 'Bot Wallet',
+      destinationAddress: '0xBot',
+    })),
+    listStealthIssuesForAuthenticatedUser: jest.fn(async () => [
+      { id: 'iss-1', stealthAddress: '0xStealth000', status: 'FUNDED', lastObservedBalanceEth: '0.05', network: 'SEPOLIA', networkLabel: 'Sepolia', walletLabel: 'Bot Wallet' },
+    ]),
+    getStealthClaimPreviewForUser: jest.fn(async () => ({
+      preview: { canClaim: true, balanceEth: '0.05', claimableEth: '0.04', estimatedFeeEth: '0.001', destinationAddress: '0xBot', walletLabel: 'Bot Wallet', balanceWei: '50000000000000000', issueId: 'iss-1' },
+      issue: {},
+    })),
+    prepareStealthClaim: jest.fn(async () => ({
+      status: 'awaiting_confirmation',
+      summary: 'Claim ~0.04 ETH from stealth address → Bot Wallet. Reply YES to confirm or NO to cancel.',
+    })),
     ...overrides,
   };
 }
@@ -143,5 +169,75 @@ describe('read-only tool handlers', () => {
     const out = await handlers.delete_recipient({ name: 'Ghost' }, ctx);
     expect(out.deleted).toBe(false);
     expect(out.message).toMatch(/No saved recipient/);
+  });
+});
+
+describe('stealth tools', () => {
+  it('issue_stealth_address defaults to bot wallet on sepolia', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    const out = await handlers.issue_stealth_address({}, ctx);
+    expect(deps.listSelectableStealthWallets).toHaveBeenCalledWith('user-1');
+    expect(deps.issueStealthReceiveAddress).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ walletType: 'TELEGRAM_BOT_WALLET' }),
+      'SEPOLIA'
+    );
+    expect(out.issueId).toBe('iss-1');
+    expect(out.stealthAddress).toBe(STEALTH_ADDR);
+    expect(out.network).toBe('SEPOLIA');
+    expect(out.walletLabel).toBe('Bot Wallet');
+    expect(out.message).toMatch(/Stealth address ready/);
+  });
+
+  it('issue_stealth_address resolves "account" wallet type', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    await handlers.issue_stealth_address({ wallet_type: 'account' }, ctx);
+    expect(deps.issueStealthReceiveAddress).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ walletType: 'ACCOUNT_WALLET' }),
+      'SEPOLIA'
+    );
+  });
+
+  it('list_stealth_addresses with no status returns all issues', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    const out = await handlers.list_stealth_addresses({}, ctx);
+    expect(deps.listStealthIssuesForAuthenticatedUser).toHaveBeenCalledWith('user-1', { statuses: [] });
+    expect(Array.isArray(out.issues)).toBe(true);
+    expect(out.issues).toHaveLength(1);
+    expect(out.issues[0].issueId).toBe('iss-1');
+    expect(out.message).toMatch(/Stealth Addresses/);
+  });
+
+  it('list_stealth_addresses with status="funded" filters correctly', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    await handlers.list_stealth_addresses({ status: 'funded' }, ctx);
+    expect(deps.listStealthIssuesForAuthenticatedUser).toHaveBeenCalledWith('user-1', { statuses: ['FUNDED'] });
+  });
+
+  it('preview_stealth_claim returns formatted preview', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    const out = await handlers.preview_stealth_claim({ issue_id: 'iss-1' }, ctx);
+    expect(deps.getStealthClaimPreviewForUser).toHaveBeenCalledWith('user-1', 'iss-1');
+    expect(out.canClaim).toBe(true);
+    expect(out.balanceEth).toBe('0.05');
+    expect(out.claimableEth).toBe('0.04');
+    expect(out.estimatedFeeEth).toBe('0.001');
+    expect(out.walletLabel).toBe('Bot Wallet');
+    expect(out.message).toMatch(/Stealth Claim Preview/);
+  });
+
+  it('prepare_stealth_claim delegates to prepareStealthClaim with correct args', async () => {
+    const deps = makeDeps();
+    const handlers = createToolHandlers(deps);
+    const out = await handlers.prepare_stealth_claim({ issue_id: 'iss-1' }, ctx);
+    expect(deps.prepareStealthClaim).toHaveBeenCalledWith({ issue_id: 'iss-1' }, ctx);
+    expect(out.status).toBe('awaiting_confirmation');
+    expect(out.summary).toMatch(/Claim/);
   });
 });

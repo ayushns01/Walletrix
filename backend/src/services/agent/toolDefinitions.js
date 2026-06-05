@@ -117,6 +117,68 @@ export const AGENT_TOOL_DECLARATIONS = [
       required: ['name'],
     },
   },
+  {
+    name: 'issue_stealth_address',
+    description:
+      "Generate a new one-time stealth receive address for private payments. The sender sends to the stealth address; only the user can sweep the funds. Use when the user asks for a stealth address, private receive address, or anonymous receive address.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        wallet_type: {
+          type: SchemaType.STRING,
+          description: 'Which wallet the funds should be swept to after receipt: "bot" (Telegram bot wallet, default) or "account" (main account wallet).',
+        },
+        network: {
+          type: SchemaType.STRING,
+          description: 'Network to issue on: "sepolia" (default/testnet) or "ethereum" (mainnet).',
+        },
+      },
+    },
+  },
+  {
+    name: 'list_stealth_addresses',
+    description:
+      "List the user's issued stealth receive addresses and their funding status. Use when the user asks about their stealth addresses, pending stealth funds, or wants to check if stealth funds arrived.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        status: {
+          type: SchemaType.STRING,
+          description: 'Filter by status: "active" (waiting for funds), "funded" (funds arrived, not yet claimed), "claimed" (already swept). Omit for all.',
+        },
+      },
+    },
+  },
+  {
+    name: 'preview_stealth_claim',
+    description:
+      "Preview a stealth address claim: shows the available balance, estimated gas fee, and claimable amount before committing. Use before prepare_stealth_claim to show the user what they would receive.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        issue_id: {
+          type: SchemaType.STRING,
+          description: 'The issueId of the stealth address to preview (from list_stealth_addresses).',
+        },
+      },
+      required: ['issue_id'],
+    },
+  },
+  {
+    name: 'prepare_stealth_claim',
+    description:
+      "Stage a stealth address claim for user confirmation. Does NOT execute — it checks the balance and gas, then asks the user to confirm with YES. Use after the user says they want to claim stealth funds.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        issue_id: {
+          type: SchemaType.STRING,
+          description: 'The issueId of the funded stealth address to claim (from list_stealth_addresses).',
+        },
+      },
+      required: ['issue_id'],
+    },
+  },
 ];
 
 export const AGENT_TOOL_NAMES = AGENT_TOOL_DECLARATIONS.map((d) => d.name);

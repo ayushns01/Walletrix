@@ -14,16 +14,16 @@ describe('affirmation parsing', () => {
 
 describe('createConfirmationFlow', () => {
   const ctx = { user: { id: 'u1' }, telegramId: '7' };
-  const pending = { amount: 0.5, token: 'ETH', recipientAddress: '0x' + 'a'.repeat(40), chain: null };
+  const pending = { kind: 'agentTransfer', amount: 0.5, token: 'ETH', recipientAddress: '0x' + 'a'.repeat(40), chain: null };
 
   it('executes the pending transfer on YES and returns a success reply', async () => {
-    const takePending = jest.fn(async () => pending);
+    const takePendingAny = jest.fn(async () => pending);
     const executeTransfer = jest.fn(async () => ({ txHash: '0xhash', to: pending.recipientAddress, amount: '0.5', token: 'ETH' }));
-    const flow = createConfirmationFlow({ takePending, executeTransfer });
+    const flow = createConfirmationFlow({ takePendingAny, executeTransfer });
 
     const reply = await flow.handle('yes', ctx);
 
-    expect(takePending).toHaveBeenCalledWith(ctx);
+    expect(takePendingAny).toHaveBeenCalledWith(ctx);
     expect(executeTransfer).toHaveBeenCalledWith(
       { details: { tokenSymbol: 'ETH', amount: 0.5, recipientAddress: pending.recipientAddress, chain: null } },
       ctx.user
@@ -33,26 +33,51 @@ describe('createConfirmationFlow', () => {
   });
 
   it('does nothing when the message is not affirmative/negative', async () => {
-    const flow = createConfirmationFlow({ takePending: jest.fn(), executeTransfer: jest.fn() });
+    const flow = createConfirmationFlow({ takePendingAny: jest.fn(), executeTransfer: jest.fn() });
     const reply = await flow.handle('what is my balance', ctx);
     expect(reply.handled).toBe(false);
   });
 
   it('cancels on NO without executing', async () => {
-    const clearPending = jest.fn();
+    const clearPendingAny = jest.fn();
     const executeTransfer = jest.fn();
-    const flow = createConfirmationFlow({ takePending: jest.fn(), executeTransfer, clearPending });
+    const flow = createConfirmationFlow({ takePendingAny: jest.fn(), executeTransfer, clearPendingAny });
     const reply = await flow.handle('cancel', ctx);
     expect(reply.handled).toBe(true);
     expect(reply.text).toMatch(/cancel/i);
-    expect(clearPending).toHaveBeenCalledWith(ctx);
+    expect(clearPendingAny).toHaveBeenCalledWith(ctx);
     expect(executeTransfer).not.toHaveBeenCalled();
   });
 
   it('reports gracefully when YES arrives but nothing is pending (expired)', async () => {
-    const flow = createConfirmationFlow({ takePending: jest.fn(async () => null), executeTransfer: jest.fn() });
+    const flow = createConfirmationFlow({ takePendingAny: jest.fn(async () => null), executeTransfer: jest.fn() });
     const reply = await flow.handle('yes', ctx);
     expect(reply.handled).toBe(true);
     expect(reply.text).toMatch(/nothing|expired/i);
+  });
+
+  it('executes the stealth claim on YES and returns success reply', async () => {
+    const stealthPending = { kind: 'agentStealthClaim', issueId: 'iss-1', claimableEth: '0.01', walletLabel: 'Bot Wallet' };
+    const takePendingAny = jest.fn(async () => stealthPending);
+    const executeStealthClaim = jest.fn(async () => ({ txHash: '0xstealth' }));
+    const flow = createConfirmationFlow({ takePendingAny, executeTransfer: jest.fn(), executeStealthClaim });
+
+    const reply = await flow.handle('yes', ctx);
+
+    expect(takePendingAny).toHaveBeenCalledWith(ctx);
+    expect(executeStealthClaim).toHaveBeenCalledWith(ctx.user.id, 'iss-1');
+    expect(reply.handled).toBe(true);
+    expect(reply.text).toMatch(/0xstealth/);
+  });
+
+  it('returns unknown-action reply for an unrecognised pending kind', async () => {
+    const unknownPending = { kind: 'someFutureKind' };
+    const takePendingAny = jest.fn(async () => unknownPending);
+    const flow = createConfirmationFlow({ takePendingAny, executeTransfer: jest.fn(), executeStealthClaim: jest.fn() });
+
+    const reply = await flow.handle('yes', ctx);
+
+    expect(reply.handled).toBe(true);
+    expect(reply.text).toMatch(/unknown/i);
   });
 });

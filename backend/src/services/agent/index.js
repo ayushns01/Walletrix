@@ -27,6 +27,16 @@ import {
 import { createToolHandlers } from './toolHandlers.js';
 import { createPendingTransferStore } from './pendingTransferStore.js';
 import { createConfirmationFlow } from './confirmationFlow.js';
+import {
+  listSelectableStealthWallets,
+  issueStealthReceiveAddress,
+} from '../stealthWalletService.js';
+import {
+  listStealthIssuesForAuthenticatedUser,
+  getStealthClaimPreviewForUser,
+  claimStealthIssueForUser,
+} from '../stealthLifecycleService.js';
+import { createStealthClaimStore } from './stealthClaimStore.js';
 import { runAgentTurn } from './agentLoopService.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -50,6 +60,26 @@ const pendingStore = createPendingTransferStore({
   isAddress: (a) => ethers.isAddress(a),
 });
 
+const stealthClaimStore = createStealthClaimStore({
+  loadConversationSession,
+  saveConversationSession,
+  getStealthClaimPreviewForUser,
+});
+
+async function takePendingAny(ctx) {
+  const transfer = await pendingStore.takePending(ctx);
+  if (transfer) return transfer;
+  return stealthClaimStore.takePending(ctx);
+}
+
+async function clearPendingAny(ctx) {
+  // Clear whatever kind is currently staged
+  const session = (await loadConversationSession(ctx.telegramId)) || {};
+  if (session.pendingIntent) {
+    await saveConversationSession(ctx.telegramId, { ...session, pendingIntent: null });
+  }
+}
+
 const handlers = createToolHandlers({
   getBotWalletBalance,
   listSavedRecipients,
@@ -63,12 +93,19 @@ const handlers = createToolHandlers({
   buildLastTransferMessage,
   saveSavedRecipient,
   removeSavedRecipientByName,
+  // stealth
+  listSelectableStealthWallets,
+  issueStealthReceiveAddress,
+  listStealthIssuesForAuthenticatedUser,
+  getStealthClaimPreviewForUser,
+  prepareStealthClaim: (args, ctx) => stealthClaimStore.prepare(args, ctx),
 });
 
 const confirmationFlow = createConfirmationFlow({
-  takePending: (ctx) => pendingStore.takePending(ctx),
-  clearPending: (ctx) => pendingStore.clearPending(ctx),
+  takePendingAny,
+  clearPendingAny,
   executeTransfer,
+  executeStealthClaim: (userId, issueId) => claimStealthIssueForUser(userId, issueId),
 });
 
 const agentMessageHandler = createAgentMessageHandler({ confirmationFlow, runAgentTurn, handlers });

@@ -37,6 +37,17 @@ jest.mock('../../src/services/telegramExecutionService.js', () => ({
   getBotWalletBalance: jest.fn(async () => ({})),
 }));
 
+jest.mock('../../src/services/stealthWalletService.js', () => ({
+  listSelectableStealthWallets: jest.fn(async () => []),
+  issueStealthReceiveAddress: jest.fn(async () => ({})),
+}));
+
+jest.mock('../../src/services/stealthLifecycleService.js', () => ({
+  listStealthIssuesForAuthenticatedUser: jest.fn(async () => []),
+  getStealthClaimPreviewForUser: jest.fn(async () => ({ preview: {}, issue: {} })),
+  claimStealthIssueForUser: jest.fn(async () => ({})),
+}));
+
 jest.mock('../../src/config/tokens.js', () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));

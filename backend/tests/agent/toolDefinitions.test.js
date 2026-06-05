@@ -2,7 +2,7 @@
 import { AGENT_TOOL_DECLARATIONS, AGENT_TOOL_NAMES } from '../../src/services/agent/toolDefinitions.js';
 
 describe('AGENT_TOOL_DECLARATIONS', () => {
-  it('exposes all read/write/prepare tools (no execute/spend)', () => {
+  it('exposes all read/write/prepare tools including stealth (no execute/spend)', () => {
     expect(AGENT_TOOL_NAMES.sort()).toEqual(
       [
         'delete_recipient',
@@ -10,8 +10,12 @@ describe('AGENT_TOOL_DECLARATIONS', () => {
         'get_last_transfer',
         'get_recent_transfers',
         'get_tx_status',
+        'issue_stealth_address',
         'list_recipients',
+        'list_stealth_addresses',
+        'prepare_stealth_claim',
         'prepare_transfer',
+        'preview_stealth_claim',
         'save_recipient',
       ].sort()
     );

@@ -28,12 +28,27 @@ import { getBotWalletBalance } from '../services/telegramExecutionService.js';
 import { createToolHandlers } from '../services/agent/toolHandlers.js';
 import { createPendingTransferStore } from '../services/agent/pendingTransferStore.js';
 import { buildWalletMcpServer } from './walletMcpServer.js';
+import {
+  listSelectableStealthWallets,
+  issueStealthReceiveAddress,
+} from '../services/stealthWalletService.js';
+import {
+  listStealthIssuesForAuthenticatedUser,
+  getStealthClaimPreviewForUser,
+} from '../services/stealthLifecycleService.js';
+import { createStealthClaimStore } from '../services/agent/stealthClaimStore.js';
 
 const pendingStore = createPendingTransferStore({
   loadConversationSession,
   saveConversationSession,
   resolveSavedRecipientFromText,
   isAddress: (a) => ethers.isAddress(a),
+});
+
+const stealthClaimStore = createStealthClaimStore({
+  loadConversationSession,
+  saveConversationSession,
+  getStealthClaimPreviewForUser,
 });
 
 const handlers = createToolHandlers({
@@ -49,6 +64,12 @@ const handlers = createToolHandlers({
   buildLastTransferMessage,
   saveSavedRecipient,
   removeSavedRecipientByName,
+  // stealth
+  listSelectableStealthWallets,
+  issueStealthReceiveAddress,
+  listStealthIssuesForAuthenticatedUser,
+  getStealthClaimPreviewForUser,
+  prepareStealthClaim: (args, ctx) => stealthClaimStore.prepare(args, ctx),
 });
 
 async function resolveContext({ telegram_id }) {

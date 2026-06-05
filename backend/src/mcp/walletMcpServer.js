@@ -37,6 +37,23 @@ const TOOL_ZOD_SCHEMAS = {
     telegram_id: z.string(),
     name: z.string(),
   },
+  issue_stealth_address: {
+    telegram_id: z.string(),
+    wallet_type: z.enum(['bot', 'account']).optional(),
+    network: z.enum(['sepolia', 'ethereum']).optional(),
+  },
+  list_stealth_addresses: {
+    telegram_id: z.string(),
+    status: z.enum(['active', 'funded', 'claimed', 'all']).optional(),
+  },
+  preview_stealth_claim: {
+    telegram_id: z.string(),
+    issue_id: z.string(),
+  },
+  prepare_stealth_claim: {
+    telegram_id: z.string(),
+    issue_id: z.string(),
+  },
 };
 
 export function buildWalletMcpServer({ handlers, resolveContext }) {

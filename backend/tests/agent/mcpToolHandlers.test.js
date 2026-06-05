@@ -52,8 +52,12 @@ describe('createMcpToolHandlers', () => {
         'get_last_transfer',
         'get_recent_transfers',
         'get_tx_status',
+        'issue_stealth_address',
         'list_recipients',
+        'list_stealth_addresses',
+        'prepare_stealth_claim',
         'prepare_transfer',
+        'preview_stealth_claim',
         'save_recipient',
       ].sort()
     );
