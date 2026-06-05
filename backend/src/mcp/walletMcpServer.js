@@ -23,6 +23,20 @@ const TOOL_ZOD_SCHEMAS = {
     token: z.string().optional(),
     chain: z.string().optional(),
   },
+  get_recent_transfers: {
+    telegram_id: z.string(),
+    limit: z.number().int().positive().max(10).optional(),
+  },
+  get_last_transfer: { telegram_id: z.string() },
+  save_recipient: {
+    telegram_id: z.string(),
+    name: z.string(),
+    address: z.string(),
+  },
+  delete_recipient: {
+    telegram_id: z.string(),
+    name: z.string(),
+  },
 };
 
 export function buildWalletMcpServer({ handlers, resolveContext }) {

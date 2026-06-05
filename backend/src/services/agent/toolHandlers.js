@@ -6,6 +6,14 @@ export function createToolHandlers(deps) {
     buildTransferStatusMessage,
     preparePendingTransfer,
     defaultChainId,
+    // history
+    getRecentTelegramTransfers,
+    getLastTelegramTransfer,
+    buildRecentTransfersMessage,
+    buildLastTransferMessage,
+    // address book mutations
+    saveSavedRecipient,
+    removeSavedRecipientByName,
   } = deps;
 
   return {
@@ -28,6 +36,44 @@ export function createToolHandlers(deps) {
 
     async prepare_transfer(args, ctx) {
       return preparePendingTransfer(args, ctx);
+    },
+
+    async get_recent_transfers(args, ctx) {
+      const limit = Math.min(Number(args?.limit) || 5, 10);
+      const transfers = await getRecentTelegramTransfers(ctx.user.id, { limit });
+      return { message: buildRecentTransfersMessage(transfers), transfers };
+    },
+
+    async get_last_transfer(_args, ctx) {
+      const entry = await getLastTelegramTransfer(ctx.user.id);
+      return { message: buildLastTransferMessage(entry), transfer: entry };
+    },
+
+    async save_recipient(args, ctx) {
+      const { name, address } = args;
+      const result = await saveSavedRecipient(ctx.user.id, { name, address });
+      const action = result.created ? '✅ Saved' : '✏️ Updated';
+      return {
+        message: `${action} *${result.recipient.name}* → \`${result.recipient.address}\``,
+        recipient: result.recipient,
+        created: result.created,
+      };
+    },
+
+    async delete_recipient(args, ctx) {
+      const { name } = args;
+      const deleted = await removeSavedRecipientByName(ctx.user.id, name);
+      if (!deleted) {
+        return {
+          message: `No saved recipient named "${name}" found.`,
+          deleted: false,
+        };
+      }
+      return {
+        message: `🗑️ Deleted *${deleted.name}* from your address book.`,
+        deleted: true,
+        name: deleted.name,
+      };
     },
   };
 }

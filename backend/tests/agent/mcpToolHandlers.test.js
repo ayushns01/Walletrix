@@ -45,6 +45,17 @@ describe('createMcpToolHandlers', () => {
     const client = { callTool: jest.fn() };
     const handlers = createMcpToolHandlers({ client });
     const names = Object.keys(handlers).sort();
-    expect(names).toEqual(['get_balance', 'get_tx_status', 'list_recipients', 'prepare_transfer']);
+    expect(names).toEqual(
+      [
+        'delete_recipient',
+        'get_balance',
+        'get_last_transfer',
+        'get_recent_transfers',
+        'get_tx_status',
+        'list_recipients',
+        'prepare_transfer',
+        'save_recipient',
+      ].sort()
+    );
   });
 });

@@ -2,9 +2,18 @@
 import { AGENT_TOOL_DECLARATIONS, AGENT_TOOL_NAMES } from '../../src/services/agent/toolDefinitions.js';
 
 describe('AGENT_TOOL_DECLARATIONS', () => {
-  it('exposes exactly the four read/prepare tools', () => {
+  it('exposes all read/write/prepare tools (no execute/spend)', () => {
     expect(AGENT_TOOL_NAMES.sort()).toEqual(
-      ['get_balance', 'get_tx_status', 'list_recipients', 'prepare_transfer'].sort()
+      [
+        'delete_recipient',
+        'get_balance',
+        'get_last_transfer',
+        'get_recent_transfers',
+        'get_tx_status',
+        'list_recipients',
+        'prepare_transfer',
+        'save_recipient',
+      ].sort()
     );
   });
 

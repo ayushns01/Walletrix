@@ -7,11 +7,19 @@ import {
 import {
   listSavedRecipients,
   resolveSavedRecipientFromText,
+  saveSavedRecipient,
+  removeSavedRecipientByName,
 } from '../savedRecipientService.js';
 import {
   lookupTelegramTransferStatus,
   buildTransferStatusMessage,
 } from '../telegramTxStatusService.js';
+import {
+  getRecentTelegramTransfers,
+  getLastTelegramTransfer,
+  buildRecentTransfersMessage,
+  buildLastTransferMessage,
+} from '../telegramHistoryService.js';
 import {
   executeTransfer,
   getBotWalletBalance,
@@ -49,6 +57,12 @@ const handlers = createToolHandlers({
   buildTransferStatusMessage,
   preparePendingTransfer: (args, ctx) => pendingStore.prepare(args, ctx),
   defaultChainId: DEFAULT_CHAIN_ID,
+  getRecentTelegramTransfers,
+  getLastTelegramTransfer,
+  buildRecentTransfersMessage,
+  buildLastTransferMessage,
+  saveSavedRecipient,
+  removeSavedRecipientByName,
 });
 
 const confirmationFlow = createConfirmationFlow({
