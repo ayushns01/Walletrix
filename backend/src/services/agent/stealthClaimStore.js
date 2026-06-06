@@ -13,12 +13,18 @@ export function createStealthClaimStore(deps) {
   } = deps;
 
   async function prepare(args, ctx) {
-    const issueId = String(args?.issue_id || '').trim();
+    // Strip trailing punctuation the model may copy from the bot's own sentence endings.
+    const issueId = String(args?.issue_id || '').trim().replace(/[.,;:!?]+$/, '');
     if (!issueId) {
       return { status: 'error', error: 'Missing issue_id — cannot look up stealth claim.' };
     }
 
-    const { preview } = await getStealthClaimPreviewForUser(ctx.user.id, issueId);
+    let preview;
+    try {
+      ({ preview } = await getStealthClaimPreviewForUser(ctx.user.id, issueId));
+    } catch (err) {
+      return { status: 'error', error: err.message || 'Stealth issue not found.' };
+    }
 
     if (!preview.canClaim) {
       if (BigInt(preview.balanceWei || '0') === 0n) {

@@ -54,9 +54,11 @@ export async function runAgentTurn({
   for (let i = 0; i < maxIterations; i += 1) {
     const calls = response.functionCalls?.() || [];
     if (!calls.length) {
-      const finalText = response.text?.() || '';
-      // If Gemini returned no text after a tool call, use the tool's own message field
-      return { text: finalText || lastToolMessage || 'Done.' };
+      // response.text() throws (not returns empty) when the response has no text parts.
+      let finalText = '';
+      try { finalText = response.text() || ''; } catch (_e) { /* no text part */ }
+      // If Gemini returned no text after a tool call, use the tool's own message field.
+      return { text: finalText || lastToolMessage || 'I could not complete that — please try again.' };
     }
 
     const functionResponses = [];

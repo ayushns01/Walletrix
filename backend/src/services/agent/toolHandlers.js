@@ -146,7 +146,8 @@ export function createToolHandlers(deps) {
     },
 
     async preview_stealth_claim(args, ctx) {
-      const { preview } = await getStealthClaimPreviewForUser(ctx.user.id, args.issue_id);
+      const issueId = String(args?.issue_id || '').trim().replace(/[.,;:!?]+$/, '');
+      const { preview } = await getStealthClaimPreviewForUser(ctx.user.id, issueId);
       return {
         message: `🕶️ *Stealth Claim Preview*\n\nBalance: ${preview.balanceEth} ETH\nGas: ~${preview.estimatedFeeEth} ETH\nClaimable: ~${preview.claimableEth} ETH\nTo: *${preview.walletLabel}*\n\nUse prepare_stealth_claim to proceed.`,
         canClaim: preview.canClaim,
