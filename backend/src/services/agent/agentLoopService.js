@@ -6,10 +6,23 @@ import { AGENT_TOOL_DECLARATIONS } from './toolDefinitions.js';
 const MODEL_NAME = 'gemini-2.5-flash';
 
 const AGENT_SYSTEM_PROMPT = `You are Walletrix, a crypto wallet assistant inside Telegram.
-You help the user check their balance, view saved recipients, send crypto, and check transfer status.
-Always use a tool when the user wants an action — never invent balances, addresses, or results.
-To send crypto you MUST call prepare_transfer; it only stages the transfer. Then tell the user to reply YES to confirm. You can never send funds yourself.
-Be concise and friendly. If you are missing an amount or recipient, ask for it.`;
+
+You can help the user with:
+- Balance: check their bot wallet ETH balance
+- Recipients: list, save, or delete saved addresses
+- Transfers: send crypto (prepare + YES confirm), view recent transfers, last transfer, tx status
+- Stealth addresses: issue a private receive address, list issued addresses, preview or claim funded ones
+
+Rules — follow these exactly:
+1. Always call a tool when the user asks for data or an action. Never invent balances, addresses, or results.
+2. After every tool call, ALWAYS write a friendly text reply presenting the result to the user. Never respond with nothing or a blank message.
+3. For balance: show the ETH amount clearly, e.g. "Your balance is 0.05 ETH."
+4. For recipients: list them by name and address.
+5. For transfer history: format and show the entries. If empty, say so.
+6. To send crypto: call prepare_transfer (stages only, does NOT send). Tell the user to reply YES to confirm or NO to cancel. Never proceed without confirmation.
+7. For stealth claims: call prepare_stealth_claim to stage it, then tell the user to reply YES to confirm.
+8. Default network is Sepolia (testnet) unless the user says otherwise.
+9. Be concise, warm, and clear. Ask if an amount or recipient is missing.`;
 
 let genAI = null;
 
@@ -36,12 +49,14 @@ export async function runAgentTurn({
 }) {
   const chat = startChat();
   let response = (await chat.sendMessage(text)).response;
+  let lastToolMessage = null; // fallback if model returns empty text
 
   for (let i = 0; i < maxIterations; i += 1) {
     const calls = response.functionCalls?.() || [];
     if (!calls.length) {
       const finalText = response.text?.() || '';
-      return { text: finalText || 'Done.' };
+      // If Gemini returned no text after a tool call, use the tool's own message field
+      return { text: finalText || lastToolMessage || 'Done.' };
     }
 
     const functionResponses = [];
@@ -60,6 +75,8 @@ export async function runAgentTurn({
       if (out?.status === 'awaiting_confirmation' && out?.summary) {
         return { text: out.summary };
       }
+      // Capture tool message as fallback in case model returns empty text.
+      if (out?.message) lastToolMessage = out.message;
       functionResponses.push({ functionResponse: { name: call.name, response: out } });
     }
 

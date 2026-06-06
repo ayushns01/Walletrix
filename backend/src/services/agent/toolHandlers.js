@@ -24,13 +24,24 @@ export function createToolHandlers(deps) {
 
   return {
     async get_balance(_args, ctx) {
-      return getBotWalletBalance(ctx.user.id, defaultChainId);
+      const result = await getBotWalletBalance(ctx.user.id, defaultChainId);
+      const eth = result?.ethBalance ?? '0';
+      const addr = result?.address ?? '';
+      return {
+        ...result,
+        message: `💰 Your balance is *${eth} ETH*\n\nAddress: \`${addr}\``,
+      };
     },
 
     async list_recipients(_args, ctx) {
       const recipients = await listSavedRecipients(ctx.user.id);
+      const mapped = recipients.map((r) => ({ name: r.name, address: r.address }));
+      const body = mapped.length
+        ? mapped.map((r) => `• *${r.name}* — \`${r.address}\``).join('\n')
+        : 'No saved recipients yet. Add one with "save 0x… as Alice".';
       return {
-        recipients: recipients.map((r) => ({ name: r.name, address: r.address })),
+        recipients: mapped,
+        message: mapped.length ? `📋 *Saved Recipients*\n\n${body}` : body,
       };
     },
 

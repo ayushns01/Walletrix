@@ -61,18 +61,20 @@ function makeDeps(overrides = {}) {
 const ctx = { user: { id: 'user-1' }, telegramId: '42' };
 
 describe('read-only tool handlers', () => {
-  it('get_balance returns the bot wallet balance', async () => {
+  it('get_balance returns the bot wallet balance with a message field', async () => {
     const deps = makeDeps();
     const handlers = createToolHandlers(deps);
     const out = await handlers.get_balance({}, ctx);
     expect(deps.getBotWalletBalance).toHaveBeenCalledWith('user-1', 11155111);
-    expect(out).toEqual({ address: '0xBot', ethBalance: '1.25', chainId: 11155111 });
+    expect(out).toEqual(expect.objectContaining({ address: '0xBot', ethBalance: '1.25', chainId: 11155111 }));
+    expect(out.message).toMatch(/1\.25 ETH/);
   });
 
-  it('list_recipients returns name+address pairs only', async () => {
+  it('list_recipients returns name+address pairs with a message field', async () => {
     const handlers = createToolHandlers(makeDeps());
     const out = await handlers.list_recipients({}, ctx);
-    expect(out).toEqual({ recipients: [{ name: 'Alice', address: '0xAlice000000000000000000000000000000000000' }] });
+    expect(out.recipients).toEqual([{ name: 'Alice', address: ALICE_ADDR }]);
+    expect(out.message).toMatch(/Alice/);
   });
 
   it('get_tx_status passes a provided hash through and returns a message', async () => {
