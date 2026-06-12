@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Walletrix — Crypto, minus the noise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --display: 'Space Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --bg: #04050a;
+    --ink: #edf2fb;
+    --dim: #76829a;
+    --line: rgba(150, 175, 225, 0.12);
+    --line-strong: rgba(150, 175, 225, 0.26);
+    --accent: #4d84ff;
+    --green: #34d399;
+    --red: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--display); font-weight: 400;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  ::selection { background: rgba(77, 132, 255, 0.4); }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(150,175,225,0.18); border-radius: 8px; }
+
+  #bg4 { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  #app { position: relative; z-index: 2; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+  .sec { padding: 10rem 0; position: relative; }
+  .lbl { font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance; }
+  h2 { font-size: clamp(38px, 5.2vw, 64px); line-height: 1.04; }
+  p.sub { color: var(--dim); font-size: clamp(17px, 1.6vw, 20px); line-height: 1.65; max-width: 34em; text-wrap: pretty; }
+
+  /* headline word mask reveal */
+  .hw { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+  .hw > span { display: inline-block; transform: translateY(115%); transition: transform 1.15s cubic-bezier(.16, 1, .3, 1); will-change: transform; }
+  body.loaded .hw > span, .hw.show > span { transform: translateY(0); }
+
+  /* animated gradient accent text */
+  .grad-ink {
+    background-image: linear-gradient(100deg,
+      var(--accent) 0%,
+      color-mix(in oklab, var(--accent) 45%, #ffffff) 38%,
+      var(--accent) 62%,
+      color-mix(in oklab, var(--accent) 60%, #22d3ee) 100%);
+    background-size: 240% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
+    animation: gradFlow 7s ease-in-out infinite;
+    filter: drop-shadow(0 0 34px color-mix(in oklab, var(--accent) 38%, transparent));
+  }
+  @keyframes gradFlow { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+  /* hairline underline that draws in under the accent line */
+  .hl-rule { display: block; height: 2px; margin: 0.32em auto 0; width: 0; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), color-mix(in oklab, var(--accent) 50%, #22d3ee), transparent);
+    transition: width 1.3s cubic-bezier(.16,1,.3,1) .9s; box-shadow: 0 0 18px -2px var(--accent); }
+  body.loaded .hl-rule { width: min(54%, 560px); }
+
+  /* scroll reveal */
+  .r4 { opacity: 0; transform: translateY(30px); filter: blur(8px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1), filter .9s cubic-bezier(.16,1,.3,1); will-change: opacity, transform, filter; }
+  .r4.in { opacity: 1; transform: none; filter: none; }
+
+  /* buttons */
+  .btn4 { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 999px; padding: 16px 30px; transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease, border-color .35s ease, background .35s ease; cursor: pointer; }
+  .btn4.primary { background: var(--accent); color: #04050a; box-shadow: 0 0 36px -8px var(--accent); }
+  .btn4.primary:hover { transform: translateY(-3px); box-shadow: 0 8px 56px -8px var(--accent); }
+  .btn4.ghost { border: 1px solid var(--line-strong); color: var(--ink); background: rgba(8,11,20,0.4); }
+  .btn4.ghost:hover { border-color: var(--accent); transform: translateY(-3px); }
+
+  /* hairline list rows */
+  .lrow { position: relative; display: grid; align-items: center; border-top: 1px solid var(--line); padding: 34px 8px; transition: background .4s ease, padding-left .4s cubic-bezier(.16,1,.3,1); }
+  .lrow:last-of-type { border-bottom: 1px solid var(--line); }
+  .lrow::before { content: ''; position: absolute; left: 0; top: -1px; height: 1px; width: 0; background: var(--accent); transition: width .6s cubic-bezier(.16,1,.3,1); }
+  .lrow:hover { background: rgba(140,170,230,0.03); padding-left: 22px; }
+  .lrow:hover::before { width: 100%; }
+
+  /* nav */
+  #nav4 { position: fixed; top: 0; left: 0; right: 0; z-index: 90; transition: background .4s ease, border-color .4s ease, backdrop-filter .4s ease; border-bottom: 1px solid transparent; }
+  #nav4.scrolled { background: rgba(4,5,10,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom-color: var(--line); }
+  #nav4 a.nlink { color: var(--dim); text-decoration: none; font-size: 14.5px; transition: color .3s ease; }
+  #nav4 a.nlink:hover { color: var(--ink); }
+
+  /* console mock */
+  .mock4 { border: 1px solid var(--line); border-radius: 20px; background: rgba(8, 11, 19, 0.72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); overflow: hidden; box-shadow: 0 30px 90px -30px rgba(0,0,0,0.8); }
+
+  /* chat */
+  .msg4 { opacity: 0; transform: translateY(14px) scale(0.98); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+  .msg4.on { opacity: 1; transform: none; }
+  @keyframes dotPulse { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+  @keyframes pulseDot4 { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  footer .giant { font-weight: 700; font-size: clamp(64px, 13vw, 190px); letter-spacing: -0.04em; line-height: 0.9; color: transparent; -webkit-text-stroke: 1px rgba(150,175,225,0.22); user-select: none; }
+
+  @media (max-width: 720px) {
+    .sec { padding: 6.5rem 0; }
+    .wrap { padding: 0 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hw > span { transform: none !important; transition: none; }
+    .r4 { opacity: 1 !important; transform: none !important; filter: none !important; transition: none; }
+    .msg4 { opacity: 1 !important; transform: none !important; transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg4"></canvas>
+<div id="app"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#04050a"></rect>
+    <circle cx="38" cy="44" r="16" fill="none" stroke="#4d84ff" stroke-width="2.5"></circle>
+    <circle cx="58" cy="56" r="16" fill="none" stroke="#22d3ee" stroke-width="1.5"></circle>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- ✏️  Edit APP_URL in landing4-app.jsx to point to your dashboard route -->
+<script type="text/babel" src="lib.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="landing4-bg.jsx"></script>
+<script type="text/babel" src="landing4-sections.jsx"></script>
+<script type="text/babel" src="landing4-app.jsx"></script>
+</body>
+</html>
