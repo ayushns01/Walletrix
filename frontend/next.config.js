@@ -9,9 +9,14 @@ module.exports = (phase) => {
   const isProductionPhase =
     phase === PHASE_PRODUCTION_BUILD || phase === PHASE_PRODUCTION_SERVER;
 
+  // Vercel deployment builds expect the default '.next' output directory
+  const distDir = process.env.VERCEL === '1'
+    ? '.next'
+    : (isDevelopmentServer ? '.next/dev' : '.next/prod');
+
   return {
     reactStrictMode: true,
-    distDir: isDevelopmentServer ? '.next/dev' : isProductionPhase ? '.next/prod' : '.next/prod',
+    distDir,
     env: {
       API_URL: process.env.API_URL || 'http://localhost:3001',
     },
