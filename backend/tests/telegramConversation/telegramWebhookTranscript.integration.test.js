@@ -272,6 +272,10 @@ jest.mock('../../src/services/telegramService.js', () => ({
   __esModule: true,
   sendMessage: jest.fn(async () => ({ ok: true })),
   sendPlainMessage: jest.fn(async () => ({ ok: true })),
+  captureWebhookReply: jest.fn(async (callback) => {
+    await callback();
+    return null;
+  }),
   verifyWebhookSecret: jest.fn(() => true),
   isCommand: jest.fn((text) => String(text || '').startsWith('/')),
   extractCommand: jest.fn((text) => String(text || '').replace(/^\//, '').split(/\s+/)[0].toLowerCase()),
