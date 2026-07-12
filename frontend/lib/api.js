@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { buildSepoliaAutoSwapExecutionPlan, calculateEstimatedGasCostWei } from './sepoliaAutoSwapExecution.mjs';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -8,6 +9,16 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+const SEPOLIA_ROUTER_ABI = [
+  'function swapAndSend(address token, address recipient, uint256 amountBaseUnits) payable',
+];
+
+function getEthereumRpcUrl(network = 'mainnet') {
+  return network === 'mainnet'
+    ? 'https://eth.llamarpc.com'
+    : 'https://ethereum-sepolia-rpc.publicnode.com';
+}
 
 export const walletAPI = {
   generateWallet: async () => {
@@ -212,9 +223,7 @@ export const transactionAPI = {
 
     try {
       const network = options.network || 'mainnet';
-      const rpcUrl = network === 'mainnet'
-        ? 'https://eth.llamarpc.com'
-        : 'https://ethereum-sepolia-rpc.publicnode.com';
+      const rpcUrl = getEthereumRpcUrl(network);
 
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const wallet = new ethers.Wallet(privateKey, provider);
@@ -256,9 +265,7 @@ export const transactionAPI = {
     try {
       const network = options.network || 'mainnet';
       const decimals = options.decimals || 18;
-      const rpcUrl = network === 'mainnet'
-        ? 'https://eth.llamarpc.com'
-        : 'https://ethereum-sepolia-rpc.publicnode.com';
+      const rpcUrl = getEthereumRpcUrl(network);
 
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const wallet = new ethers.Wallet(privateKey, provider);
@@ -286,6 +293,113 @@ export const transactionAPI = {
       return {
         success: false,
         error: error.message || 'Token transaction failed',
+      };
+    }
+  },
+
+  quoteSepoliaAutoSwapTransaction: async (fromAddress, to, amount, options = {}) => {
+    const { ethers } = await import('ethers');
+
+    try {
+      const executionPlan = buildSepoliaAutoSwapExecutionPlan({
+        manifest: options.manifest,
+        token: options.token,
+        amount,
+        recipientAddress: to,
+      });
+
+      const provider = new ethers.JsonRpcProvider(getEthereumRpcUrl('sepolia'));
+      const feeData = await provider.getFeeData();
+      const gasPriceWei = feeData.maxFeePerGas ?? feeData.gasPrice;
+
+      if (!gasPriceWei) {
+        return {
+          success: false,
+          error: 'Unable to estimate transaction cost right now.',
+        };
+      }
+
+      const routerInterface = new ethers.Interface(SEPOLIA_ROUTER_ABI);
+      const data = routerInterface.encodeFunctionData('swapAndSend', [
+        executionPlan.tokenAddress,
+        executionPlan.recipientAddress,
+        executionPlan.amountBaseUnits,
+      ]);
+
+      const gasLimit = await provider.estimateGas({
+        from: fromAddress,
+        to: executionPlan.routerAddress,
+        data,
+        value: executionPlan.requiredWei,
+      });
+
+      return {
+        success: true,
+        executionPlan,
+        gasLimit: gasLimit.toString(),
+        gasPriceWei: gasPriceWei.toString(),
+        estimatedGasWei: calculateEstimatedGasCostWei({
+          gasLimit: gasLimit.toString(),
+          gasPriceWei: gasPriceWei.toString(),
+        }).toString(),
+      };
+    } catch (error) {
+      console.error('Sepolia auto-swap quote error:', error);
+      return {
+        success: false,
+        error: error.message || 'Unable to estimate transaction cost right now.',
+      };
+    }
+  },
+
+  sendSepoliaAutoSwapTransaction: async (privateKey, to, amount, options = {}) => {
+    const { ethers } = await import('ethers');
+
+    try {
+      const executionPlan = buildSepoliaAutoSwapExecutionPlan({
+        manifest: options.manifest,
+        token: options.token,
+        amount,
+        recipientAddress: to,
+      });
+
+      const provider = new ethers.JsonRpcProvider(getEthereumRpcUrl('sepolia'));
+      const wallet = new ethers.Wallet(privateKey, provider);
+      const contract = new ethers.Contract(executionPlan.routerAddress, SEPOLIA_ROUTER_ABI, wallet);
+
+      const transaction = await contract.swapAndSend(
+        executionPlan.tokenAddress,
+        executionPlan.recipientAddress,
+        executionPlan.amountBaseUnits,
+        {
+          value: executionPlan.requiredWei,
+        }
+      );
+
+      const receipt = await transaction.wait();
+      const postTransactionBalanceWei = await provider.getBalance(wallet.address);
+
+      return {
+        success: true,
+        transactionHash: transaction.hash,
+        data: {
+          hash: transaction.hash,
+          from: wallet.address,
+          to,
+          tokenAddress: executionPlan.tokenAddress,
+          amount,
+          routerAddress: executionPlan.routerAddress,
+          requiredWei: executionPlan.requiredWei,
+          gasUsed: receipt?.gasUsed?.toString?.() || null,
+          effectiveGasPriceWei: receipt?.gasPrice?.toString?.() || receipt?.effectiveGasPrice?.toString?.() || null,
+          postTransactionBalanceEth: ethers.formatEther(postTransactionBalanceWei),
+        },
+      };
+    } catch (error) {
+      console.error('Sepolia auto-swap send error:', error);
+      return {
+        success: false,
+        error: error.message || 'Sepolia auto-swap transaction failed',
       };
     }
   },

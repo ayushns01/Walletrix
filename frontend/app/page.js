@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Wallet, Send, Download, Settings, LogOut, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft, Bot } from 'lucide-react'
+import { Wallet, Settings, Plus, FileDown, User, Users, Trash2, Menu, X, Lock, ChevronRight, ArrowLeft, Bot } from 'lucide-react'
 import { useWallet } from '@/contexts/DatabaseWalletContext'
-import { useUser, useClerk, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
+import { useUser, SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { telegramAPI } from '@/lib/api'
 import CreateWallet from '@/components/CreateWallet'
@@ -24,9 +24,51 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import TelegramHomeCard from '@/components/TelegramHomeCard'
 import TelegramLinkPage from '@/components/TelegramLinkPage'
 
+function formatNetworkLabel(networkKey = 'ethereum-mainnet') {
+  const [chain, network] = String(networkKey || 'ethereum-mainnet').split('-')
+  const chainLabels = {
+    ethereum: 'Ethereum',
+    bitcoin: 'Bitcoin',
+    solana: 'Solana',
+    polygon: 'Polygon',
+    arbitrum: 'Arbitrum',
+    optimism: 'Optimism',
+    bsc: 'BNB Smart Chain',
+    avalanche: 'Avalanche',
+    base: 'Base',
+  }
+
+  const networkLabels = {
+    mainnet: 'Mainnet',
+    sepolia: 'Sepolia',
+    amoy: 'Amoy',
+    testnet: 'Testnet',
+    'mainnet-beta': 'Mainnet Beta',
+  }
+
+  const chainLabel = chainLabels[chain] || chain || 'Ethereum'
+  const networkLabel = networkLabels[network] || (network ? network.charAt(0).toUpperCase() + network.slice(1) : '')
+
+  return networkLabel ? `${chainLabel} ${networkLabel}` : chainLabel
+}
+
+function truncateMiddle(value, start = 8, end = 6) {
+  if (!value) return 'Not available'
+  if (value.length <= start + end + 3) return value
+  return `${value.slice(0, start)}...${value.slice(-end)}`
+}
+
+function getWalletAddressForNetwork(wallet, selectedNetwork = 'ethereum-mainnet') {
+  if (!wallet) return ''
+
+  const [chain] = String(selectedNetwork || 'ethereum-mainnet').split('-')
+  if (chain === 'bitcoin') return wallet?.bitcoin?.address || ''
+  if (chain === 'solana') return wallet?.solana?.address || ''
+  return wallet?.ethereum?.address || ''
+}
+
 export default function Home() {
   const { user: clerkUser, isLoaded: isUserLoaded, isSignedIn } = useUser()
-  const { signOut } = useClerk()
   const { getToken } = useAuth()
 
   const {
@@ -35,16 +77,12 @@ export default function Home() {
     balances,
     tokens,
     prices,
-    user,
     isAuthenticated,
-    login,
-    logout,
     userWallets,
     activeWalletId,
     setActiveWalletId,
     switchWallet,
     setSelectedNetwork,
-    importLocalStorageWallet,
     deleteWallet,
     deleteDatabaseWallet,
     unlockWallet,
@@ -73,6 +111,10 @@ export default function Home() {
   const [guestMode, setGuestMode] = useState(false)
   const [telegramBotWalletAddress, setTelegramBotWalletAddress] = useState('')
   const autoUnlockAttempted = useRef(false)
+  const activeWalletRecord = userWallets.find((candidate) => candidate.id === activeWalletId)
+  const activeWalletLabel = activeWalletRecord?.name || activeWalletRecord?.label || 'Main Wallet'
+  const activeWalletAddress = getWalletAddressForNetwork(wallet, selectedNetwork)
+  const activeNetworkLabel = formatNetworkLabel(selectedNetwork)
 
   // Handle hydration - read localStorage only on client after mount
   useEffect(() => {
@@ -230,6 +272,33 @@ export default function Home() {
     } else {
       setShowReceiveModal(true)
     }
+  }
+
+  const buildPrimaryAssetForSelectedNetwork = () => {
+    const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-')
+
+    if (chain === 'bitcoin') {
+      return { name: 'Bitcoin', symbol: 'BTC', balance: balances.bitcoin || '0', priceData: prices.bitcoin, icon: '₿' }
+    }
+
+    if (chain === 'solana') {
+      return { name: 'Solana', symbol: 'SOL', balance: balances.solana || '0', priceData: prices.solana, icon: '◎' }
+    }
+
+    return { name: 'Ethereum', symbol: 'ETH', balance: balances.ethereum || '0', priceData: prices.ethereum, icon: 'Ξ' }
+  }
+
+  const handlePrimarySend = () => {
+    handleQuickAction('send', buildPrimaryAssetForSelectedNetwork())
+  }
+
+  const handlePrimaryReceive = () => {
+    const asset = buildPrimaryAssetForSelectedNetwork()
+    handleQuickAction('receive', {
+      name: asset.name,
+      symbol: asset.symbol,
+      icon: asset.icon,
+    })
   }
 
   const handleFundBotWallet = async (botWalletAddress, walletId = null) => {
@@ -753,9 +822,9 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="min-h-screen bg-black text-white overflow-x-hidden relative">
+    <main className="wallet-shell-bg min-h-screen text-white overflow-x-hidden relative">
       {/* Animated Background - Same as Landing Page with subtle blur */}
-      <div className="animated-bg" style={{ filter: 'blur(1px)' }}>
+      <div className="animated-bg lg:hidden" style={{ filter: 'blur(1px)' }}>
         {/* Distant Stars Layer */}
         <div className="stars">
           {[...Array(150)].map((_, i) => {
@@ -942,53 +1011,59 @@ export default function Home() {
         )}
       </nav>
 
-      <div className="container mx-auto px-4 py-8 lg:py-8 pt-24 lg:pt-8">
-        {/* Desktop Header */}
-        <header className="hidden lg:flex items-center justify-between mb-8 bg-slate-800/80 backdrop-blur-xl rounded-2xl px-6 py-4 border border-slate-700/50 shadow-xl relative" style={{ zIndex: 100 }}>
-          <div className="flex items-center gap-5">
-            {/* Back Button */}
-            <button
-              onClick={() => setView('welcome')}
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-white" />
+      <div className="mx-auto max-w-[1600px] px-4 pb-8 pt-24 lg:px-6 lg:pb-10 lg:pt-6">
+        <div className="lg:grid lg:grid-cols-[96px_minmax(0,1fr)] lg:gap-6">
+          <div className="hidden lg:block lg:w-[96px]" aria-hidden="true" />
+          <aside
+            className="wallet-rail hidden lg:fixed lg:z-20 lg:flex lg:min-h-[calc(100vh-3rem)] lg:w-[96px] lg:flex-col lg:justify-between"
+            style={{ left: 'max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem))' }}
+          >
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <div className="wallet-brand-mark">
+                  <Wallet className="h-5 w-5 text-white" />
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Walletrix</h1>
-                <p className="text-xs text-slate-400">Multi-Chain Wallet</p>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setView('welcome')}
+                  className="wallet-rail-button"
+                  title="Back to Wallet Home"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+
+                {isAuthenticated && userWallets.length > 1 ? (
+                  <button
+                    onClick={() => setShowWalletSelector(true)}
+                    className="wallet-rail-button"
+                    title="Switch Wallet"
+                  >
+                    <Users className="h-5 w-5" />
+                  </button>
+                ) : null}
+
+                <button
+                  onClick={() => setView('telegram-link')}
+                  className="wallet-rail-button"
+                  title="Telegram Bot Workspace"
+                >
+                  <Bot className="h-5 w-5" />
+                </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <div data-tour="network-selector">
-              <NetworkSelector />
-            </div>
-
-            {/* Desktop User Info & Controls */}
-            {isAuthenticated && userWallets.length > 1 && (
+            <div className="space-y-3">
               <button
-                onClick={() => setShowWalletSelector(true)}
-                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 text-slate-300 hover:text-white transition-all"
-                title="Switch Wallet"
+                data-tour="settings-button"
+                onClick={() => setShowSettings(true)}
+                className="wallet-rail-button"
+                title="Settings"
               >
-                <Wallet className="w-5 h-5" />
+                <Settings className="h-5 w-5" />
               </button>
-            )}
 
-            <div className="flex items-center gap-2">
-              {/* Notification Bell */}
-              <NotificationBell currentWalletId={activeWalletId} />
-
-              {/* Lock Button */}
               <button
                 data-tour="lock-button"
                 onClick={() => {
@@ -996,261 +1071,73 @@ export default function Home() {
                     lockWallet()
                   }
                 }}
-                className="group relative p-3 rounded-xl bg-gradient-to-br from-orange-500/30 via-amber-500/20 to-orange-600/30 hover:from-orange-500/50 hover:via-amber-500/30 hover:to-orange-600/50 border border-orange-400/50 hover:border-orange-300/70 text-orange-300 hover:text-orange-200 transition-all duration-300 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-110"
+                className="wallet-rail-button wallet-rail-button-warning"
                 title="Lock Wallet"
               >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Lock className="w-5 h-5 relative z-10 group-hover:animate-pulse" />
+                <Lock className="h-5 w-5" />
               </button>
-
-              {/* Settings Button */}
-              <button
-                data-tour="settings-button"
-                onClick={() => setShowSettings(!showSettings)}
-                className="group relative p-3 rounded-xl bg-gradient-to-br from-purple-500/30 via-blue-500/20 to-cyan-600/30 hover:from-purple-500/50 hover:via-blue-500/30 hover:to-cyan-600/50 border border-purple-400/50 hover:border-cyan-300/70 text-purple-300 hover:text-cyan-200 transition-all duration-300 shadow-lg shadow-purple-500/20 hover:shadow-cyan-500/40 hover:scale-110"
-                title="Settings"
-              >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Settings className="w-5 h-5 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
-              </button>
-
-              {/* Clerk User Button - Moved to end */}
-              <SignedOut>
-                {/* Delete Wallet Button - Only in Guest Mode */}
-                {guestMode && wallet && (
-                  <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this wallet? This cannot be undone.')) {
-                        deleteWallet()
-                        setGuestMode(false)
-                        setView('landing')
-                      }
-                    }}
-                    className="group relative p-3 rounded-xl bg-gradient-to-br from-red-500/30 via-red-500/20 to-red-600/30 hover:from-red-500/50 hover:via-red-500/30 hover:to-red-600/50 border border-red-400/50 hover:border-red-300/70 text-red-300 hover:text-red-200 transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 hover:scale-110"
-                    title="Delete Wallet"
-                  >
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Trash2 className="w-5 h-5 relative z-10" />
-                  </button>
-                )}
-
-                <SignInButton mode="modal">
-                  <button className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:scale-105">
-                    <User className="w-4 h-4" />
-                    Sign In
-                  </button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-10 h-10 ring-2 ring-blue-500/30 hover:ring-cyan-400/50 transition-all",
-                      userButtonPopoverCard: "bg-slate-800 border-slate-700",
-                      userButtonPopoverActionButton: "text-white hover:bg-slate-700"
-                    }
-                  }}
-                />
-              </SignedIn>
             </div>
-          </div>
-        </header>
+          </aside>
 
-        {/* Settings Modal moved to end of component */}
-        {false && (
-          <div className="max-w-4xl mx-auto mb-8 relative" style={{ zIndex: 1000 }}>
-            <div className="glass-effect rounded-2xl p-8 border border-blue-500/30 shadow-2xl shadow-blue-500/30">
-              <h3 className="text-xl font-bold text-blue-100 mb-6">Settings</h3>
-              <div className="space-y-4">
-                {isAuthenticated && clerkUser ? (
-                  <>
-                    <div className="p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl border border-blue-500/20">
-                      <h4 className="font-semibold text-blue-100 mb-2">Account: {clerkUser.primaryEmailAddress?.emailAddress}</h4>
-                      <p className="text-sm text-blue-300">
-                        {userWallets.length} wallet{userWallets.length !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-xs text-blue-400 mt-2">
-                        Authenticated via Clerk • {clerkUser.fullName || 'User'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setShowAccountDetails(true);
-                        setShowSettings(false);
-                      }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40 flex items-center gap-3"
-                    >
-                      <User className="w-5 h-5" />
-                      Account Details & Private Keys
-                    </button>
-
-                    {/* Import localStorage wallet if exists */}
-                    {wallet && !activeWalletId && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await importLocalStorageWallet();
-                            setShowSettings(false);
-                          } catch (error) {
-                            console.error('Import failed:', error);
-                          }
-                        }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-green-900/30 to-green-800/20 hover:from-green-800/40 hover:to-green-700/30 text-green-300 font-semibold rounded-xl transition-all duration-300 text-left border border-green-500/20 hover:border-green-400/40 flex items-center gap-3"
-                      >
-                        <Download className="w-5 h-5" />
-                        Import Browser Wallet to Account
-                      </button>
-                    )}
-
-                    {/* Delete Active Wallet */}
-                    {activeWalletId && (
-                      <button
-                        onClick={async () => {
-                          const activeWallet = userWallets.find(w => w.id === activeWalletId);
-                          if (!activeWallet) return;
-
-                          if (confirm(`Are you sure you want to delete "${activeWallet.name}"? This action cannot be undone. Make sure you have backed up your recovery phrase.`)) {
-                            try {
-                              await deleteWallet(activeWalletId);
-                              setShowSettings(false);
-                            } catch (error) {
-                              console.error('Delete failed:', error);
-                            }
-                          }
-                        }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-red-900/30 to-red-800/20 hover:from-red-800/40 hover:to-red-700/30 text-red-300 font-semibold rounded-xl transition-all duration-300 text-left border border-red-500/20 hover:border-red-400/40 flex items-center gap-3"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                        Delete Current Wallet
-                      </button>
-                    )}
-
-                    <button
-                      onClick={async () => {
-                        await signOut();
-                        logout();
-                        setShowSettings(false);
-                      }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-orange-900/30 to-orange-800/20 hover:from-orange-800/40 hover:to-orange-700/30 text-orange-300 font-semibold rounded-xl transition-all duration-300 text-left border border-orange-500/20 hover:border-orange-400/40 flex items-center gap-3"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl border border-purple-500/20">
-                      <h4 className="font-semibold text-blue-100 mb-2">Local Wallet Mode</h4>
-                      <p className="text-sm text-blue-300">
-                        Sign in to sync across devices and backup to cloud
-                      </p>
-                    </div>
-
-                    <SignInButton mode="modal">
-                      <button
-                        onClick={() => setShowSettings(false)}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-purple-900/30 to-blue-800/20 hover:from-purple-800/40 hover:to-blue-700/30 text-purple-300 font-semibold rounded-xl transition-all duration-300 text-left border border-purple-500/20 hover:border-purple-400/40 flex items-center gap-3"
-                      >
-                        <Users className="w-5 h-5" />
-                        Sign In / Register
-                      </button>
-                    </SignInButton>
-
-                    <button
-                      onClick={() => {
-                        setShowAccountDetails(true);
-                        setShowSettings(false);
-                      }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-900/30 to-blue-800/20 hover:from-blue-800/40 hover:to-blue-700/30 text-blue-100 font-semibold rounded-xl transition-all duration-300 text-left border border-blue-500/20 hover:border-blue-400/40 flex items-center gap-3"
-                    >
-                      <User className="w-5 h-5" />
-                      Account Details & Private Keys
-                    </button>
-
-                    {/* Delete Local Wallet */}
-                    {wallet && (
-                      <button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete your local wallet? This action cannot be undone. Make sure you have backed up your recovery phrase.')) {
-                            deleteWallet();
-                            setShowSettings(false);
-                            setView('welcome');
-                          }
-                        }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-red-900/30 to-red-800/20 hover:from-red-800/40 hover:to-red-700/30 text-red-300 font-semibold rounded-xl transition-all duration-300 text-left border border-red-500/20 hover:border-red-400/40 flex items-center gap-3"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                        Delete Local Wallet
-                      </button>
-                    )}
-                  </>
-                )}
+          <div className="relative space-y-6" style={{ zIndex: 1 }}>
+            <header className="wallet-shell-header relative z-30 hidden lg:flex lg:items-start lg:justify-between lg:gap-6">
+              <div className="min-w-0">
+                <p className="wallet-shell-kicker">Portfolio Workspace</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold tracking-tight text-white">
+                    {activeWalletLabel}
+                  </h1>
+                  <span className="wallet-shell-badge">
+                    {activeNetworkLabel}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-slate-400">
+                  {truncateMiddle(activeWalletAddress)} {userWallets.length > 1 ? `• ${userWallets.length} wallets available` : '• Personal workspace'}
+                </p>
               </div>
+
+              <div className="flex items-center gap-3">
+                <div data-tour="network-selector" className="relative z-40">
+                  <NetworkSelector />
+                </div>
+
+                <NotificationBell currentWalletId={activeWalletId} />
+
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="wallet-shell-action">
+                      <User className="h-4 w-4" />
+                      <span>Sign In</span>
+                    </button>
+                  </SignInButton>
+                </SignedOut>
+
+                <SignedIn>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-1.5 shadow-[0_18px_48px_rgba(2,6,23,0.32)]">
+                    <UserButton
+                      appearance={{
+                        elements: {
+                          avatarBox: "h-10 w-10 ring-1 ring-white/10 transition-all hover:ring-white/20",
+                          userButtonPopoverCard: "bg-slate-900 border border-slate-800 shadow-2xl",
+                          userButtonPopoverActionButton: "text-white hover:bg-slate-800"
+                        }
+                      }}
+                    />
+                  </div>
+                </SignedIn>
+              </div>
+            </header>
+
+            <div className="relative z-0 lg:pl-1">
+              <ErrorBoundary>
+                <Dashboard
+                  onFundBot={handleFundBotWallet}
+                  onSend={handlePrimarySend}
+                  onReceive={handlePrimaryReceive}
+                />
+              </ErrorBoundary>
             </div>
           </div>
-        )}
-
-        {/* Quick Actions Bar */}
-        <div className="max-w-4xl mx-auto mb-6 relative" style={{ zIndex: 1 }}>
-          <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-4 border border-slate-700/50">
-            <div className={`grid gap-3 ${telegramBotWalletAddress ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
-              <button
-                data-tour="send-button"
-                onClick={() => {
-                  const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
-                  let asset;
-                  if (chain === 'bitcoin') {
-                    asset = { name: 'Bitcoin', symbol: 'BTC', balance: balances.bitcoin || '0', priceData: prices.bitcoin, icon: '₿' };
-                  } else if (chain === 'solana') {
-                    asset = { name: 'Solana', symbol: 'SOL', balance: balances.solana || '0', priceData: prices.solana, icon: '◎' };
-                  } else {
-                    asset = { name: 'Ethereum', symbol: 'ETH', balance: balances.ethereum || '0', priceData: prices.ethereum, icon: 'Ξ' };
-                  }
-                  handleQuickAction('send', asset);
-                }}
-                className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-blue-500/20"
-              >
-                <Send className="w-5 h-5" />
-                <span>Send</span>
-              </button>
-              <button
-                data-tour="receive-button"
-                onClick={() => {
-                  const [chain] = (selectedNetwork || 'ethereum-mainnet').split('-');
-                  let asset;
-                  if (chain === 'bitcoin') {
-                    asset = { name: 'Bitcoin', symbol: 'BTC', icon: '₿' };
-                  } else if (chain === 'solana') {
-                    asset = { name: 'Solana', symbol: 'SOL', icon: '◎' };
-                  } else {
-                    asset = { name: 'Ethereum', symbol: 'ETH', icon: 'Ξ' };
-                  }
-                  handleQuickAction('receive', asset);
-                }}
-                className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-emerald-500/20"
-              >
-                <Download className="w-5 h-5" />
-                <span>Receive</span>
-              </button>
-              {telegramBotWalletAddress && (
-                <button
-                  onClick={() => handleFundBotWallet(telegramBotWalletAddress)}
-                  className="flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-sky-500/20"
-                >
-                  <Bot className="w-5 h-5" />
-                  <span>Fund Bot</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard */}
-        <div className="max-w-4xl mx-auto relative" style={{ zIndex: 1, willChange: 'contents' }}>
-          <ErrorBoundary>
-            <Dashboard onFundBot={handleFundBotWallet} />
-          </ErrorBoundary>
         </div>
 
         {/* Modals */}

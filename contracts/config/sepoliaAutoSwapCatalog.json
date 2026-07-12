@@ -1,0 +1,61 @@
+{
+  "network": "ethereum-sepolia",
+  "ethUsdReference": "2000.00",
+  "tokens": [
+    {
+      "name": "Walletrix USD",
+      "symbol": "WUSD",
+      "decimals": 18,
+      "displayPriceUsd": "1.00",
+      "weiPerToken": "500000000000000",
+      "availabilityLabel": "Sendable from Sepolia ETH",
+      "shortDescription": "Stable-value demo dollar token for ETH-backed sends.",
+      "initialMintWholeTokens": "100000",
+      "seededRouterInventoryWholeTokens": "100000"
+    },
+    {
+      "name": "Walletrix DAI",
+      "symbol": "WDAI",
+      "decimals": 18,
+      "displayPriceUsd": "1.00",
+      "weiPerToken": "500000000000000",
+      "availabilityLabel": "Sendable from Sepolia ETH",
+      "shortDescription": "Stable-value demo DAI lane for frictionless token sends.",
+      "initialMintWholeTokens": "100000",
+      "seededRouterInventoryWholeTokens": "100000"
+    },
+    {
+      "name": "Walletrix LINK",
+      "symbol": "WLINK",
+      "decimals": 18,
+      "displayPriceUsd": "0.80",
+      "weiPerToken": "400000000000000",
+      "availabilityLabel": "Sendable from Sepolia ETH",
+      "shortDescription": "Low-cost utility token demo sourced directly from ETH.",
+      "initialMintWholeTokens": "50000",
+      "seededRouterInventoryWholeTokens": "50000"
+    },
+    {
+      "name": "Walletrix WBTC",
+      "symbol": "WWBTC",
+      "decimals": 18,
+      "displayPriceUsd": "25.00",
+      "weiPerToken": "12500000000000000",
+      "availabilityLabel": "Sendable from Sepolia ETH",
+      "shortDescription": "High-value demo asset showing larger ETH-backed token sends.",
+      "initialMintWholeTokens": "1000",
+      "seededRouterInventoryWholeTokens": "1000"
+    },
+    {
+      "name": "Walletrix Gold",
+      "symbol": "WGLD",
+      "decimals": 18,
+      "displayPriceUsd": "2.50",
+      "weiPerToken": "1250000000000000",
+      "availabilityLabel": "Sendable from Sepolia ETH",
+      "shortDescription": "Branded Walletrix demo asset for polished Sepolia showcases.",
+      "initialMintWholeTokens": "20000",
+      "seededRouterInventoryWholeTokens": "20000"
+    }
+  ]
+}

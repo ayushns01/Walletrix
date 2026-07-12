@@ -77,7 +77,9 @@ import {
 import { applyLinkCode } from './telegramController.js';
 import telegramConfig from '../config/telegram.js';
 import { HELP_MESSAGE, UNLINKED_MESSAGE, LINKED_MESSAGE } from '../config/prompts.js';
+import { TRANSFER_TOKEN_PROMPT_LIST } from '../config/transferTokens.js';
 import logger from '../services/loggerService.js';
+import { handleAgentMessage } from '../services/agent/index.js';
 
 // ─────────────────────────────────────────────────────────────
 //  In-memory conversation state
@@ -599,7 +601,7 @@ function buildMissingFieldPrompt(missing) {
     return 'Who should receive it? You can send an address, an ENS name, a name from your address list like "Alice", or say "use previous recipient".';
   }
   if (missing[0] === 'tokenSymbol') {
-    return 'Which token should I send? (ETH, USDC, USDT, DAI, WETH)';
+    return `Which token should I send? (${TRANSFER_TOKEN_PROMPT_LIST})`;
   }
   return 'Please share the missing transaction details.';
 }
@@ -1647,6 +1649,17 @@ export async function handleWebhook(req, res) {
           default:        return sendBotPlain(chatId, telegramId, `Unknown command: /${cmd}\n\nUse /help, /balance, /addresses, /recent, /status, /stealth, or /claim.`);
         }
       } else {
+        if (telegramConfig.TELEGRAM_AGENT_ENABLED) {
+          const user = await getUserByTelegramId(telegramId);
+          // Use the RAW send functions here, not sendBot*. The sendBot* wrappers
+          // call appendAssistantMessageHistory -> persistConversationState, which
+          // rewrites the whole conversation_sessions row from the legacy in-memory
+          // maps and would clobber the pendingIntent the agent just staged in the
+          // DB (breaking the YES confirmation). The agent owns its own state.
+          if (!user) return sendPlainMessage(chatId, UNLINKED_MESSAGE);
+          const { text: reply } = await handleAgentMessage(text, { user, telegramId });
+          return sendMessage(chatId, reply, getRemoveKeyboardReplyMarkup());
+        }
         return handleFreeText(chatId, telegramId, text);
       }
     });

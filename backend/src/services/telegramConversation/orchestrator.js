@@ -3,12 +3,17 @@
  * Keeps execution decisions out of LLM output by returning a strict action type.
  */
 
+import { TRANSFER_TOKEN_PATTERN, TRANSFER_TOKEN_RE } from '../../config/transferTokens.js';
+
 const ETH_ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
 const AMOUNT_RE = /(\d+(?:\.\d+)?)/;
-const TOKEN_RE = /\b(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)\b/i;
+const TOKEN_RE = TRANSFER_TOKEN_RE;
 const ENS_RE = /\b([a-z0-9-]+\.eth)\b/i;
 const TRANSFER_ACTION_RE = /\b(send|transfer|pay|wire|move|ship)\b/i;
-const COMPACT_TRANSFER_RE = /^\s*(?:(?:\d+(?:\.\d+)?\s+)?(?:eth|usdc|usdt|dai|weth|btc|matic|bnb|avax)?\s*(?:to\s+)?)?(?:0x[0-9a-fA-F]{40}|[a-z0-9-]+\.eth)\s*$/i;
+const COMPACT_TRANSFER_RE = new RegExp(
+  `^\\s*(?:(?:\\d+(?:\\.\\d+)?\\s+)?(?:${TRANSFER_TOKEN_PATTERN})?\\s*(?:to\\s+)?)?(?:0x[0-9a-fA-F]{40}|[a-z0-9-]+\\.eth)\\s*$`,
+  'i'
+);
 
 export const DEFAULT_INTENT_CONFIDENCE_THRESHOLD = 0.65;
 

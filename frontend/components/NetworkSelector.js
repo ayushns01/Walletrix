@@ -1,18 +1,17 @@
 'use client'
 
 import { useWallet } from '@/contexts/DatabaseWalletContext';
-import { ChevronDown, Globe } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Check, ChevronDown, Globe } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const networks = [
-
   {
     id: 'ethereum-mainnet',
     name: 'Ethereum Mainnet',
     chain: 'ethereum',
     network: 'mainnet',
     icon: '⟠',
-    color: 'text-blue-400',
+    color: 'text-blue-300',
     explorer: 'https://etherscan.io',
     rpcUrl: 'https://mainnet.infura.io/v3/',
     chainId: 1,
@@ -23,19 +22,18 @@ const networks = [
     chain: 'ethereum',
     network: 'sepolia',
     icon: '⟠',
-    color: 'text-cyan-400',
+    color: 'text-cyan-300',
     explorer: 'https://sepolia.etherscan.io',
     rpcUrl: 'https://sepolia.infura.io/v3/',
     chainId: 11155111,
   },
-
   {
     id: 'polygon-mainnet',
     name: 'Polygon Mainnet',
     chain: 'polygon',
     network: 'mainnet',
     icon: '⬟',
-    color: 'text-purple-400',
+    color: 'text-violet-300',
     explorer: 'https://polygonscan.com',
     rpcUrl: 'https://polygon-rpc.com',
     chainId: 137,
@@ -46,19 +44,18 @@ const networks = [
     chain: 'polygon',
     network: 'mumbai',
     icon: '⬟',
-    color: 'text-purple-300',
+    color: 'text-violet-200',
     explorer: 'https://mumbai.polygonscan.com',
     rpcUrl: 'https://rpc-mumbai.maticvigil.com',
     chainId: 80001,
   },
-
   {
     id: 'bitcoin-mainnet',
     name: 'Bitcoin Mainnet',
     chain: 'bitcoin',
     network: 'mainnet',
     icon: '₿',
-    color: 'text-orange-400',
+    color: 'text-amber-300',
     explorer: 'https://blockchain.info',
     rpcUrl: 'https://bitcoin-rpc.com',
     chainId: 0,
@@ -69,19 +66,18 @@ const networks = [
     chain: 'bitcoin',
     network: 'testnet',
     icon: '₿',
-    color: 'text-orange-300',
+    color: 'text-orange-200',
     explorer: 'https://blockstream.info/testnet',
     rpcUrl: 'https://bitcoin-testnet-rpc.com',
     chainId: 1,
   },
-
   {
     id: 'solana-mainnet',
     name: 'Solana Mainnet',
     chain: 'solana',
     network: 'mainnet-beta',
     icon: '◉',
-    color: 'text-purple-400',
+    color: 'text-fuchsia-300',
     explorer: 'https://explorer.solana.com',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
     chainId: 101,
@@ -92,7 +88,7 @@ const networks = [
     chain: 'solana',
     network: 'devnet',
     icon: '◉',
-    color: 'text-purple-300',
+    color: 'text-violet-200',
     explorer: 'https://explorer.solana.com?cluster=devnet',
     rpcUrl: 'https://api.devnet.solana.com',
     chainId: 103,
@@ -103,19 +99,120 @@ const networks = [
     chain: 'solana',
     network: 'testnet',
     icon: '◉',
-    color: 'text-pink-300',
+    color: 'text-pink-200',
     explorer: 'https://explorer.solana.com?cluster=testnet',
     rpcUrl: 'https://api.testnet.solana.com',
     chainId: 102,
   },
 ];
 
+function formatNetworkMeta(network) {
+  if (network.chain === 'solana') {
+    if (network.network === 'mainnet-beta') return 'Cluster mainnet';
+    return `Cluster ${network.network}`;
+  }
+
+  if (network.chain === 'bitcoin') {
+    return network.network === 'mainnet' ? 'Production chain' : 'Sandbox chain';
+  }
+
+  return `Chain ID ${network.chainId}`;
+}
+
+function createSection(title, items) {
+  return { title, items };
+}
+
+function NetworkOption({ network, isSelected, onSelect }) {
+  return (
+    <button
+      onClick={() => onSelect(network.id)}
+      className={`group flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${
+        isSelected
+          ? 'border-sky-400/25 bg-sky-950/95 shadow-[0_14px_32px_rgba(14,165,233,0.12)]'
+          : 'border-white/[0.06] bg-slate-950/92 hover:border-white/[0.12] hover:bg-slate-900/95'
+      }`}
+    >
+      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-base ${network.color}`}>
+        {network.icon}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium text-slate-100">
+            {network.name}
+          </p>
+          {isSelected ? (
+            <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200">
+              Active
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          {formatNetworkMeta(network)}
+        </p>
+      </div>
+
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-slate-400 transition group-hover:border-white/12 group-hover:text-slate-200">
+        {isSelected ? <Check className="h-4 w-4 text-sky-300" /> : <ChevronDown className="h-4 w-4 -rotate-90" />}
+      </div>
+    </button>
+  );
+}
+
+function NetworkColumn({ title, subtitle, sections, selectedNetwork, onSelect }) {
+  return (
+    <div className="flex-1 bg-[#0c1119] p-4 sm:p-5">
+      <div className="mb-4 border-b border-white/[0.08] pb-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          {title}
+        </p>
+        <p className="mt-2 text-sm text-slate-500">
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {sections.map((section) => (
+          <div key={section.title} className="space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              {section.title}
+            </p>
+            <div className="space-y-2">
+              {section.items.map((network) => (
+                <NetworkOption
+                  key={network.id}
+                  network={network}
+                  isSelected={selectedNetwork === network.id}
+                  onSelect={onSelect}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function NetworkSelector() {
   const { selectedNetwork, setSelectedNetwork } = useWallet();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const currentNetwork = networks.find(n => n.id === selectedNetwork) || networks[0];
+  const currentNetwork = networks.find((network) => network.id === selectedNetwork) || networks[0];
+
+  const mainnetSections = useMemo(() => ([
+    createSection('Ethereum & Layer 2', networks.filter((network) => ['ethereum', 'polygon'].includes(network.chain) && network.network === 'mainnet')),
+    createSection('Solana', networks.filter((network) => network.chain === 'solana' && network.network === 'mainnet-beta')),
+    createSection('Bitcoin', networks.filter((network) => network.chain === 'bitcoin' && network.network === 'mainnet')),
+  ]), []);
+
+  const testnetSections = useMemo(() => ([
+    createSection('Ethereum & Layer 2', networks.filter((network) => ['ethereum', 'polygon'].includes(network.chain) && network.network !== 'mainnet')),
+    createSection('Solana', networks.filter((network) => network.chain === 'solana' && network.network !== 'mainnet-beta')),
+    createSection('Bitcoin', networks.filter((network) => network.chain === 'bitcoin' && network.network === 'testnet')),
+  ]), []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -124,8 +221,19 @@ export default function NetworkSelector() {
       }
     }
 
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   const handleNetworkChange = (networkId) => {
@@ -134,218 +242,74 @@ export default function NetworkSelector() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef} style={{ zIndex: 1000 }}>
+    <div className={`relative w-full ${isOpen ? 'z-[90]' : 'z-10'}`} ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-black to-gray-900 hover:from-gray-900 hover:to-blue-900 rounded-xl border border-blue-500/30 shadow-lg shadow-blue-500/20 transition-all duration-300 min-w-[220px] backdrop-blur-sm"
+        onClick={() => setIsOpen((open) => !open)}
+        className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 sm:min-w-[260px] ${
+          isOpen
+            ? 'border-sky-400/20 bg-white/[0.12] shadow-[0_22px_54px_rgba(15,23,42,0.32)]'
+            : 'border-white/[0.08] bg-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.11]'
+        }`}
       >
-        <Globe className="w-5 h-5 text-blue-400" />
-        <span className={`text-lg ${currentNetwork.color}`}>
-          {currentNetwork.icon}
-        </span>
-        <span className="text-sm font-medium text-blue-100 truncate">
-          {currentNetwork.name}
-        </span>
-        <ChevronDown
-          className={`w-5 h-5 text-blue-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-black/20 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <Globe className="h-[18px] w-[18px] text-slate-300" />
+          </div>
 
-      {isOpen && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 mt-3 w-[95vw] sm:w-[650px] bg-gradient-to-br from-black via-gray-900 to-blue-950 border border-blue-500/40 rounded-2xl shadow-2xl shadow-blue-500/30 overflow-hidden backdrop-blur-xl" style={{ zIndex: 1000 }}>
-          <div className="flex flex-col sm:flex-row">
-            {}
-            <div className="flex-1 border-r-0 sm:border-r border-blue-500/30">
-              <div className="px-6 py-4 text-sm font-bold text-blue-300 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-blue-950/50 to-black/50 backdrop-blur-sm">
-                🌐 Mainnets
-              </div>
-              <div className="py-3 max-h-96 overflow-y-auto custom-scrollbar">
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                  Ethereum & Layer 2
-                </div>
-                {networks.filter(n => ['ethereum', 'polygon'].includes(n.chain) && n.network === 'mainnet').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name.replace(' Mainnet', '')}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        ID: {network.chainId}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
-                  Solana
-                </div>
-                {networks.filter(n => n.chain === 'solana' && n.network === 'mainnet-beta').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name.replace(' Mainnet', '')}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        ID: {network.chainId}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
-                  Bitcoin
-                </div>
-                {networks.filter(n => n.chain === 'bitcoin' && n.network === 'mainnet').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name.replace(' Mainnet', '')}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        ID: {network.chainId}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {}
-            <div className="flex-1 border-t sm:border-t-0 border-blue-500/30">
-              <div className="px-6 py-4 text-sm font-bold text-blue-200 uppercase tracking-wider border-b border-blue-500/30 bg-gradient-to-r from-black/50 to-blue-950/50 backdrop-blur-sm">
-                🧪 Testnets
-              </div>
-              <div className="py-3 max-h-96 overflow-y-auto custom-scrollbar">
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                  Ethereum & Layer 2
-                </div>
-                {networks.filter(n => ['ethereum', 'polygon'].includes(n.chain) && n.network !== 'mainnet').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name.replace(' Testnet', '')}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        ID: {network.chainId}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
-                  Solana
-                </div>
-                {networks.filter(n => n.chain === 'solana' && n.network !== 'mainnet-beta').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        {network.network.charAt(0).toUpperCase() + network.network.slice(1)}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-
-                {}
-                <div className="px-6 py-2 text-xs font-semibold text-blue-400 uppercase tracking-wider border-t border-blue-500/20 mt-3">
-                  Bitcoin
-                </div>
-                {networks.filter(n => n.chain === 'bitcoin' && n.network === 'testnet').map((network) => (
-                  <button
-                    key={network.id}
-                    onClick={() => handleNetworkChange(network.id)}
-                    className={`w-full flex items-center space-x-3 px-6 py-3 hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-black/50 transition-all duration-200 ${
-                      selectedNetwork === network.id ? 'bg-gradient-to-r from-blue-800/40 to-blue-900/40 border-l-2 border-blue-400' : ''
-                    }`}
-                  >
-                    <span className={`text-lg ${network.color}`}>
-                      {network.icon}
-                    </span>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-blue-50">
-                        {network.name.replace(' Testnet', '')}
-                      </div>
-                      <div className="text-xs text-blue-300/70">
-                        ID: {network.chainId}
-                      </div>
-                    </div>
-                    {selectedNetwork === network.id && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
-                  </button>
-                ))}
-              </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Active network
+            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-2">
+              <span className={`text-base ${currentNetwork.color}`}>
+                {currentNetwork.icon}
+              </span>
+              <span className="truncate text-sm font-medium text-slate-100">
+                {currentNetwork.name}
+              </span>
             </div>
           </div>
         </div>
-      )}
+
+        <ChevronDown
+          className={`h-[18px] w-[18px] flex-shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-slate-200' : ''}`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute right-0 z-[100] mt-3 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-[28px] border border-white/[0.12] bg-[#090e15] shadow-[0_32px_80px_rgba(2,6,23,0.52)]">
+          <div className="border-b border-white/[0.08] bg-[#0b1119] px-5 py-4 sm:px-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              Network routing
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`text-base ${currentNetwork.color}`}>
+                {currentNetwork.icon}
+              </span>
+              <p className="text-sm text-slate-200">
+                {currentNetwork.name}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col divide-y divide-white/[0.06] bg-[#0a1018] sm:flex-row sm:divide-x sm:divide-y-0">
+            <NetworkColumn
+              title="Mainnets"
+              subtitle="Primary production routes for live assets and balances."
+              sections={mainnetSections}
+              selectedNetwork={selectedNetwork}
+              onSelect={handleNetworkChange}
+            />
+            <NetworkColumn
+              title="Testnets"
+              subtitle="Sandbox networks for flows, bot funding, and rehearsal."
+              sections={testnetSections}
+              selectedNetwork={selectedNetwork}
+              onSelect={handleNetworkChange}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   TRANSFER_SLOT_EXTRACTION_SYSTEM_PROMPT,
   CONVERSATIONAL_REPLY_SYSTEM_PROMPT,
 } from '../config/prompts.js';
+import { TRANSFER_TOKEN_RE } from '../config/transferTokens.js';
 import logger from './loggerService.js';
 
 let genAI = null;
@@ -50,7 +51,7 @@ function getModel(kind) {
 
 const ETH_ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
 const AMOUNT_RE = /(\d+(?:\.\d+)?)/;
-const TOKEN_RE = /\b(ETH|USDC|USDT|DAI|WETH|BTC|MATIC|BNB|AVAX)\b/i;
+const TOKEN_RE = TRANSFER_TOKEN_RE;
 const ENS_RE = /\b([a-z0-9-]+\.eth)\b/i;
 const TRANSFER_ACTION_RE = /\b(send|transfer|pay|wire|move|ship)\b/i;
 

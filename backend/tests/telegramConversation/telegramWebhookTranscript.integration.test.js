@@ -283,6 +283,7 @@ jest.mock('../../src/services/geminiService.js', () => ({
     const msg = String(text || '').toLowerCase();
     const addressMatch = String(text || '').match(/0x[0-9a-fA-F]{40}/);
     const amountMatch = String(text || '').match(/(\d+(?:\.\d+)?)/);
+    const tokenMatch = String(text || '').match(/\b(usdc|usdt|dai|weth|wusd|wdai|wlink|wwbtc|wgld)\b/i);
 
     if (msg.includes('balance') || msg.includes('how much do i have')) {
       return {
@@ -305,7 +306,7 @@ jest.mock('../../src/services/geminiService.js', () => ({
         intent: 'transfer',
         confidence: 0.9,
         details: {
-          tokenSymbol: /\b(usdc|usdt|dai|weth)\b/i.test(msg) ? String(text).match(/\b(usdc|usdt|dai|weth)\b/i)[1].toUpperCase() : 'ETH',
+          tokenSymbol: tokenMatch ? tokenMatch[1].toUpperCase() : 'ETH',
           amount: amountMatch ? Number(amountMatch[1]) : null,
           recipientAddress: addressMatch ? addressMatch[0] : null,
           chain: null,
@@ -822,6 +823,30 @@ describe('telegramWebhookController transcript integration', () => {
     expect(outgoing[outgoing.length - 1]).toContain('*Contact 1*');
     expect(outgoing[outgoing.length - 1]).toContain('0x7777777777777777777777777777777777777777');
   });
+
+  it.each(['WUSD', 'WDAI', 'WLINK', 'WWBTC', 'WGLD'])(
+    'keeps demo token %s through Telegram confirm and execution',
+    async (tokenSymbol) => {
+      const telegramId = 1235;
+      const user = mockEnsureLinkedUser(telegramId);
+      mockGetSavedRecipients(user.id).push({
+        id: 'recipient-demo',
+        userId: user.id,
+        name: 'Contact 1',
+        normalizedName: 'contact 1',
+        address: '0x7777777777777777777777777777777777777777',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await sendIncomingText(`send 1 ${tokenSymbol.toLowerCase()} to contact 1`, { telegramId, chatId: 525 });
+      expect(outgoing[outgoing.length - 1]).toContain(`I'll send *1 ${tokenSymbol}*`);
+      expect(outgoing[outgoing.length - 1]).toContain('*Contact 1*');
+
+      await sendIncomingText('yes', { telegramId, chatId: 525 });
+      expect(outgoing.some((msg) => msg.includes(`Amount: 1 ${tokenSymbol}`))).toBe(true);
+    }
+  );
 
   it('lists account wallets plus the bot wallet, asks for a network, and returns a stealth receive address', async () => {
     const telegramId = 1299;

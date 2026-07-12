@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback } f
 import { useUser, useAuth } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { walletAPI, blockchainAPI, tokenAPI, priceAPI } from '@/lib/api';
+import { setBalanceForSelectedNetwork } from '@/lib/networkBalances.mjs';
+import { mapCoinGeckoPriceEntries } from '@/lib/mainnetHoldings.mjs';
 import toast from 'react-hot-toast';
 
 const WalletContext = createContext();
@@ -863,7 +865,7 @@ export function WalletProvider({ children }) {
         coinIds = ['solana'];
       } else if (chain === 'ethereum') {
 
-        coinIds = ['ethereum', 'tether', 'usd-coin', 'dai', 'chainlink'];
+        coinIds = ['ethereum', 'tether', 'usd-coin', 'dai', 'chainlink', 'uniswap', 'wrapped-bitcoin', 'matic-network'];
       } else {
 
         coinIds = ['ethereum'];
@@ -881,15 +883,8 @@ export function WalletProvider({ children }) {
       }
 
       if (response.success && response.prices) {
-        const priceMap = {};
+        const priceMap = mapCoinGeckoPriceEntries(response.prices);
         response.prices.forEach(coin => {
-          if (coin.coin === 'ethereum') {
-            priceMap.ethereum = {
-              current_price: coin.price,
-              market_cap: coin.marketCap,
-              price_change_percentage_24h: coin.change24h
-            };
-          }
           if (coin.coin === 'bitcoin') {
             priceMap.bitcoin = {
               current_price: coin.price,
@@ -955,6 +950,14 @@ export function WalletProvider({ children }) {
     }
   };
 
+  const applyBalanceForSelectedNetwork = (nextBalance) => {
+    setBalances((previousBalances) => setBalanceForSelectedNetwork({
+      balances: previousBalances,
+      selectedNetwork,
+      nextBalance,
+    }));
+  };
+
   const value = {
 
     user,
@@ -983,6 +986,7 @@ export function WalletProvider({ children }) {
     dataLoading,
     refreshInProgress,
     refreshAllData,
+    applyBalanceForSelectedNetwork,
 
     generateWallet,
     importWallet,
