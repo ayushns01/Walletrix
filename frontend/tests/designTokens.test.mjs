@@ -50,3 +50,23 @@ test('globals.css imports the token layer before anything else', () => {
     '@import must precede @tailwind directives (CSS requires @import first)',
   );
 });
+
+const landingStyles = readFileSync(
+  new URL('../components/landing/landing.css', import.meta.url),
+  'utf8',
+);
+
+test('.lp4 aliases the shared tokens instead of redefining literals', () => {
+  assert.match(landingStyles, /--lp4-accent:\s*var\(--wx-accent\)/);
+  assert.match(landingStyles, /--lp4-bg:\s*var\(--wx-bg\)/);
+  assert.match(landingStyles, /--lp4-ink:\s*var\(--wx-ink\)/);
+  assert.match(landingStyles, /--lp4-dim:\s*var\(--wx-dim\)/);
+  assert.match(landingStyles, /--lp4-line:\s*var\(--wx-line\)/);
+  assert.match(landingStyles, /--lp4-line-strong:\s*var\(--wx-line-strong\)/);
+  assert.match(landingStyles, /--lp4-green:\s*var\(--wx-green\)/);
+  assert.match(landingStyles, /--lp4-red:\s*var\(--wx-red\)/);
+});
+
+test('.lp4 no longer hardcodes the accent hex', () => {
+  assert.doesNotMatch(landingStyles, /--lp4-accent:\s*#67d1ef/);
+});

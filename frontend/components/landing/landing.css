@@ -1,14 +1,14 @@
 /* Landing v4 — ported from walletrix-landing demo. Scoped under .lp4 */
 
 .lp4 {
-  --lp4-bg: #04050a;
-  --lp4-ink: #edf2fb;
-  --lp4-dim: #76829a;
-  --lp4-line: rgba(150, 175, 225, 0.12);
-  --lp4-line-strong: rgba(150, 175, 225, 0.26);
-  --lp4-accent: #67d1ef;
-  --lp4-green: #34d399;
-  --lp4-red: #fb7185;
+  --lp4-bg: var(--wx-bg);
+  --lp4-ink: var(--wx-ink);
+  --lp4-dim: var(--wx-dim);
+  --lp4-line: var(--wx-line);
+  --lp4-line-strong: var(--wx-line-strong);
+  --lp4-accent: var(--wx-accent);
+  --lp4-green: var(--wx-green);
+  --lp4-red: var(--wx-red);
 
   position: relative;
   min-height: 100vh;
