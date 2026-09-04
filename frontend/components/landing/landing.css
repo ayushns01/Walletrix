@@ -9,6 +9,8 @@
   --lp4-accent: var(--wx-accent);
   --lp4-green: var(--wx-green);
   --lp4-red: var(--wx-red);
+  --lp4-font-display: var(--wx-font-display);
+  --lp4-font-mono: var(--wx-font-mono);
 
   position: relative;
   min-height: 100vh;

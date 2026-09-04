@@ -70,3 +70,25 @@ test('.lp4 aliases the shared tokens instead of redefining literals', () => {
 test('.lp4 no longer hardcodes the accent hex', () => {
   assert.doesNotMatch(landingStyles, /--lp4-accent:\s*#67d1ef/);
 });
+
+const layoutSource = readFileSync(new URL('../app/layout.js', import.meta.url), 'utf8');
+const landingSource = readFileSync(
+  new URL('../components/LandingPage.js', import.meta.url),
+  'utf8',
+);
+
+test('fonts are declared once, in the root layout', () => {
+  assert.match(layoutSource, /Space_Grotesk/);
+  assert.match(layoutSource, /JetBrains_Mono/);
+  assert.match(layoutSource, /variable:\s*'--font-display'/);
+  assert.match(layoutSource, /variable:\s*'--font-mono'/);
+});
+
+test('LandingPage no longer declares its own fonts', () => {
+  assert.doesNotMatch(landingSource, /next\/font\/google/);
+});
+
+test('.lp4 font vars alias the shared font tokens', () => {
+  assert.match(landingStyles, /--lp4-font-display:\s*var\(--wx-font-display\)/);
+  assert.match(landingStyles, /--lp4-font-mono:\s*var\(--wx-font-mono\)/);
+});

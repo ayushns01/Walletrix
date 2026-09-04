@@ -1,10 +1,25 @@
 'use client'
 
 import { Toaster } from 'react-hot-toast'
+import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { WalletProvider } from '@/contexts/DatabaseWalletContext'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ClerkProvider } from '@clerk/nextjs'
+
+const displayFont = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+const monoFont = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-mono',
+  display: 'swap',
+})
 
 export default function RootLayout({ children }) {
   return (
@@ -60,7 +75,7 @@ export default function RootLayout({ children }) {
         },
       }}
     >
-      <html lang="en">
+      <html lang="en" className={`${displayFont.variable} ${monoFont.variable}`}>
         <head>
           <title>Walletrix - Your Secure Multi-Chain Crypto Wallet</title>
           <meta name="description" content="Manage Bitcoin, Ethereum, and multiple blockchain assets with Walletrix - a secure, non-custodial cryptocurrency wallet" />
@@ -68,7 +83,7 @@ export default function RootLayout({ children }) {
           <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
           <link rel="alternate icon" href="/favicon.ico" />
         </head>
-        <body className="min-h-screen">
+        <body className="min-h-screen font-sans">
           <ErrorBoundary>
             <WalletProvider>
               <div className="min-h-screen relative">
