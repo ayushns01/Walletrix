@@ -75,3 +75,13 @@ test('no wx-* utility uses an opacity modifier', () => {
   }
   assert.deepEqual(offenders, [], `opacity modifiers on var() colours emit no CSS:\n${offenders.join('\n')}`);
 });
+
+test('SendModal carries no legacy palette classes', () => {
+  const hits = legacyHits(read('../components/SendModal.js'));
+  assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
+});
+
+test('ReceiveModal carries no legacy palette classes', () => {
+  const hits = legacyHits(read('../components/ReceiveModal.js'));
+  assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
+});

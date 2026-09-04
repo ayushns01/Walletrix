@@ -467,7 +467,7 @@ export default function SendModal({
                   href={explorerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-300 underline text-xs"
+                  className="text-wx-accent underline text-xs"
                 >
                   View on Explorer
                 </a>
@@ -508,48 +508,48 @@ export default function SendModal({
       style={{ zIndex: 9999 }}
     >
       <div
-        className={`relative flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#101114]/95 shadow-[0_32px_90px_rgba(0,0,0,0.55)] transition-all duration-300 ${
+        className={`relative flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-wx-line bg-[#101114]/95 shadow-[0_32px_90px_rgba(0,0,0,0.55)] transition-all duration-300 ${
           showModal ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-95 opacity-0'
         }`}
       >
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute -left-24 bottom-[-5rem] h-64 w-64 rounded-full bg-slate-700/20 blur-3xl" />
+          <div className="absolute -left-24 bottom-[-5rem] h-64 w-64 rounded-full bg-wx-accent-soft blur-3xl" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         </div>
 
-        <div className="relative border-b border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+        <div className="relative border-b border-wx-line bg-gradient-to-b from-white/[0.04] to-transparent px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               {step === 2 && (
                 <button
                   onClick={() => setStep(1)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-300 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-wx-sm border border-white/[0.08] bg-white/[0.03] text-wx-dim transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-wx-ink"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
               )}
-              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#2a2d33] via-[#191b20] to-[#0d0e12] text-xl font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-wx border border-wx-line bg-gradient-to-br from-[#2a2d33] via-[#191b20] to-[#0d0e12] text-xl font-semibold text-wx-ink shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_60%)]" />
                 <span className="relative">{activeAsset?.icon || activeAsset?.symbol?.[0]}</span>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="truncate text-lg font-semibold tracking-tight text-white sm:text-xl">
+                  <h3 className="truncate text-lg font-semibold tracking-tight text-wx-ink sm:text-xl">
                     {step === 1 ? `Send ${activeAsset?.symbol}` : 'Review transfer'}
                   </h3>
-                  <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 sm:inline-flex">
+                  <span className="hidden rounded-full border border-wx-line bg-white/[0.04] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-wx-dim sm:inline-flex">
                     Premium
                   </span>
                 </div>
-                <p className="mt-1 truncate text-sm text-slate-400">{activeAsset?.name}</p>
+                <p className="mt-1 truncate text-sm text-wx-dim">{activeAsset?.name}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-wx-sm border border-white/[0.08] bg-white/[0.03] text-wx-dim transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-wx-ink"
             >
               <X className="h-4 w-4" />
             </button>
@@ -557,10 +557,10 @@ export default function SendModal({
 
           <div className="mt-5 flex items-center gap-3">
             <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
-              step === 1 ? 'border-white/10 bg-white/[0.05] text-white' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
+              step === 1 ? 'border-wx-line bg-white/[0.05] text-wx-ink' : 'border-emerald-500/25 bg-emerald-500/10 text-wx-green'
             }`}>
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 1 ? 'bg-white/10 text-white' : 'bg-emerald-500 text-white'
+                step === 1 ? 'bg-white/10 text-wx-ink' : 'bg-emerald-500 text-wx-ink'
               }`}>
                 {step === 1 ? '1' : '✓'}
               </span>
@@ -568,10 +568,10 @@ export default function SendModal({
             </div>
             <div className={`h-px flex-1 ${step === 2 ? 'bg-gradient-to-r from-white/10 via-white/35 to-emerald-400/40' : 'bg-white/10'}`} />
             <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
-              step === 2 ? 'border-white/10 bg-white/[0.05] text-white' : 'border-white/5 bg-white/[0.02] text-slate-500'
+              step === 2 ? 'border-wx-line bg-white/[0.05] text-wx-ink' : 'border-wx-line bg-white/[0.02] text-wx-dim'
             }`}>
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 2 ? 'bg-white/10 text-white' : 'bg-white/[0.04] text-slate-500'
+                step === 2 ? 'bg-white/10 text-wx-ink' : 'bg-white/[0.04] text-wx-dim'
               }`}>
                 2
               </span>
@@ -586,28 +586,28 @@ export default function SendModal({
               <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-wx-dim">
                       {isSepoliaAutoSwapSend ? 'Available Sepolia ETH' : 'Available balance'}
                     </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                      {resolvedBalance || '0'} <span className="text-slate-400">{sourceAssetSymbol}</span>
+                    <p className="mt-2 text-2xl font-semibold tracking-tight text-wx-ink">
+                      {resolvedBalance || '0'} <span className="text-wx-dim">{sourceAssetSymbol}</span>
                     </p>
                     {isSepoliaAutoSwapSend && (
-                      <p className="mt-2 text-sm text-slate-400">
+                      <p className="mt-2 text-sm text-wx-dim">
                         This token send will be sourced from your Sepolia ETH right before delivery.
                       </p>
                     )}
                   </div>
                   <div className="text-right">
                     {livePriceData ? (
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-wx-dim">
                         ≈ ${(parseFloat(resolvedBalance || 0) * (isSepoliaAutoSwapSend ? (prices.ethereum?.current_price || 0) : livePriceData.current_price)).toFixed(2)}
                       </p>
                     ) : (
-                      <p className="text-sm text-slate-500">No live pricing</p>
+                      <p className="text-sm text-wx-dim">No live pricing</p>
                     )}
                     {freshBalanceLoading && (
-                      <p className="mt-1 text-xs text-slate-400">Syncing live balance...</p>
+                      <p className="mt-1 text-xs text-wx-dim">Syncing live balance...</p>
                     )}
                   </div>
                 </div>
@@ -616,10 +616,10 @@ export default function SendModal({
               {isSepoliaSupportedNetwork && (
                 <div className="rounded-3xl border border-white/[0.08] bg-[#0c0d11] p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-4">
-                    <label className="text-sm font-medium text-slate-200">
+                    <label className="text-sm font-medium text-wx-ink">
                       What would you like to send?
                     </label>
-                    <span className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                    <span className="text-[11px] uppercase tracking-[0.16em] text-wx-dim">
                       Walletrix got you
                     </span>
                   </div>
@@ -631,7 +631,7 @@ export default function SendModal({
                       className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
                         selectedSendAssetSymbol === 'ETH'
                           ? 'border-sky-400/30 bg-sky-500/15 text-sky-100'
-                          : 'border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]'
+                          : 'border-white/[0.08] bg-white/[0.03] text-wx-dim hover:border-white/15 hover:bg-white/[0.06]'
                       }`}
                     >
                       ETH
@@ -644,7 +644,7 @@ export default function SendModal({
                         className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
                           selectedSendAssetSymbol === option.symbol
                             ? 'border-sky-400/30 bg-sky-500/15 text-sky-100'
-                            : 'border-white/[0.08] bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.06]'
+                            : 'border-white/[0.08] bg-white/[0.03] text-wx-dim hover:border-white/15 hover:bg-white/[0.06]'
                         }`}
                       >
                         {option.symbol}
@@ -653,7 +653,7 @@ export default function SendModal({
                   </div>
 
                   {isSepoliaAutoSwapSend && selectedSepoliaTokenOption && (
-                    <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                    <div className="mt-4 rounded-wx border border-sky-400/20 bg-sky-500/10 p-4">
                       <p className="text-sm font-medium text-sky-100">
                         You do not need to worry about swaps. Walletrix got you.
                       </p>
@@ -668,7 +668,7 @@ export default function SendModal({
                           {selectedSepoliaTokenOption.availabilityLabel}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm text-slate-300">
+                      <p className="mt-3 text-sm text-wx-dim">
                         {selectedSepoliaTokenOption.shortDescription}
                       </p>
                     </div>
@@ -678,29 +678,29 @@ export default function SendModal({
 
               {(presetLabel || presetDescription) && (
                 <div className="rounded-3xl border border-white/[0.08] bg-white/[0.025] p-4">
-                  {presetLabel ? <p className="text-sm font-medium text-white">{presetLabel}</p> : null}
-                  {presetDescription ? <p className="mt-1 text-sm leading-6 text-slate-400">{presetDescription}</p> : null}
+                  {presetLabel ? <p className="text-sm font-medium text-wx-ink">{presetLabel}</p> : null}
+                  {presetDescription ? <p className="mt-1 text-sm leading-6 text-wx-dim">{presetDescription}</p> : null}
                 </div>
               )}
 
               <div className="rounded-3xl border border-white/[0.08] bg-[#0c0d11] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-slate-300">
+                  <label className="flex items-center gap-2 text-sm font-medium text-wx-ink">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-wx-dim">
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </span>
                     Recipient Address
                   </label>
-                  <span className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Required</span>
+                  <span className="text-[11px] uppercase tracking-[0.16em] text-wx-dim">Required</span>
                 </div>
                 <div className="mt-3 relative">
                   <input
                     type="text"
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
-                    className="w-full rounded-2xl border border-white/[0.08] bg-[#111218] px-4 py-4 font-mono text-sm text-white placeholder:text-slate-500 outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
+                    className="w-full rounded-wx border border-white/[0.08] bg-[#111218] px-4 py-4 font-mono text-sm text-wx-ink placeholder:text-wx-dim outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
                     placeholder={`Enter ${activeAsset?.symbol} address`}
                   />
                 </div>
@@ -708,8 +708,8 @@ export default function SendModal({
 
               <div className="rounded-3xl border border-white/[0.08] bg-[#0c0d11] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-slate-300">
+                  <label className="flex items-center gap-2 text-sm font-medium text-wx-ink">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-wx-dim">
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -719,7 +719,7 @@ export default function SendModal({
                   {!isSepoliaAutoSwapSend && (
                     <button
                       onClick={() => setAmount(resolvedBalance || '0')}
-                      className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium tracking-wide text-slate-300 transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-white"
+                      className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium tracking-wide text-wx-dim transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-wx-ink"
                     >
                       MAX
                     </button>
@@ -730,29 +730,29 @@ export default function SendModal({
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full rounded-2xl border border-white/[0.08] bg-[#111218] px-4 py-4 pr-20 text-lg font-semibold text-white placeholder:text-slate-500 outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
+                    className="w-full rounded-wx border border-white/[0.08] bg-[#111218] px-4 py-4 pr-20 text-lg font-semibold text-wx-ink placeholder:text-wx-dim outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
                     placeholder="0.00"
                     step="any"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-wx-dim">
                     {activeAsset?.symbol}
                   </span>
                 </div>
                 {amount && livePriceData && (
-                  <p className="mt-2 text-sm text-slate-400">
-                    ≈ <span className="font-medium text-white">${amountUsd}</span> USD
+                  <p className="mt-2 text-sm text-wx-dim">
+                    ≈ <span className="font-medium text-wx-ink">${amountUsd}</span> USD
                   </p>
                 )}
                 {isSepoliaAutoSwapSend && (
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-2 text-sm text-wx-dim">
                     You are entering the amount of {activeAsset?.symbol} to deliver. Walletrix will calculate the ETH required for you.
                   </p>
                 )}
               </div>
 
               <div className="rounded-3xl border border-white/[0.08] bg-[#0c0d11] p-4 sm:p-5">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-slate-300">
+                <label className="flex items-center gap-2 text-sm font-medium text-wx-ink">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-wx-dim">
                     <Shield className="h-4 w-4" />
                   </span>
                   Wallet Password
@@ -762,30 +762,30 @@ export default function SendModal({
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-2xl border border-white/[0.08] bg-[#111218] px-4 py-4 text-white placeholder:text-slate-500 outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
+                    className="w-full rounded-wx border border-white/[0.08] bg-[#111218] px-4 py-4 text-wx-ink placeholder:text-wx-dim outline-none transition-colors focus:border-white/15 focus:bg-[#14161c]"
                     placeholder="Enter your password to authorize"
                   />
                 </div>
               </div>
 
               {gasPrice && sourceAssetSymbol !== 'BTC' && (
-                <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-                  <span className="text-sm text-slate-400">Estimated network fee</span>
-                  <span className="text-sm font-medium text-white">~{networkFee} Gwei</span>
+                <div className="flex items-center justify-between rounded-wx border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                  <span className="text-sm text-wx-dim">Estimated network fee</span>
+                  <span className="text-sm font-medium text-wx-ink">~{networkFee} Gwei</span>
                 </div>
               )}
 
               <div className="flex flex-col gap-3 pt-1 sm:flex-row">
                 <button
                   onClick={onClose}
-                  className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-4 font-medium text-slate-300 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+                  className="flex-1 rounded-wx border border-white/[0.08] bg-white/[0.03] px-6 py-4 font-medium text-wx-dim transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-wx-ink"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleContinue}
                   disabled={!recipient || !amount || !password}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white px-6 py-4 font-semibold text-black transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.08] disabled:text-slate-500"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full border border-wx-accent bg-wx-accent px-6 py-4 font-semibold text-wx-bg shadow-wx-glow transition ease-wx hover:shadow-wx-glow-lg disabled:cursor-not-allowed disabled:border-wx-line disabled:bg-wx-surface disabled:text-wx-dim disabled:shadow-none"
                 >
                   Continue
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -800,38 +800,38 @@ export default function SendModal({
             <div className="space-y-5 px-5 py-5 sm:px-6">
               <div className="rounded-3xl border border-white/[0.08] bg-[#0c0d11] p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-slate-200">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-wx border border-white/[0.08] bg-white/[0.04] text-wx-ink">
                     <SendIcon className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-base font-semibold tracking-tight text-white">Transfer review</h4>
-                    <p className="text-sm text-slate-400">Confirm the destination, amount, and network details.</p>
+                    <h4 className="text-base font-semibold tracking-tight text-wx-ink">Transfer review</h4>
+                    <p className="text-sm text-wx-dim">Confirm the destination, amount, and network details.</p>
                   </div>
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">From</p>
-                    <p className="mt-3 font-mono text-sm text-white">{formatAddress(reviewFromAddress)}</p>
+                  <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">From</p>
+                    <p className="mt-3 font-mono text-sm text-wx-ink">{formatAddress(reviewFromAddress)}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">To</p>
-                    <p className="mt-3 font-mono text-sm text-white">{formatAddress(recipient)}</p>
+                  <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">To</p>
+                    <p className="mt-3 font-mono text-sm text-wx-ink">{formatAddress(recipient)}</p>
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+                <div className="mt-3 rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Amount</p>
-                      <p className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                        {amount} <span className="text-slate-400">{activeAsset?.symbol}</span>
+                      <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">Amount</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-tight text-wx-ink">
+                        {amount} <span className="text-wx-dim">{activeAsset?.symbol}</span>
                       </p>
                     </div>
                     {livePriceData && (
                       <div className="text-right">
-                        <p className="text-sm text-slate-400">Estimated value</p>
-                        <p className="mt-1 text-sm font-medium text-white">
+                        <p className="text-sm text-wx-dim">Estimated value</p>
+                        <p className="mt-1 text-sm font-medium text-wx-ink">
                           ≈ {amountUsd ? `$${amountUsd}` : '$0.00'} USD
                         </p>
                       </div>
@@ -841,45 +841,45 @@ export default function SendModal({
 
                 {isSepoliaAutoSwapSend && sepoliaQuote?.review && (
                   <>
-                    <div className="mt-3 rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                    <div className="mt-3 rounded-wx border border-sky-400/20 bg-sky-500/10 p-4">
                       <p className="text-sm font-medium text-sky-100">
                         {sepoliaQuote.review.supportiveCopy}
                       </p>
-                      <p className="mt-2 text-sm text-slate-300">
+                      <p className="mt-2 text-sm text-wx-dim">
                         We&apos;ll source {activeAsset?.symbol} from ETH on Sepolia at a fixed demo rate before delivering it to the recipient.
                       </p>
                     </div>
 
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Demo price</p>
-                        <p className="mt-2 text-sm font-medium text-white">${sepoliaQuote.review.demoTokenPriceUsd} per token</p>
+                      <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">Demo price</p>
+                        <p className="mt-2 text-sm font-medium text-wx-ink">${sepoliaQuote.review.demoTokenPriceUsd} per token</p>
                       </div>
-                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Conversion rate</p>
-                        <p className="mt-2 text-sm font-medium text-white">{sepoliaQuote.review.conversionRateEthPerToken} ETH</p>
+                      <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">Conversion rate</p>
+                        <p className="mt-2 text-sm font-medium text-wx-ink">{sepoliaQuote.review.conversionRateEthPerToken} ETH</p>
                       </div>
-                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">ETH for token sourcing</p>
-                        <p className="mt-2 text-sm font-medium text-white">{formatWeiToEth(sepoliaQuote.review.requiredTokenSourcingWei)} ETH</p>
+                      <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">ETH for token sourcing</p>
+                        <p className="mt-2 text-sm font-medium text-wx-ink">{formatWeiToEth(sepoliaQuote.review.requiredTokenSourcingWei)} ETH</p>
                       </div>
-                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Estimated gas</p>
-                        <p className="mt-2 text-sm font-medium text-white">{formatWeiToEth(sepoliaQuote.review.estimatedGasWei)} ETH</p>
+                      <div className="rounded-wx border border-white/[0.08] bg-white/[0.03] p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-wx-dim">Estimated gas</p>
+                        <p className="mt-2 text-sm font-medium text-wx-ink">{formatWeiToEth(sepoliaQuote.review.estimatedGasWei)} ETH</p>
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-                      <span className="text-sm text-slate-400">Total ETH outflow</span>
-                      <span className="text-sm font-medium text-white">{formatWeiToEth(sepoliaQuote.review.totalEthOutflowWei)} ETH</span>
+                    <div className="mt-3 flex items-center justify-between rounded-wx border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                      <span className="text-sm text-wx-dim">Total ETH outflow</span>
+                      <span className="text-sm font-medium text-wx-ink">{formatWeiToEth(sepoliaQuote.review.totalEthOutflowWei)} ETH</span>
                     </div>
                   </>
                 )}
 
                 {gasPrice && sourceAssetSymbol !== 'BTC' && !isSepoliaAutoSwapSend && (
-                  <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-                    <span className="text-sm text-slate-400">Network fee</span>
-                    <span className="text-sm font-medium text-white">~{networkFee} Gwei</span>
+                  <div className="mt-3 flex items-center justify-between rounded-wx border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                    <span className="text-sm text-wx-dim">Network fee</span>
+                    <span className="text-sm font-medium text-wx-ink">~{networkFee} Gwei</span>
                   </div>
                 )}
               </div>
@@ -894,21 +894,21 @@ export default function SendModal({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-wx ${
                         addressHistory.previouslySent ? 'bg-emerald-500/15' : 'bg-amber-500/15'
                       }`}
                     >
                       {addressHistory.previouslySent ? (
-                        <CheckCircle className="h-5 w-5 text-emerald-300" />
+                        <CheckCircle className="h-5 w-5 text-wx-green" />
                       ) : (
-                        <AlertTriangle className="h-5 w-5 text-amber-300" />
+                        <AlertTriangle className="h-5 w-5 text-wx-amber" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h4 className={`text-sm font-semibold ${addressHistory.previouslySent ? 'text-emerald-300' : 'text-amber-300'}`}>
+                      <h4 className={`text-sm font-semibold ${addressHistory.previouslySent ? 'text-wx-green' : 'text-wx-amber'}`}>
                         {addressHistory.previouslySent ? 'Known address' : 'New address'}
                       </h4>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">
+                      <p className="mt-1 text-sm leading-6 text-wx-dim">
                         {addressHistory.previouslySent
                           ? `Previously sent ${addressHistory.lastSentAmount} on ${addressHistory.lastSentDate}`
                           : 'First time sending to this address'
@@ -921,12 +921,12 @@ export default function SendModal({
 
               <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15">
-                    <AlertCircle className="h-5 w-5 text-amber-300" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-wx bg-amber-500/15">
+                    <AlertCircle className="h-5 w-5 text-wx-amber" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-amber-200">Double-check before sending</p>
-                    <p className="mt-1 text-sm leading-6 text-amber-100/70">Transactions cannot be reversed once confirmed on the blockchain.</p>
+                    <p className="text-sm font-semibold text-wx-amber">Double-check before sending</p>
+                    <p className="mt-1 text-sm leading-6 text-wx-amber">Transactions cannot be reversed once confirmed on the blockchain.</p>
                   </div>
                 </div>
               </div>
@@ -934,7 +934,7 @@ export default function SendModal({
               <div className="flex flex-col gap-3 pt-1 sm:flex-row">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-4 font-medium text-slate-300 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-wx border border-white/[0.08] bg-white/[0.03] px-6 py-4 font-medium text-wx-dim transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-wx-ink"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -944,7 +944,7 @@ export default function SendModal({
                 <button
                   onClick={handleSend}
                   disabled={loading}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white px-6 py-4 font-semibold text-black transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.08] disabled:text-slate-500"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full border border-wx-accent bg-wx-accent px-6 py-4 font-semibold text-wx-bg shadow-wx-glow transition ease-wx hover:shadow-wx-glow-lg disabled:cursor-not-allowed disabled:border-wx-line disabled:bg-wx-surface disabled:text-wx-dim disabled:shadow-none"
                 >
                   <SendIcon className="h-4 w-4" />
                   {loading ? 'Sending...' : 'Confirm and send'}
