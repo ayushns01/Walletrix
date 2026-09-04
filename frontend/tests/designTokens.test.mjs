@@ -92,3 +92,37 @@ test('.lp4 font vars alias the shared font tokens', () => {
   assert.match(landingStyles, /--lp4-font-display:\s*var\(--wx-font-display\)/);
   assert.match(landingStyles, /--lp4-font-mono:\s*var\(--wx-font-mono\)/);
 });
+
+const tailwindConfig = readFileSync(
+  new URL('../tailwind.config.js', import.meta.url),
+  'utf8',
+);
+
+test('tailwind exposes the wx token palette', () => {
+  for (const name of ['bg', 'surface', 'ink', 'dim', 'line', 'accent', 'green', 'red']) {
+    assert.match(
+      tailwindConfig,
+      new RegExp(`['"]?${name}['"]?\\s*:\\s*['"]var\\(--wx-${name}`),
+      `tailwind must map wx.${name} to var(--wx-${name})`,
+    );
+  }
+});
+
+test('tailwind drops the legacy blue scales', () => {
+  assert.doesNotMatch(tailwindConfig, /electric:/);
+  assert.doesNotMatch(tailwindConfig, /neon:/);
+});
+
+test('tailwind fonts come from the shared tokens', () => {
+  assert.match(tailwindConfig, /var\(--wx-font-display\)/);
+  assert.match(tailwindConfig, /var\(--wx-font-mono\)/);
+  assert.doesNotMatch(tailwindConfig, /"Inter"|'Inter'/);
+});
+
+test('tailwind no longer references the undefined --radius variable', () => {
+  assert.doesNotMatch(
+    tailwindConfig,
+    /var\(--radius\)/,
+    '--radius is defined nowhere; rounded-lg/md must fall back to Tailwind defaults',
+  );
+});
