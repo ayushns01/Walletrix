@@ -1,0 +1,35 @@
+/* Walletrix design tokens — single source of truth for the aurora design language.
+   Consumed by app/globals.css, tailwind.config.js (as `wx-*` utilities), and
+   components/landing/landing.css (which aliases its .lp4 vars to these). */
+
+:root {
+  /* ground + surfaces */
+  --wx-bg: #04050a;
+  --wx-surface: rgba(8, 11, 19, 0.72);
+  --wx-surface-strong: rgba(8, 11, 20, 0.92);
+
+  /* ink */
+  --wx-ink: #edf2fb;
+  --wx-dim: #76829a;
+
+  /* hairlines */
+  --wx-line: rgba(150, 175, 225, 0.12);
+  --wx-line-strong: rgba(150, 175, 225, 0.26);
+
+  /* accent + status */
+  --wx-accent: #67d1ef;
+  --wx-accent-soft: rgba(103, 209, 239, 0.14);
+  --wx-green: #34d399;
+  --wx-red: #fb7185;
+  --wx-amber: #fbbf24;
+
+  /* type */
+  --wx-font-display: var(--font-display), system-ui, sans-serif;
+  --wx-font-mono: var(--font-mono), ui-monospace, monospace;
+
+  /* geometry + motion — matches the landing's easing curve */
+  --wx-radius: 20px;
+  --wx-radius-sm: 12px;
+  --wx-radius-pill: 999px;
+  --wx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
