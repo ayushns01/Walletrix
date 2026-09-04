@@ -85,3 +85,10 @@ test('ReceiveModal carries no legacy palette classes', () => {
   const hits = legacyHits(read('../components/ReceiveModal.js'));
   assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
 });
+
+for (const name of ['NetworkSelector', 'WalletSelector', 'UnlockWallet']) {
+  test(`${name} carries no legacy palette classes`, () => {
+    const hits = legacyHits(read(`../components/${name}.js`));
+    assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
+  });
+}
