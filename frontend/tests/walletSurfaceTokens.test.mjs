@@ -92,3 +92,10 @@ for (const name of ['NetworkSelector', 'WalletSelector', 'UnlockWallet']) {
     assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
   });
 }
+
+test('Clerk and toasts use the aurora accent, not the legacy blue/purple', () => {
+  const layout = read('../app/layout.js');
+  assert.doesNotMatch(layout, /#3b82f6/, 'Clerk colorPrimary still blue');
+  assert.doesNotMatch(layout, /#a855f7/, 'toast success still purple');
+  assert.match(layout, /#67d1ef/);
+});
