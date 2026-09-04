@@ -99,3 +99,25 @@ test('Clerk and toasts use the aurora accent, not the legacy blue/purple', () =>
   assert.doesNotMatch(layout, /#a855f7/, 'toast success still purple');
   assert.match(layout, /#67d1ef/);
 });
+
+// NOTE: the plan assumed the space theme (.stars/.nebula/.galaxy/.animated-bg)
+// was dead. It is NOT — app/page.js:399-490 still renders it for the guest
+// view. Only genuinely unreferenced rules were culled.
+test('unreferenced legacy CSS helpers are gone', () => {
+  const styles = read('../app/globals.css');
+  for (const selector of ['.blue-glow', '.pulse-blue', '.shimmer', '.slide-in-left',
+                          '.slide-in-right', '.bounce-on-hover', '.fade-in-up',
+                          '.hover-lift', '.btn-glow', '.card-hover']) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.doesNotMatch(styles, new RegExp(`${escaped}\\s*[,{:]`), `${selector} still defined`);
+  }
+});
+
+test('CSS still in use by out-of-scope screens is preserved', () => {
+  const styles = read('../app/globals.css');
+  for (const selector of ['.glass-effect', '.custom-scrollbar', '.stars', '.nebula',
+                          '.galaxy', '.animated-bg', '.gradient-text']) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(styles, new RegExp(`${escaped}\\s*[,{:]`), `${selector} was wrongly removed`);
+  }
+});

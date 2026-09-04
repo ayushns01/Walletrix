@@ -185,22 +185,6 @@ body {
 }
 
 /* Animated blue glow */
-@keyframes blueGlow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-  }
-
-  50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
-  }
-}
-
-.blue-glow {
-  animation: blueGlow 2s ease-in-out infinite;
-}
-
 /* Gradient text effect */
 .gradient-text {
   background: linear-gradient(135deg, #60a5fa, #3b82f6, #1d4ed8);
@@ -223,39 +207,7 @@ body {
   }
 }
 
-/* Card hover effect */
-.card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
-}
-
-/* Button glow effect */
-.btn-glow:hover {
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-  transform: scale(1.05);
-}
-
 /* Smooth entrance animation - reduced movement to prevent blink */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.4s ease-out;
-}
-
 /* Loading spinner */
 @keyframes spin {
   to {
@@ -316,25 +268,6 @@ body {
   animation: scaleIn 0.3s ease-out;
 }
 
-/* Button hover effects */
-.btn-glow:hover {
-  box-shadow:
-    0 0 20px rgba(59, 130, 246, 0.4),
-    0 0 40px rgba(59, 130, 246, 0.2),
-    0 0 60px rgba(59, 130, 246, 0.1);
-  transform: translateY(-2px);
-  transition: all 0.3s ease;
-}
-
-/* Card hover effects */
-.card-hover:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow:
-    0 20px 40px rgba(59, 130, 246, 0.3),
-    0 0 0 1px rgba(59, 130, 246, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* Loading animation */
 @keyframes pulse {
 
@@ -346,11 +279,6 @@ body {
   50% {
     opacity: 0.5;
   }
-}
-
-.pulse-blue {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
 }
 
 /* Animated Background - Stars and Clouds */
@@ -515,84 +443,11 @@ body {
 /* Smooth transitions for all interactive elements */
 button,
 a,
-input,
-.card-hover {
+input {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hover lift effect */
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
-}
-
 /* Slide in from left */
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.slide-in-left {
-  animation: slideInLeft 0.5s ease-out;
-}
-
 /* Slide in from right */
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.slide-in-right {
-  animation: slideInRight 0.5s ease-out;
-}
-
 /* Bounce effect for buttons */
-@keyframes bounce {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.bounce-on-hover:hover {
-  animation: bounce 0.6s ease;
-}
-
 /* Shimmer effect */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.shimmer {
-  background: linear-gradient(90deg,
-      rgba(59, 130, 246, 0) 0%,
-      rgba(59, 130, 246, 0.2) 50%,
-      rgba(59, 130, 246, 0) 100%);
-  background-size: 1000px 100%;
-  animation: shimmer 2s infinite;
-}
