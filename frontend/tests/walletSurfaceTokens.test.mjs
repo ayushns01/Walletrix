@@ -43,3 +43,35 @@ test('the fixed-rail layout contract still holds', () => {
   assert.match(globalStyles, /\.wallet-rail\s*\{[\s\S]*position:\s*fixed;/);
   assert.match(pageSource, /hidden lg:block lg:w-\[96px\]/);
 });
+
+const LEGACY_PALETTE = /\b(?:bg|text|border|from|to|via|ring|shadow)-(?:blue|purple|indigo|violet|slate|gray)-\d{2,3}\b/g;
+
+function legacyHits(source) {
+  return [...source.matchAll(LEGACY_PALETTE)].map((m) => m[0]);
+}
+
+test('Dashboard carries no legacy palette classes', () => {
+  const hits = legacyHits(read('../components/Dashboard.js'));
+  assert.deepEqual(hits, [], `legacy palette classes remain: ${[...new Set(hits)].join(', ')}`);
+});
+
+// Tailwind v3 cannot apply an opacity modifier to a colour defined as a bare
+// var(--x): `bg-wx-green/15` silently generates NOTHING. Use a *-soft token
+// instead (see --wx-accent-soft / --wx-green-soft in app/tokens.css).
+test('no wx-* utility uses an opacity modifier', () => {
+  const offenders = [];
+  for (const file of [
+    '../components/Dashboard.js',
+    '../components/SendModal.js',
+    '../components/ReceiveModal.js',
+    '../components/NetworkSelector.js',
+    '../components/WalletSelector.js',
+    '../components/UnlockWallet.js',
+    '../app/page.js',
+    '../app/layout.js',
+  ]) {
+    const hits = read(file).match(/(?:bg|text|border|from|via|to|ring|shadow)-wx-[a-z-]+\/\d+/g);
+    if (hits) offenders.push(`${file}: ${[...new Set(hits)].join(', ')}`);
+  }
+  assert.deepEqual(offenders, [], `opacity modifiers on var() colours emit no CSS:\n${offenders.join('\n')}`);
+});
