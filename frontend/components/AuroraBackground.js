@@ -8,6 +8,7 @@ import { useEffect, useRef } from 'react'
 // parameterised so the wallet shell can run a damped, cheaper variant.
 
 const FALLBACK_ACCENT = '#67d1ef'
+const FALLBACK_BG = '#04050a'
 
 function readAccent() {
   if (typeof window === 'undefined') return FALLBACK_ACCENT
@@ -15,6 +16,14 @@ function readAccent() {
     .getPropertyValue('--wx-accent')
     .trim()
   return /^#[0-9a-f]{6}$/i.test(value) ? value : FALLBACK_ACCENT
+}
+
+function readBg() {
+  if (typeof window === 'undefined') return FALLBACK_BG
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue('--wx-bg')
+    .trim()
+  return value || FALLBACK_BG
 }
 
 function hexToRgb(hex) {
@@ -98,6 +107,7 @@ export default function AuroraBackground({
     const octx = off.getContext('2d')
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const accent = readAccent()
+    const bg = readBg()
     const colors = paletteFrom(accent)
     const accentRgb = hexToRgb(accent)
 
@@ -120,9 +130,7 @@ export default function AuroraBackground({
       const ow = off.width
       const oh = off.height
       octx.globalCompositeOperation = 'source-over'
-      octx.fillStyle = getComputedStyle(document.documentElement)
-        .getPropertyValue('--wx-bg')
-        .trim() || '#04050a'
+      octx.fillStyle = bg
       octx.fillRect(0, 0, ow, oh)
       octx.globalCompositeOperation = 'lighter'
       const base = Math.max(ow, oh)

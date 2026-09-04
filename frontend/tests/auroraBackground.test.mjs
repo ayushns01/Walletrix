@@ -27,6 +27,19 @@ test('still honours prefers-reduced-motion', () => {
   assert.match(source, /prefers-reduced-motion/);
 });
 
+test('reads CSS tokens once at mount, not per frame', () => {
+  const drawBlobs = source.slice(
+    source.indexOf('function drawBlobs'),
+    source.indexOf('function drawWaves'),
+  );
+  assert.ok(drawBlobs.length > 0, 'drawBlobs not found');
+  assert.doesNotMatch(
+    drawBlobs,
+    /getComputedStyle/,
+    'getComputedStyle must not run inside the per-frame draw path',
+  );
+});
+
 test('the landing keeps its import path working', () => {
   const shim = readFileSync(
     new URL('../components/landing/AuroraBackground.js', import.meta.url),
