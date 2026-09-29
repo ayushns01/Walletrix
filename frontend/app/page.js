@@ -16,6 +16,7 @@ import AccountDetails from '@/components/AccountDetails'
 import NetworkSelector from '@/components/NetworkSelector'
 import WalletSelector from '@/components/WalletSelector'
 import LandingPage from '@/components/LandingPage'
+import AuroraBackground from '@/components/AuroraBackground'
 import SettingsModal from '@/components/Settings'
 import NotificationBell from '@/components/NotificationBell'
 import Walkthrough from '@/components/Walkthrough'
@@ -822,106 +823,8 @@ export default function Home() {
 
   // Main Dashboard
   return (
-    <main className="wallet-shell-bg min-h-screen text-white overflow-x-hidden relative">
-      {/* Animated Background - Same as Landing Page with subtle blur */}
-      <div className="animated-bg lg:hidden" style={{ filter: 'blur(1px)' }}>
-        {/* Distant Stars Layer */}
-        <div className="stars">
-          {[...Array(150)].map((_, i) => {
-            const duration = 15 + (i * 0.2) % 20;
-            const delay = -(i * 0.15) % 15;
-            return (
-              <div
-                key={`star-distant-${i}`}
-                className="star-distant"
-                style={{
-                  left: `${(i * 7.19) % 100}%`,
-                  top: `${(i * 11.37) % 100}%`,
-                  animation: `star-drift ${duration}s ease-in-out ${delay}s infinite`
-                }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Bright Stars */}
-        <div className="stars">
-          {[...Array(40)].map((_, i) => {
-            const duration = 12 + (i * 0.5) % 18;
-            const delay = -(i * 0.4) % 12;
-            return (
-              <div
-                key={`star-${i}`}
-                className="star"
-                style={{
-                  left: `${(i * 13.71) % 100}%`,
-                  top: `${(i * 17.83) % 100}%`,
-                  animation: `star-float ${duration}s ease-in-out ${delay}s infinite`
-                }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Nebula Clouds */}
-        {[...Array(4)].map((_, i) => {
-          const colors = [
-            'radial-gradient(circle, rgba(138, 43, 226, 0.6), rgba(138, 43, 226, 0.3) 40%, transparent 70%)',
-            'radial-gradient(circle, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.25) 40%, transparent 70%)',
-            'radial-gradient(circle, rgba(219, 39, 119, 0.4), rgba(219, 39, 119, 0.2) 40%, transparent 70%)',
-            'radial-gradient(circle, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3) 40%, transparent 70%)'
-          ];
-          const duration = 50 + (i * 9.7) % 40;
-          const delay = -(i * 12.3) % 50;
-          const positions = [
-            { left: 15, top: 20, width: 650, height: 450 },
-            { left: 65, top: 60, width: 550, height: 400 },
-            { left: 35, top: 75, width: 700, height: 500 },
-            { left: 80, top: 25, width: 600, height: 420 }
-          ];
-          return (
-            <div
-              key={`nebula-${i}`}
-              className="nebula"
-              style={{
-                width: `${positions[i].width}px`,
-                height: `${positions[i].height}px`,
-                left: `${positions[i].left}%`,
-                top: `${positions[i].top}%`,
-                background: colors[i],
-                animation: `nebula-drift ${duration}s ease-in-out ${delay}s infinite`
-              }}
-            />
-          );
-        })}
-
-        {/* Distant Galaxies */}
-        {[...Array(3)].map((_, i) => {
-          const rotateDuration = 60 + (i * 13.3) % 40;
-          const driftDuration = 50 + (i * 9.7) % 30;
-          const delay = -(i * 19.3) % 60;
-          const positions = [
-            { left: 25, top: 45, width: 900, height: 350, rotation: 45 },
-            { left: 70, top: 15, width: 1000, height: 400, rotation: 120 },
-            { left: 10, top: 70, width: 850, height: 380, rotation: 270 }
-          ];
-          return (
-            <div
-              key={`galaxy-${i}`}
-              className="galaxy"
-              style={{
-                width: `${positions[i].width}px`,
-                height: `${positions[i].height}px`,
-                left: `${positions[i].left}%`,
-                top: `${positions[i].top}%`,
-                background: 'radial-gradient(ellipse, rgba(167, 139, 250, 0.4), rgba(59, 130, 246, 0.25) 40%, rgba(96, 165, 250, 0.1) 60%, transparent 80%)',
-                animation: `galaxy-rotate ${rotateDuration}s linear ${delay}s infinite, galaxy-drift ${driftDuration}s ease-in-out ${delay}s infinite`,
-                transform: `rotate(${positions[i].rotation}deg)`
-              }}
-            />
-          );
-        })}
-      </div>
+    <main className="wallet-shell-bg min-h-screen text-wx-ink overflow-x-hidden relative">
+      <AuroraBackground motion={1} alphaScale={0.45} waves={false} />
 
       {/* Mobile Navigation Header */}
       <nav className="lg:hidden fixed top-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-b border-blue-500/20" style={{ zIndex: 100 }}>

@@ -11,7 +11,7 @@ const networks = [
     chain: 'ethereum',
     network: 'mainnet',
     icon: '⟠',
-    color: 'text-blue-300',
+    color: 'text-wx-accent',
     explorer: 'https://etherscan.io',
     rpcUrl: 'https://mainnet.infura.io/v3/',
     chainId: 1,
@@ -33,7 +33,7 @@ const networks = [
     chain: 'polygon',
     network: 'mainnet',
     icon: '⬟',
-    color: 'text-violet-300',
+    color: 'text-wx-accent',
     explorer: 'https://polygonscan.com',
     rpcUrl: 'https://polygon-rpc.com',
     chainId: 137,
@@ -44,7 +44,7 @@ const networks = [
     chain: 'polygon',
     network: 'mumbai',
     icon: '⬟',
-    color: 'text-violet-200',
+    color: 'text-wx-accent',
     explorer: 'https://mumbai.polygonscan.com',
     rpcUrl: 'https://rpc-mumbai.maticvigil.com',
     chainId: 80001,
@@ -88,7 +88,7 @@ const networks = [
     chain: 'solana',
     network: 'devnet',
     icon: '◉',
-    color: 'text-violet-200',
+    color: 'text-wx-accent',
     explorer: 'https://explorer.solana.com?cluster=devnet',
     rpcUrl: 'https://api.devnet.solana.com',
     chainId: 103,
@@ -127,19 +127,19 @@ function NetworkOption({ network, isSelected, onSelect }) {
   return (
     <button
       onClick={() => onSelect(network.id)}
-      className={`group flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${
+      className={`group flex w-full items-start gap-3 rounded-wx border px-4 py-3 text-left transition-all duration-200 ${
         isSelected
           ? 'border-sky-400/25 bg-sky-950/95 shadow-[0_14px_32px_rgba(14,165,233,0.12)]'
-          : 'border-white/[0.06] bg-slate-950/92 hover:border-white/[0.12] hover:bg-slate-900/95'
+          : 'border-white/[0.06] bg-wx-surface hover:border-white/[0.12] hover:bg-wx-surface'
       }`}
     >
-      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-base ${network.color}`}>
+      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-wx border border-wx-line bg-black/20 text-base ${network.color}`}>
         {network.icon}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium text-slate-100">
+          <p className="truncate text-sm font-medium text-wx-ink">
             {network.name}
           </p>
           {isSelected ? (
@@ -148,12 +148,12 @@ function NetworkOption({ network, isSelected, onSelect }) {
             </span>
           ) : null}
         </div>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-wx-dim">
           {formatNetworkMeta(network)}
         </p>
       </div>
 
-      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-slate-400 transition group-hover:border-white/12 group-hover:text-slate-200">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-wx-dim transition group-hover:border-white/12 group-hover:text-wx-ink">
         {isSelected ? <Check className="h-4 w-4 text-sky-300" /> : <ChevronDown className="h-4 w-4 -rotate-90" />}
       </div>
     </button>
@@ -164,10 +164,10 @@ function NetworkColumn({ title, subtitle, sections, selectedNetwork, onSelect })
   return (
     <div className="flex-1 bg-[#0c1119] p-4 sm:p-5">
       <div className="mb-4 border-b border-white/[0.08] pb-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-wx-dim">
           {title}
         </p>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-wx-dim">
           {subtitle}
         </p>
       </div>
@@ -175,7 +175,7 @@ function NetworkColumn({ title, subtitle, sections, selectedNetwork, onSelect })
       <div className="space-y-4">
         {sections.map((section) => (
           <div key={section.title} className="space-y-2">
-            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-wx-dim">
               {section.title}
             </p>
             <div className="space-y-2">
@@ -245,26 +245,26 @@ export default function NetworkSelector() {
     <div className={`relative w-full ${isOpen ? 'z-[90]' : 'z-10'}`} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen((open) => !open)}
-        className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-200 sm:min-w-[260px] ${
+        className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-wx border px-4 py-3 text-left transition-all duration-200 sm:min-w-[260px] ${
           isOpen
             ? 'border-sky-400/20 bg-white/[0.12] shadow-[0_22px_54px_rgba(15,23,42,0.32)]'
             : 'border-white/[0.08] bg-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.11]'
         }`}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-black/20 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <Globe className="h-[18px] w-[18px] text-slate-300" />
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-wx border border-white/[0.08] bg-black/20 text-wx-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <Globe className="h-[18px] w-[18px] text-wx-dim" />
           </div>
 
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-wx-dim">
               Active network
             </p>
             <div className="mt-1 flex min-w-0 items-center gap-2">
               <span className={`text-base ${currentNetwork.color}`}>
                 {currentNetwork.icon}
               </span>
-              <span className="truncate text-sm font-medium text-slate-100">
+              <span className="truncate text-sm font-medium text-wx-ink">
                 {currentNetwork.name}
               </span>
             </div>
@@ -272,21 +272,21 @@ export default function NetworkSelector() {
         </div>
 
         <ChevronDown
-          className={`h-[18px] w-[18px] flex-shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-slate-200' : ''}`}
+          className={`h-[18px] w-[18px] flex-shrink-0 text-wx-dim transition-transform duration-200 ${isOpen ? 'rotate-180 text-wx-ink' : ''}`}
         />
       </button>
 
       {isOpen ? (
         <div className="absolute right-0 z-[100] mt-3 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-[28px] border border-white/[0.12] bg-[#090e15] shadow-[0_32px_80px_rgba(2,6,23,0.52)]">
           <div className="border-b border-white/[0.08] bg-[#0b1119] px-5 py-4 sm:px-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-wx-dim">
               Network routing
             </p>
             <div className="mt-2 flex items-center gap-2">
               <span className={`text-base ${currentNetwork.color}`}>
                 {currentNetwork.icon}
               </span>
-              <p className="text-sm text-slate-200">
+              <p className="text-sm text-wx-ink">
                 {currentNetwork.name}
               </p>
             </div>

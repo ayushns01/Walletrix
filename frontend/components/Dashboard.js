@@ -115,10 +115,10 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
   const isSepolia = isSepoliaAutoSwapNetwork(selectedNetwork);
 
   const chainMeta = {
-    ethereum: { label: 'Ethereum', symbol: 'ETH', icon: 'Ξ', accent: 'from-blue-500/20 via-cyan-500/10 to-slate-950', chip: 'bg-blue-500/15 text-blue-200 border-blue-400/20' },
-    bitcoin: { label: 'Bitcoin', symbol: 'BTC', icon: '₿', accent: 'from-orange-500/20 via-amber-500/10 to-slate-950', chip: 'bg-orange-500/15 text-orange-200 border-orange-400/20' },
-    solana: { label: 'Solana', symbol: 'SOL', icon: '◎', accent: 'from-fuchsia-500/20 via-violet-500/10 to-slate-950', chip: 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/20' },
-    default: { label: 'Network', symbol: '', icon: '◌', accent: 'from-slate-700/30 via-slate-700/10 to-slate-950', chip: 'bg-white/5 text-slate-200 border-white/10' },
+    ethereum: { label: 'Ethereum', symbol: 'ETH', icon: 'Ξ', accent: 'from-sky-500/20 via-cyan-500/10 to-wx-bg', chip: 'bg-sky-500/15 text-sky-200 border-sky-400/20' },
+    bitcoin: { label: 'Bitcoin', symbol: 'BTC', icon: '₿', accent: 'from-orange-500/20 via-amber-500/10 to-wx-bg', chip: 'bg-orange-500/15 text-orange-200 border-orange-400/20' },
+    solana: { label: 'Solana', symbol: 'SOL', icon: '◎', accent: 'from-fuchsia-500/20 via-fuchsia-400/10 to-wx-bg', chip: 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/20' },
+    default: { label: 'Network', symbol: '', icon: '◌', accent: 'from-wx-surface via-wx-surface to-wx-bg', chip: 'bg-wx-surface text-wx-dim border-wx-line' },
   };
 
   const currentChainMeta = chainMeta[chain] || chainMeta.default;
@@ -261,21 +261,21 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
       <div className="space-y-5">
         <section
           data-tour="portfolio"
-          className={`relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br ${currentChainMeta.accent} p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25)] transition-opacity duration-300`}
+          className={`relative overflow-hidden rounded-[28px] border border-wx-line bg-gradient-to-br ${currentChainMeta.accent} p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25)] transition-opacity duration-300`}
           style={{ opacity: portfolioValueLoading ? 0.78 : 1 }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(96,165,250,0.10),transparent_26%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(103,209,239,0.10),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(103,209,239,0.06),transparent_26%)]" />
           <div className="relative flex flex-col gap-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
+                  <p className="font-mono text-xs uppercase tracking-[0.22em] text-wx-dim">
                     Portfolio
                   </p>
                   <div className="mt-2 flex items-end gap-3">
-                    <h2 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                    <h2 className="text-4xl font-semibold tracking-tight text-wx-ink md:text-5xl">
                       {portfolioValueLoading ? (
-                        <span className="inline-flex items-center gap-2 text-2xl text-slate-400 md:text-3xl">
+                        <span className="inline-flex items-center gap-2 text-2xl text-wx-dim md:text-3xl">
                           <RefreshCw className="h-5 w-5 animate-spin" />
                           Syncing
                         </span>
@@ -283,7 +283,7 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                         `$${formatCurrency(totalValue)}`
                       )}
                     </h2>
-                    <span className="pb-2 text-sm text-slate-400">
+                    <span className="pb-2 text-sm text-wx-dim">
                       total value
                     </span>
                   </div>
@@ -294,7 +294,7 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                 data-tour="refresh-button"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full border border-wx-line bg-wx-surface px-4 py-2 text-sm font-medium text-wx-ink transition hover:bg-wx-accent-soft disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
@@ -302,42 +302,42 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">24h move</p>
-                <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${portfolioChangeTone ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
+              <div className="rounded-wx border border-wx-line bg-wx-surface px-4 py-3 backdrop-blur-sm">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-wx-dim">24h move</p>
+                <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${portfolioChangeTone ? 'bg-wx-green-soft text-wx-green' : 'bg-wx-red-soft text-wx-red'}`}>
                   {portfolioChangeTone ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                   {formattedChange}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Primary balance</p>
-                <p className="mt-2 text-sm font-medium text-slate-100">
+              <div className="rounded-wx border border-wx-line bg-wx-surface px-4 py-3 backdrop-blur-sm">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-wx-dim">Primary balance</p>
+                <p className="mt-2 text-sm font-medium text-wx-ink">
                   {formatCompactNumber(parseFloat(currentBalance || '0'))} {currentChainMeta.symbol || chain.toUpperCase()}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {primaryPrice ? `$${formatCurrency(primaryPrice, 2, 2)} spot` : 'Spot price unavailable'}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Telegram workspace</p>
-                <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-100">
-                  <Bot className={`h-4 w-4 ${telegramLinked ? 'text-sky-300' : 'text-slate-500'}`} />
+              <div className="rounded-wx border border-wx-line bg-wx-surface px-4 py-3 backdrop-blur-sm">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-wx-dim">Telegram workspace</p>
+                <div className="mt-2 flex items-center gap-2 text-sm font-medium text-wx-ink">
+                  <Bot className={`h-4 w-4 ${telegramLinked ? 'text-sky-300' : 'text-wx-dim'}`} />
                   {telegramLinked ? 'Linked and ready' : 'Available to link'}
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {telegramLinked ? 'Bot wallet and stealth flows are active.' : 'Link Telegram to unlock assistant workflows.'}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Stealth receives</p>
-                <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-100">
-                  <Sparkles className={`h-4 w-4 ${stealthSummary.funded > 0 ? 'text-fuchsia-300' : 'text-slate-500'}`} />
+              <div className="rounded-wx border border-wx-line bg-wx-surface px-4 py-3 backdrop-blur-sm">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-wx-dim">Stealth receives</p>
+                <div className="mt-2 flex items-center gap-2 text-sm font-medium text-wx-ink">
+                  <Sparkles className={`h-4 w-4 ${stealthSummary.funded > 0 ? 'text-fuchsia-300' : 'text-wx-dim'}`} />
                   {stealthSummary.funded > 0 ? `${stealthSummary.funded} ready to claim` : `${stealthSummary.active} active watch${stealthSummary.active === 1 ? '' : 'es'}`}
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {stealthSummary.latestFunded
                     ? `${stealthSummary.latestFunded.lastObservedBalanceEth || '0'} ETH detected for ${stealthSummary.latestFunded.walletLabel}.`
                     : stealthSummary.total > 0
@@ -352,7 +352,7 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                 {onSend && (
                   <button
                     onClick={onSend}
-                    className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/12"
+                    className="inline-flex items-center justify-center rounded-full border border-wx-line bg-wx-surface px-4 py-2 text-sm font-medium text-wx-ink transition hover:bg-wx-accent-soft"
                   >
                     Send
                   </button>
@@ -360,7 +360,7 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                 {onReceive && (
                   <button
                     onClick={onReceive}
-                    className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/12"
+                    className="inline-flex items-center justify-center rounded-full border border-wx-line bg-wx-surface px-4 py-2 text-sm font-medium text-wx-ink transition hover:bg-wx-accent-soft"
                   >
                     Receive
                   </button>
@@ -370,13 +370,13 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-wx-line bg-wx-surface p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-500">
+              <p className="text-sm font-medium uppercase tracking-[0.22em] text-wx-dim">
                 {isSepolia ? 'Supported tokens' : 'Holdings'}
               </p>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-wx-dim">
                 {isSepolia
                   ? 'Shared Sepolia demo assets with fixed pricing and availability context.'
                   : (isEthereum
@@ -384,51 +384,51 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                     : 'Dense, current-position view for the active network.')}
               </p>
             </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+            <div className="rounded-full border border-wx-line bg-wx-surface px-3 py-1 text-xs text-wx-dim">
               {holdingsRows.length} {holdingsCountLabel}{holdingsRows.length === 1 ? '' : 's'}
             </div>
           </div>
 
           <div className="space-y-3">
             {holdingsRows.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-10 text-center text-slate-500">
-                <Wallet className="mx-auto mb-3 h-5 w-5 text-slate-600" />
+              <div className="rounded-wx border border-dashed border-wx-line bg-wx-surface px-4 py-10 text-center text-wx-dim">
+                <Wallet className="mx-auto mb-3 h-5 w-5 text-wx-dim" />
                 <p>{isSepolia ? 'No supported Sepolia tokens are available' : 'No assets found for this network'}</p>
               </div>
             )}
 
             {isSepolia ? (
               sepoliaSupportedTokens.map((token, index) => {
-                let iconGradient = 'from-slate-600 to-slate-700';
+                let iconGradient = 'from-wx-surface-strong to-wx-surface';
                 if (token.symbol === 'WUSD' || token.symbol === 'WDAI') iconGradient = 'from-emerald-500 to-teal-500';
-                else if (token.symbol === 'WLINK') iconGradient = 'from-cyan-500 to-blue-500';
+                else if (token.symbol === 'WLINK') iconGradient = 'from-cyan-500 to-sky-500';
                 else if (token.symbol === 'WWBTC') iconGradient = 'from-orange-500 to-amber-500';
                 else if (token.symbol === 'WGLD') iconGradient = 'from-amber-400 to-yellow-500';
 
                 return (
                   <div
                     key={`${token.symbol}-${index}`}
-                    className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.06]"
+                    className="rounded-wx border border-wx-line bg-wx-surface p-4 transition hover:border-wx-line-strong hover:bg-wx-accent-soft"
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${iconGradient} text-sm font-semibold text-white shadow-lg shadow-black/20`}>
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-wx bg-gradient-to-br ${iconGradient} text-sm font-semibold text-wx-ink shadow-lg shadow-black/20`}>
                         {token.symbol?.[0] || '•'}
                       </div>
 
                       <div className="min-w-0 flex-1 space-y-3">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-white">
+                            <p className="truncate text-sm font-medium text-wx-ink">
                               {token.name}
                             </p>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <p className="text-xs uppercase tracking-[0.18em] text-wx-dim">
                               {token.symbol}
                             </p>
                           </div>
 
                           <div className="text-right">
-                            <p className="text-sm font-medium text-white">
-                              ${token.displayPriceUsd} <span className="text-slate-400">demo price</span>
+                            <p className="text-sm font-medium text-wx-ink">
+                              ${token.displayPriceUsd} <span className="text-wx-dim">demo price</span>
                             </p>
                             <p className="mt-1 inline-flex rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-200">
                               {token.availabilityLabel}
@@ -436,7 +436,7 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                           </div>
                         </div>
 
-                        <p className="text-sm leading-6 text-slate-300">
+                        <p className="text-sm leading-6 text-wx-dim">
                           {token.shortDescription}
                         </p>
                       </div>
@@ -451,33 +451,33 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                 const hasBalance = asset.isOwned ? balance > 0 || asset.symbol === 'ETH' : false;
                 const allocation = totalValue > 0 ? (value / totalValue) * 100 : 0;
 
-                let iconGradient = 'from-slate-600 to-slate-700';
+                let iconGradient = 'from-wx-surface-strong to-wx-surface';
                 if (asset.symbol === 'BTC') iconGradient = 'from-orange-500 to-amber-500';
-                else if (asset.symbol === 'SOL') iconGradient = 'from-fuchsia-500 to-violet-500';
-                else if (asset.symbol === 'ETH') iconGradient = 'from-blue-500 to-cyan-500';
+                else if (asset.symbol === 'SOL') iconGradient = 'from-fuchsia-500 to-fuchsia-300';
+                else if (asset.symbol === 'ETH') iconGradient = 'from-sky-500 to-cyan-500';
                 else if (asset.symbol === 'USDT' || asset.symbol === 'USDC') iconGradient = 'from-emerald-500 to-teal-500';
 
                 return (
                   <div
                     key={`${asset.symbol}-${index}`}
-                    className={`rounded-2xl border p-4 transition ${
+                    className={`rounded-wx border p-4 transition ${
                       hasBalance
-                        ? 'border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]'
-                        : 'border-white/5 bg-white/[0.025] opacity-60'
+                        ? 'border-wx-line bg-wx-surface hover:border-wx-line-strong hover:bg-wx-accent-soft'
+                        : 'border-wx-line bg-wx-surface opacity-60'
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${iconGradient} text-sm font-semibold text-white shadow-lg shadow-black/20`}>
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-wx bg-gradient-to-br ${iconGradient} text-sm font-semibold text-wx-ink shadow-lg shadow-black/20`}>
                         {asset.icon}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-white">
+                            <p className="truncate text-sm font-medium text-wx-ink">
                               {asset.name}
                             </p>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <p className="text-xs uppercase tracking-[0.18em] text-wx-dim">
                               {asset.symbol}
                             </p>
                           </div>
@@ -485,10 +485,10 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                           <div className="text-right">
                             {asset.isOwned ? (
                               <>
-                                <p className="text-sm font-medium text-white">
-                                  {formatCompactNumber(balance)} <span className="text-slate-400">{asset.symbol}</span>
+                                <p className="text-sm font-medium text-wx-ink">
+                                  {formatCompactNumber(balance)} <span className="text-wx-dim">{asset.symbol}</span>
                                 </p>
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-wx-dim">
                                   {balance > 0
                                     ? `$${formatCurrency(value)}`
                                     : (asset.priceData?.current_price ? `1 ${asset.symbol} = $${formatCurrency(asset.priceData.current_price)}` : 'Live price unavailable')}
@@ -496,10 +496,10 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                               </>
                             ) : (
                               <>
-                                <p className="text-sm font-medium text-white">
-                                  0 <span className="text-slate-400">{asset.symbol}</span>
+                                <p className="text-sm font-medium text-wx-ink">
+                                  0 <span className="text-wx-dim">{asset.symbol}</span>
                                 </p>
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-wx-dim">
                                   {asset.priceData?.current_price
                                     ? `1 ${asset.symbol} = $${formatCurrency(asset.priceData.current_price)}`
                                     : 'Live price unavailable'}
@@ -510,14 +510,14 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                         </div>
 
                         {asset.isOwned ? (
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-wx-surface">
                             <div
                               className="h-full rounded-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400 transition-all"
                               style={{ width: `${Math.min(allocation, 100)}%` }}
                             />
                           </div>
                         ) : (
-                          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-wx-dim">
                             <span>Available on Ethereum mainnet</span>
                             <span>Zero balance</span>
                           </div>
@@ -535,60 +535,60 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
       <div className="space-y-5">
         <section
           data-tour="wallet-address"
-          className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+          className="rounded-[28px] border border-wx-line bg-wx-surface p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl"
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-wx border border-wx-line bg-wx-surface text-wx-dim">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Wallet intelligence</h3>
-                <p className="text-xs text-slate-400">Compact identity and network context</p>
+                <h3 className="text-sm font-semibold text-wx-ink">Wallet intelligence</h3>
+                <p className="text-xs text-wx-dim">Compact identity and network context</p>
               </div>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+            <span className="rounded-full border border-wx-line bg-wx-surface px-3 py-1 text-xs text-wx-dim">
               {chain.toUpperCase()}
             </span>
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Active address</p>
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Active address</p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="min-w-0 flex-1 font-mono text-sm text-slate-100">
+                <p className="min-w-0 flex-1 font-mono text-sm text-wx-ink">
                   {truncateAddress(currentAddress)}
                 </p>
                 <button
                   onClick={() => copyToClipboard(currentAddress, 'Address copied')}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-white/10"
+                  className="inline-flex items-center gap-2 rounded-full border border-wx-line bg-wx-surface px-3 py-1.5 text-xs font-medium text-wx-dim transition hover:bg-wx-accent-soft"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Copy
                 </button>
               </div>
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-wx-dim">
                 {currentAddress ? 'Used for deposits and network-specific transfers.' : 'No wallet address is available for this network.'}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Selected network</p>
-                <p className="mt-2 text-sm font-medium text-white">
+              <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Selected network</p>
+                <p className="mt-2 text-sm font-medium text-wx-ink">
                   {selectedNetwork || 'Unavailable'}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {currentChainMeta.label} / {network || 'mainnet'}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Portfolio density</p>
-                <p className="mt-2 text-sm font-medium text-white">
+              <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Portfolio density</p>
+                <p className="mt-2 text-sm font-medium text-wx-ink">
                   {allAssets.length} tracked asset{allAssets.length === 1 ? '' : 's'}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {isBitcoin || isSolana ? 'Single-asset view on this chain.' : 'Base asset plus token positions.'}
                 </p>
               </div>
@@ -596,51 +596,51 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-wx-line bg-wx-surface p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-2xl border ${telegramLinked ? 'border-sky-400/20 bg-sky-500/10 text-sky-300' : 'border-white/10 bg-white/5 text-slate-300'}`}>
+              <div className={`flex h-9 w-9 items-center justify-center rounded-wx border ${telegramLinked ? 'border-sky-400/20 bg-sky-500/10 text-sky-300' : 'border-wx-line bg-wx-surface text-wx-dim'}`}>
                 <Bot className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Telegram workspace</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-sm font-semibold text-wx-ink">Telegram workspace</h3>
+                <p className="text-xs text-wx-dim">
                   {telegramLinked ? 'Linked bot wallet, notifications, and conversational actions' : 'Link your bot to unlock messaging and claim workflows'}
                 </p>
               </div>
             </div>
-            <span className={`rounded-full border px-3 py-1 text-xs ${telegramLinked ? 'border-sky-400/20 bg-sky-500/10 text-sky-300' : 'border-white/10 bg-white/5 text-slate-300'}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${telegramLinked ? 'border-sky-400/20 bg-sky-500/10 text-sky-300' : 'border-wx-line bg-wx-surface text-wx-dim'}`}>
               {telegramLinked ? 'Connected' : 'Not linked'}
             </span>
           </div>
 
           {botWallet ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">ETH balance</p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                  <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">ETH balance</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight text-wx-ink">
                     {formatCompactNumber(parseFloat(botWallet.ethBalance || '0'), 6)}
-                    <span className="ml-2 text-sm font-medium text-slate-400">ETH</span>
+                    <span className="ml-2 text-sm font-medium text-wx-dim">ETH</span>
                   </p>
                 </div>
                 <button
                   onClick={() => onFundBot?.(botWallet.address)}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-sky-400 hover:to-blue-400"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-wx-ink transition hover:from-sky-400 hover:to-cyan-400"
                 >
                   Fund bot
                 </button>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Bot address</p>
+              <div className="mt-4 rounded-wx border border-wx-line bg-black/15 p-3">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Bot address</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="min-w-0 flex-1 font-mono text-sm text-slate-100">
+                  <p className="min-w-0 flex-1 font-mono text-sm text-wx-ink">
                     {truncateAddress(botWallet.address)}
                   </p>
                   <button
                     onClick={() => copyToClipboard(botWallet.address, 'Bot address copied')}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-white/10"
+                    className="inline-flex items-center gap-2 rounded-full border border-wx-line bg-wx-surface px-3 py-1.5 text-xs font-medium text-wx-dim transition hover:bg-wx-accent-soft"
                   >
                     <Copy className="h-3.5 w-3.5" />
                     Copy
@@ -648,12 +648,12 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-wx-dim">
                 Uses Sepolia ETH from your active wallet.
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+            <div className="rounded-wx border border-dashed border-wx-line bg-wx-surface p-4 text-sm text-wx-dim">
               {telegramLinked
                 ? 'Bot wallet details will appear here after the next successful balance sync.'
                 : 'Use the Telegram shortcut in the left rail to connect the assistant and enable bot wallet controls.'}
@@ -661,15 +661,15 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
           )}
         </section>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-wx-line bg-wx-surface p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-300">
+              <div className="flex h-9 w-9 items-center justify-center rounded-wx border border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-300">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Stealth flow</h3>
-                <p className="text-xs text-slate-400">Private receives, funding detection, and claim readiness</p>
+                <h3 className="text-sm font-semibold text-wx-ink">Stealth flow</h3>
+                <p className="text-xs text-wx-dim">Private receives, funding detection, and claim readiness</p>
               </div>
             </div>
             <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1 text-xs text-fuchsia-300">
@@ -678,55 +678,55 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Claim ready</p>
-              <p className="mt-2 text-xl font-semibold text-white">{stealthSummary.funded}</p>
-              <p className="mt-1 text-xs text-slate-400">Issues waiting for sweep confirmation</p>
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Claim ready</p>
+              <p className="mt-2 text-xl font-semibold text-wx-ink">{stealthSummary.funded}</p>
+              <p className="mt-1 text-xs text-wx-dim">Issues waiting for sweep confirmation</p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Watching</p>
-              <p className="mt-2 text-xl font-semibold text-white">{stealthSummary.active}</p>
-              <p className="mt-1 text-xs text-slate-400">Issued receive routes still awaiting funds</p>
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Watching</p>
+              <p className="mt-2 text-xl font-semibold text-wx-ink">{stealthSummary.active}</p>
+              <p className="mt-1 text-xs text-wx-dim">Issued receive routes still awaiting funds</p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Claimed</p>
-              <p className="mt-2 text-xl font-semibold text-white">{stealthSummary.claimed}</p>
-              <p className="mt-1 text-xs text-slate-400">Completed sweeps into destination wallets</p>
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Claimed</p>
+              <p className="mt-2 text-xl font-semibold text-wx-ink">{stealthSummary.claimed}</p>
+              <p className="mt-1 text-xs text-wx-dim">Completed sweeps into destination wallets</p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-4">
+          <div className="mt-4 rounded-wx border border-wx-line bg-black/15 p-4">
             {stealthSummary.latestFunded ? (
               <>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Latest claim-ready issue</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Latest claim-ready issue</p>
                 <div className="mt-3 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-white">{stealthSummary.latestFunded.walletLabel}</p>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="text-sm font-medium text-wx-ink">{stealthSummary.latestFunded.walletLabel}</p>
+                    <p className="mt-1 text-xs text-wx-dim">
                       {stealthSummary.latestFunded.networkLabel} · destination {truncateAddress(stealthSummary.latestFunded.destinationAddress)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-white">{stealthSummary.latestFunded.lastObservedBalanceEth || '0'} ETH</p>
+                    <p className="text-lg font-semibold text-wx-ink">{stealthSummary.latestFunded.lastObservedBalanceEth || '0'} ETH</p>
                     <p className="mt-1 text-xs text-fuchsia-200">Ready to claim</p>
                   </div>
                 </div>
               </>
             ) : stealthSummary.latestActive ? (
               <>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Latest watched route</p>
-                <p className="mt-3 text-sm font-medium text-white">{stealthSummary.latestActive.walletLabel}</p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Latest watched route</p>
+                <p className="mt-3 text-sm font-medium text-wx-ink">{stealthSummary.latestActive.walletLabel}</p>
+                <p className="mt-1 text-xs text-wx-dim">
                   Monitoring {truncateAddress(stealthSummary.latestActive.stealthAddress)} for new deposits.
                 </p>
               </>
             ) : (
               <>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Stealth status</p>
-                <p className="mt-3 text-sm font-medium text-white">No stealth receives issued yet</p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Stealth status</p>
+                <p className="mt-3 text-sm font-medium text-wx-ink">No stealth receives issued yet</p>
+                <p className="mt-1 text-xs text-wx-dim">
                   Generate a stealth address from Telegram to start private receiving flows.
                 </p>
               </>
@@ -734,28 +734,28 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-wx-line bg-wx-surface p-5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-500">
+              <p className="text-sm font-medium uppercase tracking-[0.22em] text-wx-dim">
                 Market pulse
               </p>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-wx-dim">
                 Lightweight view of the current pricing context.
               </p>
             </div>
           </div>
 
           <div className="grid gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Reference price</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Reference price</p>
+                  <p className="mt-2 text-lg font-semibold text-wx-ink">
                     {primaryPrice ? `$${formatCurrency(primaryPrice)}` : 'Loading'}
                   </p>
                 </div>
-                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${portfolioChangeTone ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${portfolioChangeTone ? 'bg-wx-green-soft text-wx-green' : 'bg-wx-red-soft text-wx-red'}`}>
                   {portfolioChangeTone ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                   {formattedChange}
                 </div>
@@ -763,22 +763,22 @@ export default function Dashboard({ onFundBot, onSend, onReceive }) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wallet mode</p>
-                <p className="mt-2 text-sm font-medium text-white">
+              <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Wallet mode</p>
+                <p className="mt-2 text-sm font-medium text-wx-ink">
                   {wallet ? 'Connected' : 'No wallet'}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {wallet ? 'Live balances are being tracked.' : 'Unlock or import a wallet to begin.'}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Refresh state</p>
-                <p className="mt-2 text-sm font-medium text-white">
+              <div className="rounded-wx border border-wx-line bg-wx-surface p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-wx-dim">Refresh state</p>
+                <p className="mt-2 text-sm font-medium text-wx-ink">
                   {refreshing ? 'Updating' : 'Idle'}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-wx-dim">
                   {refreshInProgress ? 'A refresh is already running.' : 'Manual refresh stays available from the hero.'}
                 </p>
               </div>

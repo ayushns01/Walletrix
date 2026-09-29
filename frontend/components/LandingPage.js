@@ -1,24 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import AuroraBackground from './landing/AuroraBackground'
 import { Nav, Hero, Chains, Agent, Defense, Console, Footer } from './landing/sections'
 import './landing/landing.css'
-
-const displayFont = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--lp4-font-display',
-  display: 'swap',
-})
-
-const monoFont = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--lp4-font-mono',
-  display: 'swap',
-})
 
 export default function LandingPage({ onGetStarted, onGuestMode }) {
   const [loaded, setLoaded] = useState(false)
@@ -30,7 +15,7 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
   }, [])
 
   return (
-    <div className={`lp4 ${loaded ? 'loaded' : ''} ${displayFont.variable} ${monoFont.variable}`}>
+    <div className={`lp4 ${loaded ? 'loaded' : ''}`}>
       <AuroraBackground />
       <div className="lp4-content">
         <Nav onGetStarted={onGetStarted} />
