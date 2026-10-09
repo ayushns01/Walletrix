@@ -257,3 +257,7 @@
   .lp4 .grad-ink { animation: none; }
   .lp4 .hl-rule { transition: none; width: min(54%, 560px); }
 }
+
+@media (max-width: 860px) {
+  .lp4 .mcp-flow { grid-template-columns: minmax(0, 1fr) !important; }
+}

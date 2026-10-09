@@ -80,7 +80,7 @@ export function Hero({ onGetStarted, onGuestMode }) {
         <Reveal delay={120}>
           <div className="lbl" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap', border: '1px solid var(--lp4-line)', borderRadius: 999, padding: '8px 16px', background: 'rgba(8,11,20,0.4)', backdropFilter: 'blur(6px)' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--lp4-green)', boxShadow: '0 0 10px var(--lp4-green)', animation: 'lp4PulseDot 2.4s ease-in-out infinite' }}></span>
-            Agentic AI wallet · Telegram · WhatsApp
+            Agentic AI wallet · MCP-native · On-chain
           </div>
         </Reveal>
         <div style={{ display: 'grid', justifyItems: 'center' }}>
@@ -95,9 +95,9 @@ export function Hero({ onGetStarted, onGuestMode }) {
         </div>
         <Reveal delay={760}>
           <p className="sub" style={{ margin: '6px auto 0', textAlign: 'center' }}>
-            Walletrix is an agentic AI wallet. Message it on Telegram or WhatsApp and it
-            runs multi-step on-chain workflows for you — swaps, cross-chain transfers,
-            network abstraction — strictly within the authority you delegate.
+            Walletrix is an agentic AI wallet for web3. Message it on Telegram or WhatsApp
+            and an AI agent runs multi-step on-chain workflows through MCP tools — swaps,
+            cross-chain transfers, network abstraction — strictly within the authority you delegate.
           </p>
         </Reveal>
         <Reveal delay={880}>
@@ -190,7 +190,7 @@ export function Chains() {
           index="04"
           label="Chains"
           title="Networks are the agent's problem."
-          sub="You never pick a network, a bridge or a gas token. Ethereum, Bitcoin and Solana balances live on one quiet screen — with live prices and token views."
+          sub="Ethereum, Bitcoin and Solana, abstracted away. You never pick a network, a bridge or a gas token — the agent works out the chain, and every action settles on-chain. Live prices and token views on one quiet screen."
         />
         <div>
           {CHAIN_ROWS.map((c, i) => (
@@ -285,15 +285,51 @@ export function Agent() {
 }
 
 // ---------- 02 mcp tools ----------
-// Mirrors backend/src/mcp: the model can read and prepare; only the user's YES executes.
-const MCP_TOOLS = [
-  { name: 'get_balance', Icon: Search, text: 'Reads the agent wallet balance.' },
-  { name: 'list_recipients', Icon: Search, text: 'Resolves "send to Alice" against your saved recipients.' },
-  { name: 'prepare_transfer', Icon: Layers, text: 'Stages a transfer for confirmation. Never signs, never sends.' },
-  { name: 'get_tx_status', Icon: Search, text: 'Tracks a transaction until it lands, then reports back.' },
+// Mirrors backend/src/mcp + services/agent/toolDefinitions.js: the model can read and
+// prepare; only the user's YES executes.
+const mono = { fontFamily: 'var(--lp4-font-mono), monospace' }
+
+const MCP_FLOW = [
+  { Icon: User, title: 'You', text: 'Plain-language goal from Telegram or WhatsApp' },
+  { Icon: Bot, title: 'AI agent', text: 'Plans the steps and picks MCP tools' },
+  { Icon: Layers, title: 'Wallet MCP server', text: 'Typed tools that read and prepare' },
+  { Icon: Check, title: 'Your YES', text: 'The only path to on-chain execution' },
 ]
 
-const mono = { fontFamily: 'var(--lp4-font-mono), monospace' }
+const MCP_GROUPS = [
+  {
+    label: 'Read the chain',
+    tools: [
+      { name: 'get_balance', text: 'Live balance of the agent wallet.' },
+      { name: 'get_tx_status', text: 'Follows a transaction hash until it lands.' },
+      { name: 'get_recent_transfers', text: 'Recent on-chain transfer history.' },
+      { name: 'get_last_transfer', text: 'The most recent transfer and its status.' },
+    ],
+  },
+  {
+    label: 'Prepare actions',
+    tools: [
+      { name: 'prepare_transfer', text: 'Stages a transfer to an address, ENS name or saved recipient. Never signs, never sends.' },
+      { name: 'prepare_stealth_claim', text: 'Stages a sweep of a funded stealth address for confirmation.' },
+    ],
+  },
+  {
+    label: 'Recipients',
+    tools: [
+      { name: 'list_recipients', text: 'Resolves "send to Alice" against saved recipients.' },
+      { name: 'save_recipient', text: 'Remembers a name for an address.' },
+      { name: 'delete_recipient', text: 'Forgets a saved recipient.' },
+    ],
+  },
+  {
+    label: 'Stealth addresses',
+    tools: [
+      { name: 'issue_stealth_address', text: 'Issues a fresh one-time receive address.' },
+      { name: 'list_stealth_addresses', text: 'Lists active, funded and claimed addresses.' },
+      { name: 'preview_stealth_claim', text: 'Previews a claim before anything moves.' },
+    ],
+  },
+]
 
 export function McpTools() {
   return (
@@ -302,29 +338,52 @@ export function McpTools() {
         <SecHead
           index="02"
           label="MCP tools"
-          title="An agent with real tools, on a short leash."
-          sub="Walletrix exposes its wallet as an MCP server. The model picks tools, reads the results and chains steps together — but it can only read and prepare. Execution sits behind your confirmation."
+          title="Agentic by design. MCP-native."
+          sub="Walletrix exposes your wallet to AI as a Model Context Protocol server. The agent calls typed tools, reads on-chain results and chains steps together — but it can only read and prepare. Execution sits behind your confirmation."
         />
-        <div className="mock4" style={{ padding: 'clamp(20px, 3.5vw, 36px)', marginBottom: 48, ...mono, fontSize: 13.5, lineHeight: 1.9 }}>
-          <Reveal><div style={{ color: 'var(--lp4-dim)' }}>{'// agent loop — model → tool → result → model'}</div></Reveal>
-          <Reveal delay={100}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> get_balance() <span style={{ color: 'var(--lp4-green)' }}>→ 0.42 ETH</span></div></Reveal>
-          <Reveal delay={200}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'list_recipients({ name: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ 0x91a…3fE2</span></div></Reveal>
-          <Reveal delay={300}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'prepare_transfer({ amount: 0.05, to: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ staged · awaiting YES</span></div></Reveal>
-          <Reveal delay={400}><div style={{ color: 'var(--lp4-dim)' }}>{'// execution is not a tool — only your confirmation can trigger it'}</div></Reveal>
-        </div>
-        <div>
-          {MCP_TOOLS.map((t, i) => (
-            <Reveal key={t.name} delay={i * 100}>
-              <div className="lrow" style={{ gridTemplateColumns: 'auto minmax(160px, 260px) 1fr', gap: 30 }}>
-                <span style={{ color: 'var(--lp4-accent)', opacity: 0.9 }}><t.Icon size={22} strokeWidth={1.8} /></span>
-                <div style={{ ...mono, fontSize: 17, fontWeight: 500 }}>{t.name}</div>
-                <p className="sub" style={{ margin: 0, fontSize: 16.5 }}>{t.text}</p>
+
+        <div className="mcp-flow" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, marginBottom: 40 }}>
+          {MCP_FLOW.map((f, i) => (
+            <Reveal key={f.title} delay={i * 100}>
+              <div className="mock4" style={{ padding: 22, height: '100%', position: 'relative' }}>
+                <div className="lbl" style={{ fontSize: 10.5, marginBottom: 14 }}>step {i + 1}</div>
+                <span style={{ color: 'var(--lp4-accent)' }}><f.Icon size={22} strokeWidth={1.8} /></span>
+                <div style={{ fontSize: 17, fontWeight: 600, margin: '12px 0 6px' }}>{f.title}</div>
+                <div style={{ color: 'var(--lp4-dim)', fontSize: 14, lineHeight: 1.55 }}>{f.text}</div>
               </div>
             </Reveal>
           ))}
         </div>
+
+        <div className="mock4" style={{ padding: 'clamp(20px, 3.5vw, 36px)', marginBottom: 56, ...mono, fontSize: 13.5, lineHeight: 1.9, overflowX: 'auto' }}>
+          <Reveal><div style={{ color: 'var(--lp4-dim)' }}>{'// "pay alice 0.05 eth, then show me my stealth addresses"'}</div></Reveal>
+          <Reveal delay={100}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> get_balance() <span style={{ color: 'var(--lp4-green)' }}>→ 0.42 ETH</span></div></Reveal>
+          <Reveal delay={200}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'list_recipients({ name: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ 0x91a…3fE2</span></div></Reveal>
+          <Reveal delay={300}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'prepare_transfer({ amount: 0.05, token: "ETH", to: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ staged · awaiting YES</span></div></Reveal>
+          <Reveal delay={400}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> list_stealth_addresses() <span style={{ color: 'var(--lp4-green)' }}>→ 2 active · 1 funded</span></div></Reveal>
+          <Reveal delay={500}><div style={{ color: 'var(--lp4-dim)' }}>{'// execution is not a tool — only your confirmation can trigger it'}</div></Reveal>
+        </div>
+
+        <div style={{ display: 'grid', gap: 40 }}>
+          {MCP_GROUPS.map((g, gi) => (
+            <div key={g.label}>
+              <Reveal delay={gi * 60}><div className="lbl" style={{ marginBottom: 14 }}>{g.label}</div></Reveal>
+              {g.tools.map((t, i) => (
+                <Reveal key={t.name} delay={i * 80}>
+                  <div className="lrow" style={{ gridTemplateColumns: 'minmax(180px, 280px) 1fr', gap: 30, padding: '22px 8px' }}>
+                    <div style={{ ...mono, fontSize: 16, fontWeight: 500, color: 'var(--lp4-ink)' }}>{t.name}</div>
+                    <p className="sub" style={{ margin: 0, fontSize: 16 }}>{t.text}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          ))}
+        </div>
+
         <Reveal delay={200}>
-          <p className="sub" style={{ marginTop: 40 }}>Runs as a standard MCP server over stdio — the same tools work with any MCP-compatible client.</p>
+          <p className="sub" style={{ marginTop: 44 }}>
+            Ten tools today, served over stdio as a standard MCP server — plug the same wallet tools into any MCP-compatible client.
+          </p>
         </Reveal>
       </div>
     </section>
