@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpRight, Bot, Check, Ghost, Github, KeyRound, Linkedin, Mail, User, Wallet } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpRight, Bot, Check, Ghost, Github, KeyRound, Layers, Linkedin, Mail, Search, Send, User, Wallet } from 'lucide-react'
 import { SignInButton, useUser } from '@clerk/nextjs'
 import { priceAPI } from '@/lib/api'
 import Reveal, { useInView } from './Reveal'
@@ -47,10 +47,10 @@ export function Nav({ onGetStarted }) {
           <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em' }}>Walletrix</span>
         </a>
         <div style={{ display: 'flex', gap: 26 }} className="navlinks">
-          <a className="nlink" href="#chains">Chains</a>
           <a className="nlink" href="#agent">Agent</a>
-          <a className="nlink" href="#defense">Security</a>
-          <a className="nlink" href="#console">Console</a>
+          <a className="nlink" href="#mcp">MCP tools</a>
+          <a className="nlink" href="#defense">Delegation</a>
+          <a className="nlink" href="#chains">Chains</a>
         </div>
         <LaunchCTA onGetStarted={onGetStarted} style={{ padding: '10px 22px', fontSize: 14.5 }}>
           Launch app
@@ -80,23 +80,24 @@ export function Hero({ onGetStarted, onGuestMode }) {
         <Reveal delay={120}>
           <div className="lbl" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap', border: '1px solid var(--lp4-line)', borderRadius: 999, padding: '8px 16px', background: 'rgba(8,11,20,0.4)', backdropFilter: 'blur(6px)' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--lp4-green)', boxShadow: '0 0 10px var(--lp4-green)', animation: 'lp4PulseDot 2.4s ease-in-out infinite' }}></span>
-            ETH · BTC · SOL — one console
+            Agentic AI wallet · Telegram · WhatsApp
           </div>
         </Reveal>
         <div style={{ display: 'grid', justifyItems: 'center' }}>
           <h1 style={{ fontSize: 'clamp(58px, 10.5vw, 138px)', lineHeight: 0.96, fontWeight: 700, letterSpacing: '-0.045em' }}>
-            <HeroWords text="Crypto," startDelay={220} />
+            <HeroWords text="Your" startDelay={220} />
             <span style={{ color: 'var(--lp4-dim)' }}> </span>
-            <HeroWords text="minus" startDelay={330} />
+            <HeroWords text="wallet," startDelay={330} />
             <br />
-            <HeroWords text="the noise." startDelay={520} grad />
+            <HeroWords text="on autopilot." startDelay={520} grad />
           </h1>
           <span className="hl-rule"></span>
         </div>
         <Reveal delay={760}>
           <p className="sub" style={{ margin: '6px auto 0', textAlign: 'center' }}>
-            One wallet for Ethereum, Bitcoin and Solana — with an AI agent in your
-            Telegram that drafts the transfer, asks once, and executes.
+            Walletrix is an agentic AI wallet. Message it on Telegram or WhatsApp and it
+            runs multi-step on-chain workflows for you — swaps, cross-chain transfers,
+            network abstraction — strictly within the authority you delegate.
           </p>
         </Reveal>
         <Reveal delay={880}>
@@ -105,7 +106,7 @@ export function Hero({ onGetStarted, onGuestMode }) {
               <LaunchCTA onGetStarted={onGetStarted}>
                 Launch app <ArrowUpRight size={17} strokeWidth={2.4} />
               </LaunchCTA>
-              <a className="btn4 ghost" href="#chains">See it move</a>
+              <a className="btn4 ghost" href="#agent">Watch the agent work</a>
             </div>
             {onGuestMode ? (
               <button type="button" className="guest-link" onClick={onGuestMode}>
@@ -186,10 +187,10 @@ export function Chains() {
     <section id="chains" className="sec">
       <div className="wrap">
         <SecHead
-          index="01"
+          index="04"
           label="Chains"
-          title="Three chains. One surface."
-          sub="No tab-hopping, no juggling extensions. Your Ethereum, Bitcoin and Solana balances live on the same quiet screen — with live prices and token views."
+          title="Networks are the agent's problem."
+          sub="You never pick a network, a bridge or a gas token. Ethereum, Bitcoin and Solana balances live on one quiet screen — with live prices and token views."
         />
         <div>
           {CHAIN_ROWS.map((c, i) => (
@@ -204,8 +205,8 @@ export function Chains() {
 // ---------- 02 agent ----------
 // Mirrors the real Telegram flow: draft → explicit YES confirmation → execution.
 const CHAT = [
-  { from: 'you', text: 'send 0.05 eth to alice' },
-  { from: 'bot', text: 'Draft ready — 0.05 ETH → alice (0x91a…3fE2). Reply YES within 2 minutes to confirm.' },
+  { from: 'you', text: 'check my balance, then send 0.05 eth to alice' },
+  { from: 'bot', text: 'Balance: 0.42 ETH. Draft ready — 0.05 ETH → alice (0x91a…3fE2). Reply YES within 2 minutes to confirm.' },
   { from: 'you', text: 'YES' },
   { from: 'bot', receipt: true, text: 'Confirmed — 0.05 ETH sent · tx 0x7be4…c21a' },
 ]
@@ -226,13 +227,23 @@ export function Agent() {
       <div className="wrap agent-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 70, alignItems: 'center' }}>
         <div>
           <SecHead
-            index="02"
+            index="01"
             label="Agent"
-            title="Type it. It's done."
-            sub="A Walletrix agent lives in your Telegram. Check balances, send to saved recipients, track transactions — in plain words. Nothing moves without your explicit YES."
+            title="Tell it the goal. It runs the steps."
+            sub="Message your Walletrix agent in plain words. It chains the steps — checking balances, resolving recipients, drafting the transfer — and reports back with a receipt. Nothing moves without your explicit YES."
           />
           <Reveal delay={300}>
-            <div className="lbl" style={{ fontSize: 11.5, lineHeight: 2.2 }}>balances · transfers · saved recipients · tx status · stealth receives</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <span className="lbl" style={{ fontSize: 11.5, border: '1px solid var(--lp4-line-strong)', borderRadius: 999, padding: '7px 14px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Send size={13} /> Telegram · live
+              </span>
+              <span className="lbl" style={{ fontSize: 11.5, border: '1px solid var(--lp4-line)', borderRadius: 999, padding: '7px 14px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Bot size={13} /> WhatsApp · soon
+              </span>
+            </div>
+          </Reveal>
+          <Reveal delay={400}>
+            <div className="lbl" style={{ fontSize: 11.5, lineHeight: 2.2, marginTop: 18 }}>balances · transfers · saved recipients · tx status · stealth receives</div>
           </Reveal>
         </div>
         <Reveal delay={150}>
@@ -243,7 +254,7 @@ export function Agent() {
               </span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 15 }}>Walletrix Agent</div>
-                <div style={{ fontFamily: 'var(--lp4-font-mono), monospace', fontSize: 11, color: 'var(--lp4-green)' }}>online</div>
+                <div style={{ fontFamily: 'var(--lp4-font-mono), monospace', fontSize: 11, color: 'var(--lp4-green)' }}>online · Telegram</div>
               </div>
             </div>
             <div style={{ padding: '26px 22px 30px', display: 'grid', gap: 14, minHeight: 260, alignContent: 'start' }}>
@@ -273,23 +284,75 @@ export function Agent() {
   )
 }
 
-// ---------- 03 defense ----------
+// ---------- 02 mcp tools ----------
+// Mirrors backend/src/mcp: the model can read and prepare; only the user's YES executes.
+const MCP_TOOLS = [
+  { name: 'get_balance', Icon: Search, text: 'Reads the agent wallet balance.' },
+  { name: 'list_recipients', Icon: Search, text: 'Resolves "send to Alice" against your saved recipients.' },
+  { name: 'prepare_transfer', Icon: Layers, text: 'Stages a transfer for confirmation. Never signs, never sends.' },
+  { name: 'get_tx_status', Icon: Search, text: 'Tracks a transaction until it lands, then reports back.' },
+]
+
+const mono = { fontFamily: 'var(--lp4-font-mono), monospace' }
+
+export function McpTools() {
+  return (
+    <section id="mcp" className="sec">
+      <div className="wrap">
+        <SecHead
+          index="02"
+          label="MCP tools"
+          title="An agent with real tools, on a short leash."
+          sub="Walletrix exposes its wallet as an MCP server. The model picks tools, reads the results and chains steps together — but it can only read and prepare. Execution sits behind your confirmation."
+        />
+        <div className="mock4" style={{ padding: 'clamp(20px, 3.5vw, 36px)', marginBottom: 48, ...mono, fontSize: 13.5, lineHeight: 1.9 }}>
+          <Reveal><div style={{ color: 'var(--lp4-dim)' }}>{'// agent loop — model → tool → result → model'}</div></Reveal>
+          <Reveal delay={100}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> get_balance() <span style={{ color: 'var(--lp4-green)' }}>→ 0.42 ETH</span></div></Reveal>
+          <Reveal delay={200}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'list_recipients({ name: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ 0x91a…3fE2</span></div></Reveal>
+          <Reveal delay={300}><div><span style={{ color: 'var(--lp4-accent)' }}>call</span> {'prepare_transfer({ amount: 0.05, to: "alice" })'} <span style={{ color: 'var(--lp4-green)' }}>→ staged · awaiting YES</span></div></Reveal>
+          <Reveal delay={400}><div style={{ color: 'var(--lp4-dim)' }}>{'// execution is not a tool — only your confirmation can trigger it'}</div></Reveal>
+        </div>
+        <div>
+          {MCP_TOOLS.map((t, i) => (
+            <Reveal key={t.name} delay={i * 100}>
+              <div className="lrow" style={{ gridTemplateColumns: 'auto minmax(160px, 260px) 1fr', gap: 30 }}>
+                <span style={{ color: 'var(--lp4-accent)', opacity: 0.9 }}><t.Icon size={22} strokeWidth={1.8} /></span>
+                <div style={{ ...mono, fontSize: 17, fontWeight: 500 }}>{t.name}</div>
+                <p className="sub" style={{ margin: 0, fontSize: 16.5 }}>{t.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={200}>
+          <p className="sub" style={{ marginTop: 40 }}>Runs as a standard MCP server over stdio — the same tools work with any MCP-compatible client.</p>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+// ---------- 03 delegation ----------
 // The real Walletrix security model, not marketing fiction.
 const DEFENSE = [
   {
-    Icon: Ghost,
-    title: 'Stealth receives',
-    text: 'A fresh one-time address for every receive, issued from Telegram or the dashboard. Payments never trace back to your main wallet.',
+    Icon: KeyRound,
+    title: 'Scoped delegation',
+    text: 'The agent acts only on the authority you grant — specific actions, never blanket access to your funds.',
   },
   {
     Icon: Bot,
     title: 'Isolated agent wallet',
-    text: 'The Telegram agent spends only from its own dedicated wallet, funded by you. Your main keys never touch the chat.',
+    text: 'It spends only from its own dedicated wallet, funded by you. Your main keys never touch the chat, and the worst case is capped at what you fund it with.',
   },
   {
-    Icon: KeyRound,
-    title: 'Encrypted at rest',
-    text: 'Wallet keys are sealed with AES-256-GCM, derived from your password — encrypted before they ever reach a database.',
+    Icon: Check,
+    title: 'Confirm before it moves',
+    text: 'Every transfer is staged, shown to you, and single-use. It expires after two minutes if you don\'t say yes.',
+  },
+  {
+    Icon: Ghost,
+    title: 'Stealth receives',
+    text: 'A fresh one-time address for every receive, issued from Telegram or the dashboard. Payments never trace back to your main wallet.',
   },
 ]
 
@@ -299,9 +362,9 @@ export function Defense() {
       <div className="wrap">
         <SecHead
           index="03"
-          label="Defense"
-          title="Security that stays out of the way."
-          sub="Everything is protected by default — nothing asks for your attention until it has to."
+          label="Delegation"
+          title="Autonomy, with limits you set."
+          sub="The agent takes action on specific delegated authorities — and every key stays encrypted at rest with AES-256-GCM."
         />
         <div>
           {DEFENSE.map((d, i) => (
@@ -362,7 +425,7 @@ export function Console({ onGetStarted }) {
     <section id="console" className="sec">
       <div className="wrap">
         <SecHead
-          index="04"
+          index="05"
           label="Console"
           title="Your portfolio, breathing."
           sub="Live balances, live prices, live agent activity — the dashboard updates itself so you don't have to."
@@ -435,9 +498,10 @@ export function Footer() {
     <footer style={{ paddingTop: '6rem', borderTop: '1px solid var(--lp4-line)', overflow: 'hidden' }}>
       <div className="wrap" style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', paddingBottom: 40 }}>
         <span className="lbl" style={{ marginRight: 'auto' }}>© 2026 Walletrix</span>
-        <a className="nlink" href="#chains" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>Chains</a>
         <a className="nlink" href="#agent" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>Agent</a>
-        <a className="nlink" href="#defense" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>Security</a>
+        <a className="nlink" href="#mcp" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>MCP tools</a>
+        <a className="nlink" href="#defense" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>Delegation</a>
+        <a className="nlink" href="#chains" style={{ color: 'var(--lp4-dim)', textDecoration: 'none', fontSize: 14 }}>Chains</a>
       </div>
       <div className="wrap" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', paddingBottom: 56 }}>
         <span className="lbl" style={{ marginRight: 'auto', fontSize: 11 }}>Built by Ayush Narayan Sharma</span>

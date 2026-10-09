@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AuroraBackground from './landing/AuroraBackground'
-import { Nav, Hero, Chains, Agent, Defense, Console, Footer } from './landing/sections'
+import { Nav, Hero, Chains, Agent, McpTools, Defense, Console, Footer } from './landing/sections'
 import './landing/landing.css'
 
 export default function LandingPage({ onGetStarted, onGuestMode }) {
@@ -21,9 +21,10 @@ export default function LandingPage({ onGetStarted, onGuestMode }) {
         <Nav onGetStarted={onGetStarted} />
         <main>
           <Hero onGetStarted={onGetStarted} onGuestMode={onGuestMode} />
-          <Chains />
           <Agent />
+          <McpTools />
           <Defense />
+          <Chains />
           <Console onGetStarted={onGetStarted} />
         </main>
         <Footer />
