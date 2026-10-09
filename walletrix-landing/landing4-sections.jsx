@@ -138,10 +138,10 @@
             <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em' }}>Walletrix</span>
           </a>
           <div style={{ display: 'flex', gap: 26 }} className="navlinks">
-            <a className="nlink" href="#chains">Chains</a>
             <a className="nlink" href="#agent">Agent</a>
-            <a className="nlink" href="#defense">Security</a>
-            <a className="nlink" href="#console">Console</a>
+            <a className="nlink" href="#mcp">MCP tools</a>
+            <a className="nlink" href="#defense">Delegation</a>
+            <a className="nlink" href="#chains">Chains</a>
           </div>
           <a className="btn4 primary" href={APP_URL} style={{ padding: '10px 22px', fontSize: 14.5 }}>Launch app</a>
         </div>
@@ -180,28 +180,28 @@
           <Reveal delay={120}>
             <div className="lbl" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap', border: '1px solid var(--line)', borderRadius: 999, padding: '8px 16px', background: 'rgba(8,11,20,0.4)', backdropFilter: 'blur(6px)' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 10px var(--green)', animation: 'pulseDot4 2.4s ease-in-out infinite' }}></span>
-              ETH · BTC · SOL — one console
+              Agentic AI wallet · Telegram · WhatsApp
             </div>
           </Reveal>
           <div style={{ display: 'grid', justifyItems: 'center' }}>
             <h1 ref={h1Ref} style={{ fontSize: 'clamp(58px, 10.5vw, 138px)', lineHeight: 0.96, fontWeight: 700, letterSpacing: '-0.045em' }}>
-              <HeroWords text="Crypto," startDelay={220}></HeroWords>
+              <HeroWords text="Your" startDelay={220}></HeroWords>
               <span style={{ color: 'var(--dim)' }}> </span>
-              <HeroWords text="minus" startDelay={330}></HeroWords>
+              <HeroWords text="wallet," startDelay={330}></HeroWords>
               <br />
-              <HeroWords text="the noise." startDelay={520} grad={true}></HeroWords>
+              <HeroWords text="on autopilot." startDelay={520} grad={true}></HeroWords>
             </h1>
             <span className="hl-rule"></span>
           </div>
           <Reveal delay={760}>
             <p className="sub" style={{ margin: '6px auto 0', textAlign: 'center' }}>
-              One wallet for Ethereum, Bitcoin and Solana — with an AI agent on Telegram that executes while you sleep.
+              Walletrix is an agentic AI wallet. Message it on Telegram or WhatsApp and it runs multi-step on-chain workflows for you — swaps, cross-chain transfers, network abstraction — strictly within the authority you delegate.
             </p>
           </Reveal>
           <Reveal delay={880}>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
               <a className="btn4 primary" href={APP_URL}>Launch app <Icon name="arrowUpRight" size={17} stroke={2.4}></Icon></a>
-              <a className="btn4 ghost" href="#chains">See it move</a>
+              <a className="btn4 ghost" href="#agent">Watch the agent work</a>
             </div>
           </Reveal>
         </div>
@@ -250,7 +250,7 @@
     return (
       <section id="chains" className="sec">
         <div className="wrap">
-          <SecHead index="01" label="Chains" title="Three chains. One surface." sub="No tab-hopping, no bridges to think about. Your Ethereum, Bitcoin and Solana balances live on the same quiet screen."></SecHead>
+          <SecHead index="04" label="Chains" title="Networks are the agent’s problem." sub="Swaps and cross-chain transfers happen without you picking a network, a bridge or a gas token. Ethereum, Bitcoin and Solana balances live on one quiet screen."></SecHead>
           <div>
             {CHAIN_ROWS.map((c, i) => <ChainRow key={c.name} c={c} delay={i * 120}></ChainRow>)}
           </div>
@@ -259,11 +259,12 @@
     );
   }
 
-  // ---------- 02 agent ----------
+  // ---------- 01 agent ----------
   const CHAT = [
-    { from: 'you', text: 'swap 120 usdc to eth when gas drops under 12' },
-    { from: 'bot', text: 'Watching gas. I\u2019ll execute the moment it crosses 12 gwei.' },
-    { from: 'bot', receipt: true, text: '11.8 gwei — executed. 120 USDC → 0.0351 ETH' },
+    { from: 'you', text: 'move 500 USDC from Ethereum to Solana, then swap half to SOL' },
+    { from: 'bot', text: 'Plan: 1) bridge 500 USDC ETH → SOL  2) swap 250 USDC → SOL. Est. fee $1.84. Reply YES to confirm.' },
+    { from: 'you', text: 'YES' },
+    { from: 'bot', receipt: true, text: 'Done — 500 USDC bridged · 250 USDC → 1.49 SOL' },
   ];
 
   function Agent() {
@@ -271,18 +272,28 @@
     const [step, setStep] = React.useState(0); // counts messages shown; typing dots between
     React.useEffect(() => {
       if (!seen) return;
-      const delays = [400, 1700, 3300];
+      const delays = [400, 1600, 3000, 4500];
       const timers = delays.map((d, i) => setTimeout(() => setStep(i + 1), d));
       return () => timers.forEach(clearTimeout);
     }, [seen]);
-    const typing = seen && step >= 1 && step < CHAT.length;
+    const typing = seen && step >= 1 && step < CHAT.length && CHAT[step].from === 'bot';
     return (
       <section id="agent" className="sec">
         <div className="wrap" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 70, alignItems: 'center' }} data-agent-grid="">
           <div>
-            <SecHead index="02" label="Agent" title="Type it. It's done." sub="A Walletrix agent lives in your Telegram. Gas triggers, limit orders, DCA schedules — say it once in plain words, it runs around the clock."></SecHead>
+            <SecHead index="01" label="Agent" title="Tell it the goal. It runs the steps." sub="Message your Walletrix agent in plain words. It plans the multi-step workflow, handles the swaps and cross-chain hops, and reports back with a receipt."></SecHead>
             <Reveal delay={300}>
-              <div className="lbl" style={{ fontSize: 11.5, lineHeight: 2.2 }}>gas triggers · limits · dca · alerts</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <span className="lbl" style={{ fontSize: 11.5, border: '1px solid var(--line-strong)', borderRadius: 999, padding: '7px 14px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Icon name="send" size={13}></Icon> Telegram · live
+                </span>
+                <span className="lbl" style={{ fontSize: 11.5, border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Icon name="bot" size={13}></Icon> WhatsApp · soon
+                </span>
+              </div>
+            </Reveal>
+            <Reveal delay={400}>
+              <div className="lbl" style={{ fontSize: 11.5, lineHeight: 2.2, marginTop: 18 }}>auto swaps · cross-chain transfers · multi-step plans</div>
             </Reveal>
           </div>
           <Reveal delay={150}>
@@ -291,10 +302,10 @@
                 <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'color-mix(in oklab, var(--accent) 22%, transparent)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}><Icon name="bot" size={17}></Icon></span>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>Walletrix Agent</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--green)' }}>online</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--green)' }}>online · Telegram</div>
                 </div>
               </div>
-              <div style={{ padding: '26px 22px 30px', display: 'grid', gap: 14, minHeight: 240, alignContent: 'start' }}>
+              <div style={{ padding: '26px 22px 30px', display: 'grid', gap: 14, minHeight: 300, alignContent: 'start' }}>
                 {CHAT.slice(0, step).map((m, i) => (
                   <div key={i} className="msg4 on" style={{ justifySelf: m.from === 'you' ? 'end' : 'start', maxWidth: '85%' }}>
                     {m.receipt ? (
@@ -319,18 +330,58 @@
     );
   }
 
+  // ---------- 02 mcp tools ----------
+  const MCP_TOOLS = [
+    { name: 'get_balance', kind: 'read', text: 'Reads balances across the agent’s wallet and chains.' },
+    { name: 'list_recipients', kind: 'read', text: 'Resolves “send to Alice” against your saved recipients.' },
+    { name: 'prepare_transfer', kind: 'prepare', text: 'Stages a transfer or swap for confirmation. Never signs, never sends.' },
+    { name: 'get_tx_status', kind: 'read', text: 'Tracks a transaction until it lands, then reports back.' },
+  ];
+
+  function McpTools() {
+    return (
+      <section id="mcp" className="sec">
+        <div className="wrap">
+          <SecHead index="02" label="MCP tools" title="An agent with real tools, on a short leash." sub="Walletrix exposes its wallet as an MCP server. The model picks tools, reads results and chains steps together — but it can only read and prepare. Execution sits behind your confirmation."></SecHead>
+          <div className="mock4" style={{ padding: 'clamp(20px, 3.5vw, 36px)', marginBottom: 48, fontFamily: 'var(--mono)', fontSize: 13.5, lineHeight: 1.9 }}>
+            <Reveal><div style={{ color: 'var(--dim)' }}>{'// agent loop — model → tool → result → model'}</div></Reveal>
+            <Reveal delay={100}><div><span style={{ color: 'var(--accent)' }}>call</span> get_balance{'({ chain: "ethereum" })'} <span style={{ color: 'var(--green)' }}>→ 812.40 USDC</span></div></Reveal>
+            <Reveal delay={200}><div><span style={{ color: 'var(--accent)' }}>call</span> list_recipients{'({ name: "alice" })'} <span style={{ color: 'var(--green)' }}>→ 0x91a…3fE2</span></div></Reveal>
+            <Reveal delay={300}><div><span style={{ color: 'var(--accent)' }}>call</span> prepare_transfer{'({ amount: 500, to: "alice" })'} <span style={{ color: 'var(--green)' }}>→ staged · awaiting YES</span></div></Reveal>
+            <Reveal delay={400}><div style={{ color: 'var(--dim)' }}>{'// execution is not a tool — only your confirmation can trigger it'}</div></Reveal>
+          </div>
+          <div>
+            {MCP_TOOLS.map((t, i) => (
+              <Reveal key={t.name} delay={i * 100}>
+                <div className="lrow" style={{ gridTemplateColumns: 'auto minmax(160px, 260px) 1fr', gap: 30 }}>
+                  <span style={{ color: 'var(--accent)', opacity: 0.9 }}><Icon name={t.kind === 'prepare' ? 'layers' : 'search'} size={22} stroke={1.8}></Icon></span>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 17, fontWeight: 500 }}>{t.name}</div>
+                  <p className="sub" style={{ margin: 0, fontSize: 16.5 }}>{t.text}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={200}>
+            <p className="sub" style={{ marginTop: 40 }}>Runs as a standard MCP server over stdio — the same tools work with any MCP-compatible client.</p>
+          </Reveal>
+        </div>
+      </section>
+    );
+  }
+
   // ---------- 03 defense ----------
   const DEFENSE = [
-    { icon: 'ghost', title: 'Stealth payments', text: 'One-time addresses for every receive. Nothing traces back to your vault.' },
-    { icon: 'users', title: 'Multisig vaults', text: '3-of-5 signing for anything that matters. No single point of failure.' },
-    { icon: 'key', title: 'Local keys', text: 'Keys are minted in your device\u2019s secure enclave. They never travel.' },
+    { icon: 'key', title: 'Scoped delegation', text: 'The agent acts only on the authority you grant — specific actions, specific limits. Nothing more.' },
+    { icon: 'wallet', title: 'Dedicated agent wallet', text: 'It works from its own wallet, separate from your main vaults. Worst case is capped at what you fund it with.' },
+    { icon: 'check', title: 'Confirm before it moves', text: 'Every transfer is staged, shown to you, and single-use. It expires if you don’t say yes.' },
+    { icon: 'ghost', title: 'Stealth receives', text: 'One-time receive addresses keep incoming payments unlinkable to your vault.' },
   ];
 
   function Defense() {
     return (
       <section id="defense" className="sec">
         <div className="wrap">
-          <SecHead index="03" label="Defense" title="Security that stays out of the way." sub="Everything is protected by default — nothing asks for your attention until it has to."></SecHead>
+          <SecHead index="03" label="Delegation" title="Autonomy, with limits you set." sub="The agent takes action on specific delegated authorities — never blanket access to your funds."></SecHead>
           <div>
             {DEFENSE.map((d, i) => (
               <Reveal key={d.title} delay={i * 120}>
@@ -354,7 +405,7 @@
     return (
       <section id="console" className="sec">
         <div className="wrap">
-          <SecHead index="04" label="Console" title="Your portfolio, breathing." sub="Live balances, live charts, live agent activity — the dashboard updates itself so you don't have to."></SecHead>
+          <SecHead index="05" label="Console" title="Your portfolio, breathing." sub="Live balances, live charts, live agent activity — the dashboard updates itself so you don't have to."></SecHead>
           <Reveal delay={150}>
             <div className="mock4" style={{ padding: 'clamp(22px, 4vw, 44px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30, flexWrap: 'wrap' }}>
@@ -399,9 +450,10 @@
       <footer style={{ paddingTop: '6rem', borderTop: '1px solid var(--line)', overflow: 'hidden' }}>
         <div className="wrap" style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', paddingBottom: 56 }}>
           <span className="lbl" style={{ marginRight: 'auto' }}>© 2026 Walletrix</span>
-          <a className="nlink" href="#chains" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>Chains</a>
           <a className="nlink" href="#agent" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>Agent</a>
-          <a className="nlink" href="#defense" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>Security</a>
+          <a className="nlink" href="#mcp" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>MCP tools</a>
+          <a className="nlink" href="#defense" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>Delegation</a>
+          <a className="nlink" href="#chains" style={{ color: 'var(--dim)', textDecoration: 'none', fontSize: 14 }}>Chains</a>
           <a className="nlink" href={APP_URL} style={{ color: 'var(--ink)', textDecoration: 'none', fontSize: 14 }}>Launch app ↗</a>
         </div>
         <Reveal>
@@ -412,7 +464,7 @@
   }
 
   Object.assign(window, {
-    Nav4: Nav, Hero4: Hero, Chains4: Chains, Agent4: Agent,
+    Nav4: Nav, Hero4: Hero, Chains4: Chains, Agent4: Agent, Mcp4: McpTools,
     Defense4: Defense, Console4: Console, Footer4: Footer, Reveal4: Reveal,
   });
 })();

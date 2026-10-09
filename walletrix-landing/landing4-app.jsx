@@ -1,7 +1,7 @@
 // landing4-app.jsx — composition + tweaks wiring for Landing v4.
 (function () {
   const {
-    Nav4, Hero4, Chains4, Agent4, Defense4, Console4, Footer4,
+    Nav4, Hero4, Chains4, Agent4, Mcp4, Defense4, Console4, Footer4,
     useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle, TweakColor,
     startAurora4,
   } = window;
@@ -34,9 +34,10 @@
         <Nav4></Nav4>
         <main data-screen-label="Landing v4">
           <Hero4></Hero4>
-          <Chains4></Chains4>
           <Agent4></Agent4>
+          <Mcp4></Mcp4>
           <Defense4></Defense4>
+          <Chains4></Chains4>
           <Console4></Console4>
         </main>
         <Footer4></Footer4>
