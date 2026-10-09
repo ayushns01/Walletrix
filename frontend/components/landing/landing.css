@@ -259,5 +259,5 @@
 }
 
 @media (max-width: 860px) {
-  .lp4 .mcp-flow { grid-template-columns: minmax(0, 1fr) !important; }
+  .lp4 .mcp-flow, .lp4 .mcp-caps { grid-template-columns: minmax(0, 1fr) !important; }
 }
