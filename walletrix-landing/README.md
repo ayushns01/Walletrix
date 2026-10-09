@@ -9,7 +9,7 @@ Static landing page — no build step, no Node, no bundler required.
 | `index.html` | Entry point — rename/deploy as-is |
 | `lib.jsx` | Icons, mock data, shared helpers |
 | `landing4-bg.jsx` | Generative aurora canvas background |
-| `landing4-sections.jsx` | All sections: Hero, Chains, Agent, Security, Console, Footer |
+| `landing4-sections.jsx` | All sections: Hero, Agent, MCP tools, Delegation, Chains, Console, Footer |
 | `landing4-app.jsx` | App root + Tweaks panel wiring |
 | `tweaks-panel.jsx` | In-design tweak controls (design-time only, optional) |
 
